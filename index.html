@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0f1e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>現場情報共有ツール</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap');
+:root{
+  --bg:#0a0f1e;--surface:#111827;--surface2:#1c2537;--surface3:#243047;
+  --border:#2a3a5c;--border2:#364a72;--accent:#3b6fd4;--accent2:#5b8ff0;--accent3:#7aa8ff;
+  --danger:#e05555;--warn:#e09040;--success:#2ea87e;
+  --text:#dce8ff;--text2:#7a94c0;--text3:#4a6090;
+  --mono:'JetBrains Mono',monospace;--sans:'Noto Sans JP',sans-serif;
+  --r:10px;--sh:0 4px 24px rgba(0,0,0,0.5);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* ═══ AUTH SCREEN ═══ */
+#auth-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px 24px;overflow-y:auto;}
+.auth-logo{text-align:center;}
+.auth-logo h1{font-size:20px;font-weight:700;color:var(--accent3);}
+.auth-logo p{font-size:12px;color:var(--text2);margin-top:4px;}
+#pin-view{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:320px;}
+.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:8px;}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2);transition:all 0.2s;}
+.pin-dot.filled{background:var(--accent2);border-color:var(--accent);transform:scale(1.1);}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px;}
+.pin-key{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;font-size:22px;font-weight:600;font-family:var(--mono);color:var(--text);cursor:pointer;transition:all 0.15s;user-select:none;}
+.pin-key:active{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(0.94);}
+.pin-key-empty{background:transparent;border:none;cursor:default;}
+.pin-key-del{font-size:18px;color:var(--text2);}
+.auth-error{color:var(--danger);font-size:12px;text-align:center;opacity:0;transition:opacity 0.3s;min-height:18px;}
+.auth-error.show{opacity:1;}
+.auth-hint{font-size:11px;color:var(--text3);text-align:center;line-height:1.6;}
+
+/* ═══ SETTINGS MODAL (全画面オーバーレイ方式) ═══ */
+#settings-modal{
+  position:fixed;inset:0;z-index:500;background:var(--bg);
+  display:none;flex-direction:column;overflow:hidden;
+}
+#settings-modal.open{display:flex;}
+.settings-modal-header{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;
+}
+.settings-modal-header h2{flex:1;font-size:16px;font-weight:700;color:var(--accent3);}
+
+/* ═══ HEADER ═══ */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;z-index:100;}
+.logo{font-size:16px;font-weight:700;color:var(--accent3);flex:1;line-height:1.2;}
+.logo small{display:block;font-size:10px;color:var(--text2);font-weight:400;margin-top:1px;}
+.sync-indicator{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--text3);padding:4px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--success);}
+.sync-dot.syncing{background:var(--warn);animation:pulse 1s infinite;}
+.sync-dot.off{background:var(--text3);}
+.sync-dot.error{background:var(--danger);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.icon-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all 0.15s;flex-shrink:0;}
+.icon-btn:active{transform:scale(0.92);background:var(--accent);border-color:var(--accent);}
+
+/* ═══ TABS (モバイル) ═══ */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:64px;padding:9px 4px 7px;text-align:center;font-size:10px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;}
+.tab.active{color:var(--accent3);border-bottom-color:var(--accent);}
+.tab-icon{font-size:17px;display:block;margin-bottom:1px;}
+
+/* ═══ CONTENT ═══ */
+.content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.page{display:none;flex:1;overflow:hidden;flex-direction:column;}
+.page.active{display:flex;}
+
+/* ═══ MAP ═══ */
+.map-container{flex:1;position:relative;overflow:hidden;background:#060c18;touch-action:none;}
+.map-img{position:absolute;transform-origin:0 0;user-select:none;pointer-events:none;}
+.map-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;color:var(--text2);background:radial-gradient(ellipse at center,#111827 0%,#060c18 100%);}
+.map-placeholder .ph-icon{font-size:52px;opacity:0.3;}
+.map-placeholder p{font-size:13px;opacity:0.6;text-align:center;padding:0 32px;line-height:1.6;}
+.map-pin{position:absolute;transform:translate(-50%,-100%);cursor:pointer;z-index:10;transition:filter 0.15s;}
+.map-pin:active{filter:brightness(1.3);}
+.pin-marker{width:30px;height:30px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,0.6);border:2px solid rgba(255,255,255,0.25);position:relative;}
+.pin-no{transform:rotate(45deg);font-size:10px;font-weight:700;font-family:var(--mono);color:#fff;}
+.pin-has-photo::after{content:'📷';font-size:8px;position:absolute;bottom:-2px;right:-4px;background:var(--surface);border-radius:50%;padding:1px;line-height:1;}
+.pin-施工.pin-high .pin-marker{background:linear-gradient(135deg,#e05555,#b83030);}
+.pin-施工.pin-mid .pin-marker{background:linear-gradient(135deg,#e09040,#b87020);}
+.pin-施工.pin-low .pin-marker{background:linear-gradient(135deg,#3b6fd4,#2a50a0);}
+.pin-設計.pin-high .pin-marker{background:linear-gradient(135deg,#9040e0,#6020b0);}
+.pin-設計.pin-mid .pin-marker{background:linear-gradient(135deg,#20a0c0,#1070a0);}
+.pin-設計.pin-low .pin-marker{background:linear-gradient(135deg,#40a060,#207040);}
+.pin-complete .pin-marker{background:linear-gradient(135deg,#2ea87e,#1a7055);opacity:0.75;}
+.map-toolbar{position:absolute;bottom:16px;right:14px;display:flex;flex-direction:column;gap:8px;z-index:20;}
+.fab{width:48px;height:48px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all 0.2s;box-shadow:var(--sh);}
+.fab-primary{background:linear-gradient(135deg,var(--accent),#2855a8);color:#fff;}
+.fab-primary.active{background:linear-gradient(135deg,var(--warn),#b07020);}
+.fab-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:18px;}
+.fab-secondary.active{background:var(--surface3);border-color:var(--accent);color:var(--accent3);}
+.map-hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(224,144,64,0.92);color:#000;padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;z-index:20;pointer-events:none;display:none;}
+.stats-bar{background:var(--surface);border-top:1px solid var(--border);padding:7px 14px;display:flex;gap:14px;flex-shrink:0;align-items:center;}
+.stat{display:flex;align-items:center;gap:5px;font-size:11px;}
+.stat-dot{width:7px;height:7px;border-radius:50%;}
+.stat-n{font-weight:700;font-family:var(--mono);font-size:13px;}
+.storage-bar-wrap{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.storage-bar{width:60px;height:5px;background:var(--surface3);border-radius:3px;overflow:hidden;}
+.storage-bar-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.4s;}
+.storage-bar-fill.warn{background:var(--warn);}
+.storage-bar-fill.danger{background:var(--danger);}
+#storageTxt{font-size:9px;color:var(--text3);font-family:var(--mono);}
+
+/* ═══ LIST ═══ */
+.list-header{padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;}
+.search-input{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 11px;font-size:13px;font-family:var(--sans);outline:none;}
+.search-input:focus{border-color:var(--accent);}
+.filter-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;color:var(--text2);padding:6px 12px;font-size:11px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+.filter-chip.active{background:rgba(59,111,212,0.2);color:var(--accent3);border-color:var(--accent);}
+.pin-list{flex:1;overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:7px;}
+.pin-list::-webkit-scrollbar{width:3px;}
+.pin-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.pin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;cursor:pointer;transition:all 0.15s;border-left:3px solid var(--border);display:flex;gap:10px;}
+.pin-card:active{transform:scale(0.98);background:var(--surface2);}
+.pin-card.施工-high{border-left-color:#e05555;}.pin-card.施工-mid{border-left-color:#e09040;}.pin-card.施工-low{border-left-color:#3b6fd4;}
+.pin-card.設計-high{border-left-color:#9040e0;}.pin-card.設計-mid{border-left-color:#20a0c0;}.pin-card.設計-low{border-left-color:#40a060;}
+.pin-card.done{opacity:0.55;}
+.pin-card-thumb{width:44px;height:44px;border-radius:6px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text3);overflow:hidden;}
+.pin-card-thumb img{width:100%;height:100%;object-fit:cover;}
+.pin-card-body{flex:1;min-width:0;}
+.pin-card-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;white-space:nowrap;}
+.badge-no{background:var(--surface3);color:var(--accent3);font-family:var(--mono);}
+.badge-施工{background:rgba(59,111,212,0.2);color:#7aa8ff;}.badge-設計{background:rgba(144,64,224,0.2);color:#c084f0;}
+.badge-改善,.badge-残工事,.badge-対策,.badge-改善案,.badge-検討{background:rgba(224,85,85,0.15);color:#f08080;}
+.badge-確認{background:rgba(224,144,64,0.15);color:#f0b060;}
+.badge-done{background:rgba(46,168,126,0.2);color:#5ec8a0;}.badge-todo{background:rgba(224,85,85,0.12);color:#e08080;}
+.pin-card-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;}
+.pin-card-meta{font-size:10px;color:var(--text2);display:flex;gap:10px;flex-wrap:wrap;}
+
+/* ═══ BOTTOM SHEET ═══ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:190;display:none;}
+.overlay.show{display:block;}
+.bottom-sheet{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);border-radius:18px 18px 0 0;z-index:200;transform:translateY(100%);transition:transform 0.32s cubic-bezier(0.32,0.72,0,1);max-height:94dvh;display:flex;flex-direction:column;}
+.bottom-sheet.open{transform:translateY(0);}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:11px auto 3px;flex-shrink:0;}
+.sheet-header{padding:6px 14px 11px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid var(--border);}
+.sheet-title{font-size:15px;font-weight:700;flex:1;}
+.sheet-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:11px;}
+.sheet-body::-webkit-scrollbar{width:3px;}
+.sheet-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sheet-footer{padding:11px 14px;display:flex;gap:8px;flex-shrink:0;border-top:1px solid var(--border);}
+
+/* ═══ FORM ═══ */
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+.f{display:flex;flex-direction:column;gap:3px;}.f.full{grid-column:1/-1;}
+.f label{font-size:10px;color:var(--text2);font-weight:500;letter-spacing:0.5px;}
+.f input,.f select,.f textarea{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 10px;font-size:13px;font-family:var(--sans);outline:none;width:100%;}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--accent);}
+.f textarea{resize:vertical;min-height:64px;line-height:1.5;}
+.f select option{background:var(--surface2);}
+.div-toggle{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.div-btn{flex:1;padding:5px 4px;text-align:center;font-size:12px;font-weight:700;border-radius:5px;cursor:pointer;transition:all 0.2s;color:var(--text2);}
+.div-btn.active-施工{background:var(--accent);color:#fff;}
+.div-btn.active-設計{background:#7030c0;color:#fff;}
+.photo-section{display:flex;flex-direction:column;gap:8px;}
+.photo-label{font-size:10px;color:var(--text2);font-weight:500;letter-spacing:0.5px;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.photo-thumb{aspect-ratio:1;border-radius:7px;overflow:hidden;position:relative;background:var(--surface2);border:1px solid var(--border);cursor:pointer;}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.photo-thumb .del-photo{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.photo-add-btn{aspect-ratio:1;border-radius:7px;border:1.5px dashed var(--border2);background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--text2);font-size:11px;transition:all 0.15s;}
+.photo-add-btn:active{border-color:var(--accent);color:var(--accent3);}
+.photo-add-btn .ph-i{font-size:22px;}
+.toggle-row{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;gap:9px;cursor:pointer;}
+.toggle-label{flex:1;font-size:13px;}
+.toggle{width:38px;height:21px;background:var(--border2);border-radius:11px;position:relative;transition:background 0.2s;flex-shrink:0;}
+.toggle.on{background:var(--success);}
+.toggle::after{content:'';position:absolute;width:17px;height:17px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.3);}
+.toggle.on::after{transform:translateX(17px);}
+
+/* ═══ BUTTONS ═══ */
+.btn{padding:11px 16px;border-radius:9px;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer;border:none;transition:all 0.15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.btn:active{transform:scale(0.95);}
+.btn-primary{background:linear-gradient(135deg,var(--accent),#2855a8);color:#fff;flex:1;}
+.btn-danger{background:rgba(224,85,85,0.12);color:#f08080;border:1px solid rgba(224,85,85,0.25);}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}
+
+/* ═══ REPORT ═══ */
+.report-scroll{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:13px;}
+.rc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
+.rc h3{font-size:12px;color:var(--text2);margin-bottom:11px;letter-spacing:0.5px;}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.stat-box{background:var(--surface2);border-radius:8px;padding:11px 6px;text-align:center;}
+.stat-box .n{font-size:26px;font-weight:700;font-family:var(--mono);}
+.stat-box .l{font-size:10px;color:var(--text2);margin-top:2px;}
+.n.c-total{color:var(--accent3);}.n.c-todo{color:var(--danger);}.n.c-done{color:var(--success);}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.bar-lbl{font-size:11px;width:48px;text-align:right;color:var(--text2);}
+.bar-track{flex:1;height:7px;background:var(--surface2);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease;}
+.bar-n{font-size:11px;font-family:var(--mono);width:20px;color:var(--text);}
+.export-list{display:flex;flex-direction:column;gap:8px;}
+.export-item{display:flex;align-items:center;gap:11px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:12px 13px;cursor:pointer;transition:all 0.15s;color:var(--text);}
+.export-item:active{border-color:var(--accent);}
+.export-item .ei{font-size:22px;}
+.export-item strong{display:block;font-size:13px;}
+.export-item span{font-size:10px;color:var(--text2);}
+
+/* ═══ SETTINGS ═══ */
+.settings-scroll{flex:1;overflow-y:auto;padding:14px 14px 80px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch;}
+.ss{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.ss-title{padding:8px 14px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;background:var(--surface2);}
+.si{padding:13px 14px;display:flex;align-items:center;gap:11px;border-top:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
+.si:first-of-type{border-top:none;}
+.si:active{background:var(--surface2);}
+.si .sii{font-size:19px;width:28px;text-align:center;}
+.si .si-body{flex:1;}
+.si .si-body strong{display:block;font-size:13px;}
+.si .si-body span{font-size:11px;color:var(--text2);}
+.si .si-arrow{font-size:16px;color:var(--text3);}
+
+/* ═══ TOAST ═══ */
+.toast{position:fixed;top:68px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:9px 18px;font-size:12px;z-index:9999;opacity:0;transition:all 0.25s;max-width:88vw;text-align:center;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:var(--success);color:#5ec8a0;}
+.toast.err{border-color:var(--danger);color:#f08080;}
+.toast.warn{border-color:var(--warn);color:#f0b060;}
+.empty{text-align:center;padding:48px 24px;color:var(--text2);}
+.empty .ei{font-size:46px;margin-bottom:12px;opacity:0.3;}
+.empty p{font-size:13px;line-height:1.6;}
+
+/* ═══ OneDrive接続設定UI ═══ */
+.od-config-box{background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px;}
+.od-config-box label{font-size:10px;color:var(--text2);font-weight:500;letter-spacing:0.5px;}
+.od-config-box input{background:var(--surface3);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:9px 11px;font-size:12px;font-family:var(--mono);outline:none;width:100%;}
+.od-config-box input:focus{border-color:var(--accent);}
+.od-config-box .od-note{font-size:10px;color:var(--text3);line-height:1.7;}
+
+/* ═══ PC LAYOUT (900px+) ═══ */
+@media(min-width:900px){
+  body{max-width:none;border:none;}
+  header{padding:10px 24px;}
+  .logo{font-size:18px;}
+  .tabs{display:none;}
+  .content{flex-direction:row;}
+  #map-page{display:flex!important;flex:1;min-width:0;border-right:1px solid var(--border);}
+  .pc-right{display:flex;flex-direction:column;width:400px;flex-shrink:0;background:var(--surface);}
+  .pc-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .pc-tab{flex:1;padding:10px 4px 8px;text-align:center;font-size:11px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;}
+  .pc-tab.active{color:var(--accent3);border-bottom-color:var(--accent);}
+  .pc-tab-icon{font-size:16px;display:block;margin-bottom:2px;}
+  /* PC右ペイン内のページ */
+  .pc-right .pc-page{display:none;flex:1;overflow:hidden;flex-direction:column;}
+  .pc-right .pc-page.active{display:flex;}
+  /* ボトムシートをPC向けに右ペイン内右端に */
+  .bottom-sheet{position:fixed;right:0;left:auto;bottom:0;width:400px;max-height:92%;border-radius:16px 16px 0 0;}
+  #pinSheet{position:fixed;right:0;left:auto;width:400px;}
+  /* 設定モーダルもPC幅に収める */
+  #settings-modal{left:auto;right:0;width:400px;border-left:1px solid var(--border);}
+}
+
+/* ═══ MOBILE ═══ */
+.pc-right{display:none;}
+.pc-tabs{display:none;}
+@media(max-width:899px){
+  body{max-width:480px;margin:0 auto;border-left:1px solid var(--border);border-right:1px solid var(--border);}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH SCREEN ═══ -->
+<div id="auth-screen">
+  <div class="auth-logo">
+    <h1>📍 現場情報共有ツール</h1>
+    <p>PINコードを入力してください</p>
+  </div>
+  <div id="pin-view">
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot" id="pd0"></div>
+      <div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div>
+      <div class="pin-dot" id="pd3"></div>
+    </div>
+    <div class="pin-pad">
+      <div class="pin-key" onclick="pinKey('1')">1</div>
+      <div class="pin-key" onclick="pinKey('2')">2</div>
+      <div class="pin-key" onclick="pinKey('3')">3</div>
+      <div class="pin-key" onclick="pinKey('4')">4</div>
+      <div class="pin-key" onclick="pinKey('5')">5</div>
+      <div class="pin-key" onclick="pinKey('6')">6</div>
+      <div class="pin-key" onclick="pinKey('7')">7</div>
+      <div class="pin-key" onclick="pinKey('8')">8</div>
+      <div class="pin-key" onclick="pinKey('9')">9</div>
+      <div class="pin-key pin-key-empty"></div>
+      <div class="pin-key" onclick="pinKey('0')">0</div>
+      <div class="pin-key pin-key-del" onclick="pinBack()">⌫</div>
+    </div>
+    <div class="auth-error" id="pinError">PINコードが違います</div>
+    <div class="auth-hint">管理者から共有されたPINを入力してください</div>
+  </div>
+</div>
+
+<!-- ═══ APP ═══ -->
+<header>
+  <div class="logo">📍 現場情報共有<small id="mapNameDisplay">図面未選択</small></div>
+  <div class="sync-indicator" id="syncIndicator" onclick="manualSync()" title="クリックで同期">
+    <div class="sync-dot off" id="syncDot"></div>
+    <span id="syncLabel">未接続</span>
+  </div>
+  <button class="icon-btn" onclick="showMapSheet()" title="図面切替">🗺️</button>
+  <button class="icon-btn" onclick="openSettings()" title="設定">⚙️</button>
+</header>
+
+<!-- モバイル用タブ (設定はモーダルに移行したので3タブ) -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('map')"><span class="tab-icon">📌</span>図面</div>
+  <div class="tab" onclick="switchTab('list')"><span class="tab-icon">📋</span>一覧</div>
+  <div class="tab" onclick="switchTab('report')"><span class="tab-icon">📊</span>集計</div>
+</div>
+
+<div class="content">
+  <!-- MAP -->
+  <div id="map-page" class="page active">
+    <div class="map-hint" id="mapHint">タップでピン追加</div>
+    <div class="map-container" id="mapContainer">
+      <img id="mapImg" class="map-img" style="display:none" alt="図面">
+      <div id="mapPlaceholder" class="map-placeholder">
+        <div class="ph-icon">🏗️</div>
+        <p>設定から図面をアップロード<br>PNG・JPG・PDF・HEICに対応</p>
+      </div>
+      <div id="mapPins"></div>
+    </div>
+    <div class="map-toolbar">
+      <button class="fab fab-secondary" id="moveBtn" onclick="toggleMove()">✋</button>
+      <button class="fab fab-primary" id="addBtn" onclick="toggleAdd()">＋</button>
+    </div>
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-dot" style="background:var(--accent3)"></div><span class="stat-n" id="stTotal">0</span><span style="font-size:10px;color:var(--text2)">件</span></div>
+      <div class="stat"><div class="stat-dot" style="background:var(--danger)"></div><span class="stat-n" id="stTodo">0</span><span style="font-size:10px;color:var(--text2)">未完了</span></div>
+      <div class="stat"><div class="stat-dot" style="background:var(--success)"></div><span class="stat-n" id="stDone">0</span><span style="font-size:10px;color:var(--text2)">完了</span></div>
+      <div class="storage-bar-wrap">
+        <div class="storage-bar"><div class="storage-bar-fill" id="storageBarFill" style="width:0%"></div></div>
+        <span id="storageTxt">0KB</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIST -->
+  <div id="list-page" class="page">
+    <div class="list-header">
+      <input class="search-input" type="search" placeholder="🔍  検索..." id="searchInput" oninput="renderList()">
+      <button class="filter-chip" id="filterBtn" onclick="toggleFilter()">未完了</button>
+    </div>
+    <div class="pin-list" id="pinList"></div>
+  </div>
+
+  <!-- REPORT -->
+  <div id="report-page" class="page">
+    <div class="report-scroll">
+      <div class="rc">
+        <h3>📊 集計</h3>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="n c-total" id="rTotal">0</div><div class="l">総件数</div></div>
+          <div class="stat-box"><div class="n c-todo" id="rTodo">0</div><div class="l">未完了</div></div>
+          <div class="stat-box"><div class="n c-done" id="rDone">0</div><div class="l">完了</div></div>
+        </div>
+      </div>
+      <div class="rc"><h3>🏷️ 指摘項目別</h3><div id="catBars"></div></div>
+      <div class="rc"><h3>⚡ 優先度別</h3><div id="priBars"></div></div>
+      <div class="rc"><h3>📁 区分別</h3><div id="divBars"></div></div>
+      <div class="rc">
+        <h3>📤 出力</h3>
+        <div class="export-list">
+          <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
+          <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート</strong><span>各ピンの詳細・写真付きHTML</span></div></div>
+          <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
+          <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>図面・写真含む全データを保存</span></div></div>
+          <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONバックアップから復元</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PC右ペイン ═══ -->
+<div class="pc-right" id="pcRight">
+  <div class="pc-tabs">
+    <div class="pc-tab active" onclick="switchPcTab('list')"><span class="pc-tab-icon">📋</span>一覧</div>
+    <div class="pc-tab" onclick="switchPcTab('report')"><span class="pc-tab-icon">📊</span>集計</div>
+  </div>
+  <!-- PC一覧 -->
+  <div class="pc-page active" id="pc-list-page">
+    <div class="list-header">
+      <input class="search-input" type="search" placeholder="🔍  検索..." id="searchInputPc" oninput="renderListPc()">
+      <button class="filter-chip" id="filterBtnPc" onclick="toggleFilterPc()">未完了</button>
+    </div>
+    <div class="pin-list" id="pinListPc"></div>
+  </div>
+  <!-- PC集計 -->
+  <div class="pc-page" id="pc-report-page">
+    <div class="report-scroll">
+      <div class="rc">
+        <h3>📊 集計</h3>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="n c-total" id="rTotalPc">0</div><div class="l">総件数</div></div>
+          <div class="stat-box"><div class="n c-todo" id="rTodoPc">0</div><div class="l">未完了</div></div>
+          <div class="stat-box"><div class="n c-done" id="rDonePc">0</div><div class="l">完了</div></div>
+        </div>
+      </div>
+      <div class="rc"><h3>🏷️ 指摘項目別</h3><div id="catBarsPc"></div></div>
+      <div class="rc"><h3>⚡ 優先度別</h3><div id="priBarsPc"></div></div>
+      <div class="rc"><h3>📁 区分別</h3><div id="divBarsPc"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ 設定モーダル（全画面オーバーレイ） ═══ -->
+<div id="settings-modal">
+  <div class="settings-modal-header">
+    <h2>⚙️ 設定</h2>
+    <button class="icon-btn" onclick="closeSettings()">✕</button>
+  </div>
+  <div class="settings-scroll">
+
+    <!-- OneDrive同期設定 -->
+    <div class="ss">
+      <div class="ss-title">☁️ OneDrive 同期設定</div>
+      <div class="si">
+        <span class="sii">🔗</span>
+        <div class="si-body"><strong>同期モード</strong><span id="odModeText">OFF（ローカルのみ）</span></div>
+        <div class="toggle" id="odModeToggle" onclick="toggleOdMode()" style="flex-shrink:0"></div>
+      </div>
+      <div id="odConfigRows">
+        <div style="padding:12px 14px;">
+          <div class="od-config-box">
+            <div class="od-note">
+              ① <b>Azure Portal</b> でアプリ登録（シングルページアプリ）<br>
+              ② リダイレクトURIにこのページのURLを登録<br>
+              ③ APIアクセス許可: <code>Files.ReadWrite</code><br>
+              ④ 以下にクライアントIDとテナントID（または "common"）を入力
+            </div>
+            <label>クライアントID（アプリID）</label>
+            <input type="text" id="odClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              oninput="saveOdConfig()" autocomplete="off" spellcheck="false">
+            <label>テナントID（または common）</label>
+            <input type="text" id="odTenantId" placeholder="common または xxxx-xxxx-..."
+              oninput="saveOdConfig()" autocomplete="off" spellcheck="false">
+            <label>OneDriveの保存フォルダパス（ルートからの相対パス）</label>
+            <input type="text" id="odFolderPath" placeholder="例: 現場共有/project_01"
+              oninput="saveOdConfig()" autocomplete="off">
+            <div class="od-note" style="margin-top:4px">
+              ※ このフォルダに <code>pins_{現場ID}.json</code> と <code>map_{現場ID}.json</code> が作成されます
+            </div>
+          </div>
+        </div>
+        <div class="si" onclick="odLogin()">
+          <span class="sii">🔑</span>
+          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" id="odSyncRow" onclick="manualSync()">
+          <span class="sii">🔄</span>
+          <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" id="odPullRow" onclick="pullFromOd()">
+          <span class="sii">⬇️</span>
+          <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="odLogout()">
+          <span class="sii">🚪</span>
+          <div class="si-body"><strong>サインアウト</strong><span>Microsoftアカウントを切断</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 図面管理 -->
+    <div class="ss">
+      <div class="ss-title">図面管理</div>
+      <div class="si" onclick="triggerMapInput()">
+        <span class="sii">🗺️</span>
+        <div class="si-body"><strong>図面をアップロード</strong><span id="currentMapName">PNG・JPG・PDF・HEIC対応</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="promptMapId()">
+        <span class="sii">🏷️</span>
+        <div class="si-body"><strong>現場ID</strong><span id="currentMapId">default</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="deleteMap()">
+        <span class="sii">🗑️</span>
+        <div class="si-body"><strong style="color:var(--danger)">図面を削除</strong><span>現在の図面画像を削除</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- ピンデータ管理 -->
+    <div class="ss">
+      <div class="ss-title">ピンデータ管理</div>
+      <div class="si">
+        <span class="sii">📦</span>
+        <div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt">計算中...</span></div>
+      </div>
+      <div class="si" onclick="exportJSON()">
+        <span class="sii">💾</span>
+        <div class="si-body"><strong>JSONバックアップ</strong><span>図面・写真含む全データ</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="importJSON()">
+        <span class="sii">📂</span>
+        <div class="si-body"><strong>データ読み込み</strong><span>JSONから復元</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="clearPins()">
+        <span class="sii">🗑️</span>
+        <div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong><span>現在の現場のみ</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- 認証 -->
+    <div class="ss">
+      <div class="ss-title">認証</div>
+      <div class="si" onclick="changePinPrompt()">
+        <span class="sii">🔐</span>
+        <div class="si-body"><strong>PIN変更</strong><span>アプリ起動PINを変更</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="logout()">
+        <span class="sii">🚪</span>
+        <div class="si-body"><strong>ログアウト</strong><span>認証画面に戻る</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- アプリ情報 -->
+    <div class="ss">
+      <div class="ss-title">アプリ情報</div>
+      <div class="si">
+        <span class="sii">ℹ️</span>
+        <div class="si-body"><strong>現場情報共有ツール v4.0</strong><span>OneDrive同期 / SharePoint対応</span></div>
+      </div>
+      <div class="si">
+        <span class="sii">🌐</span>
+        <div class="si-body"><strong>起動URL</strong><span id="currentUrl" style="word-break:break-all;font-size:10px"></span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeSheet()"></div>
+
+<!-- PIN FORM SHEET -->
+<div class="bottom-sheet" id="pinSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="sheetTitle">ピン追加</span>
+    <button class="icon-btn" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body">
+    <div class="fg" style="margin-bottom:-2px">
+      <div class="f">
+        <label>区分</label>
+        <div class="div-toggle">
+          <div class="div-btn active-施工" id="divBtn施工" onclick="setDiv('施工')">施工</div>
+          <div class="div-btn" id="divBtn設計" onclick="setDiv('設計')">設計</div>
+        </div>
+      </div>
+      <div class="f">
+        <label>優先度</label>
+        <select id="f-priority">
+          <option value="">選択</option>
+          <option value="high">高</option>
+          <option value="mid">中</option>
+          <option value="low">低</option>
+        </select>
+      </div>
+    </div>
+    <div class="photo-section">
+      <div class="photo-label">写真</div>
+      <div class="photo-grid" id="photoGrid"></div>
+    </div>
+    <div class="fg">
+      <div class="f">
+        <label>指摘項目</label>
+        <select id="f-item"><option value="">選択</option></select>
+      </div>
+      <div class="f">
+        <label>日付</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="f">
+        <label>記入者</label>
+        <input type="text" id="f-author" placeholder="氏名">
+      </div>
+      <div class="f full">
+        <label>対象</label>
+        <input type="text" id="f-target" placeholder="対象箇所・機器">
+      </div>
+      <div class="f full">
+        <label>場所</label>
+        <input type="text" id="f-location" placeholder="場所・エリア">
+      </div>
+      <div class="f full">
+        <label>指摘内容</label>
+        <textarea id="f-content" placeholder="詳細を記入..."></textarea>
+      </div>
+      <div class="f full">
+        <label>対処方法</label>
+        <textarea id="f-action" placeholder="対処内容を記入..."></textarea>
+      </div>
+      <div class="f">
+        <label>完了予定日</label>
+        <input type="date" id="f-complete-date">
+      </div>
+    </div>
+    <div class="toggle-row" onclick="toggleDone()">
+      <span class="toggle-label">✅ 完了済み</span>
+      <div class="toggle" id="doneToggle"></div>
+    </div>
+  </div>
+  <div class="sheet-footer">
+    <button class="btn btn-danger" id="delBtn" onclick="deletePin()" style="display:none">🗑️</button>
+    <button class="btn btn-primary" onclick="savePin()">💾 保存</button>
+  </div>
+</div>
+
+<!-- MAP SELECTOR SHEET -->
+<div class="bottom-sheet" id="mapSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title">🗺️ 図面を選択</span>
+    <button class="icon-btn" onclick="closeSheet()">✕</button>
+  </div>
+  <div class="sheet-body" id="mapSheetBody" style="gap:8px"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+<input type="file" id="json-import-input" accept=".json" style="display:none" onchange="doImportJSON(this)">
+
+<!-- MSAL (Microsoft認証) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+
+<script>
+'use strict';
+
+// ════════════════════════════════════════
+//  定数
+// ════════════════════════════════════════
+const ITEMS_BY_DIV = {
+  '施工': ['改善','確認','残工事','対策','改善案'],
+  '設計': ['改善','改善案','検討'],
+};
+const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
+const SCOPES = ['Files.ReadWrite', 'User.Read'];
+
+// ════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════
+let pins = [], currentMapId = 'default', addMode = false, moveMode = false;
+let isDragging = false, lastX = 0, lastY = 0, mapScale = 1, mapOffX = 0, mapOffY = 0, pinchDist = 0;
+let editingId = null, pendingX = 0, pendingY = 0;
+let currentPhotos = [], doneState = false, currentDiv = '施工', filterIncomplete = false, filterIncomplPc = false;
+let odEnabled = false, msalInstance = null, odAccessToken = null;
+let pollTimer = null;
+
+// ════════════════════════════════════════
+//  AUTH: PIN (フロントのみ)
+// ════════════════════════════════════════
+// PINはlocalStorageに保存（変更可能）
+// デフォルトPINは "0000" ― 初回起動後に変更を促す
+
+const DEFAULT_PIN = '0000';
+let pinBuffer = '';
+
+function getStoredPin() {
+  return localStorage.getItem('app_pin') || DEFAULT_PIN;
+}
+
+function checkSession() {
+  const saved = localStorage.getItem('auth_session');
+  if (saved) {
+    try {
+      const s = JSON.parse(saved);
+      if (s.expires > Date.now()) { unlockApp(); return true; }
+    } catch {}
+    localStorage.removeItem('auth_session');
+  }
+  return false;
+}
+
+function pinKey(k) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(submitPin, 120);
+}
+
+function pinBack() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++)
+    document.getElementById('pd' + i).classList.toggle('filled', i < pinBuffer.length);
+}
+
+function submitPin() {
+  if (pinBuffer === getStoredPin()) {
+    localStorage.setItem('auth_session', JSON.stringify({
+      expires: Date.now() + 30 * 24 * 60 * 60 * 1000
+    }));
+    unlockApp();
+  } else {
+    showPinError();
+  }
+}
+
+function showPinError() {
+  const err = document.getElementById('pinError');
+  err.classList.add('show');
+  const dots = document.getElementById('pinDots');
+  dots.style.transform = 'translateX(8px)';
+  setTimeout(() => dots.style.transform = 'translateX(-8px)', 80);
+  setTimeout(() => dots.style.transform = 'translateX(4px)', 160);
+  setTimeout(() => { dots.style.transform = ''; err.classList.remove('show'); }, 300);
+  pinBuffer = '';
+  updatePinDots();
+}
+
+function unlockApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  init();
+}
+
+function logout() {
+  if (!confirm('ログアウトしますか？')) return;
+  localStorage.removeItem('auth_session');
+  location.reload();
+}
+
+function changePinPrompt() {
+  const cur = prompt('現在のPINを入力');
+  if (cur !== getStoredPin()) { showToast('現在のPINが違います', 'err'); return; }
+  const n1 = prompt('新しいPIN（4桁以上）');
+  if (!n1 || n1.length < 4) { showToast('4桁以上で入力してください', 'err'); return; }
+  const n2 = prompt('新しいPINを再入力');
+  if (n1 !== n2) { showToast('PINが一致しません', 'err'); return; }
+  localStorage.setItem('app_pin', n1);
+  showToast('PINを変更しました ✓', 'ok');
+}
+
+// ════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════
+function init() {
+  document.getElementById('currentUrl').textContent = location.href;
+  loadOdConfig();
+  loadData();
+  renderPins();
+  updateStorageDisplay();
+  applyLayout();
+  // 起動時にOneDriveから最新データ取得（設定済みの場合）
+  if (odEnabled && odAccessToken) silentPullFromOd();
+  // ポーリング開始（30秒ごとに差分チェック）
+  startPolling();
+}
+
+// ════════════════════════════════════════
+//  STORAGE (localStorage)
+// ════════════════════════════════════════
+function loadData() {
+  try { pins = JSON.parse(localStorage.getItem('pins_' + currentMapId) || '[]'); } catch { pins = []; }
+  const img = localStorage.getItem('map_img_' + currentMapId);
+  if (img) showMapImage(img);
+  const mapName = localStorage.getItem('map_name_' + currentMapId);
+  if (mapName) {
+    document.getElementById('mapNameDisplay').textContent = mapName;
+    document.getElementById('currentMapName').textContent = mapName;
+  }
+}
+
+function saveData() {
+  localStorage.setItem('pins_' + currentMapId, JSON.stringify(pins));
+  updateStorageDisplay();
+  if (odEnabled && odAccessToken) autoSyncToOd();
+}
+
+function updateStorageDisplay() {
+  try {
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++)
+      total += (localStorage.key(i).length + (localStorage.getItem(localStorage.key(i)) || '').length) * 2;
+    const kb = Math.round(total / 1024);
+    const maxKb = 5120;
+    const pct = Math.min(100, kb / maxKb * 100);
+    document.getElementById('storageTxt').textContent = kb >= 1024 ? (kb/1024).toFixed(1)+'MB' : kb+'KB';
+    const fill = document.getElementById('storageBarFill');
+    fill.style.width = pct + '%';
+    fill.className = 'storage-bar-fill' + (pct > 80 ? ' danger' : pct > 60 ? ' warn' : '');
+    document.getElementById('storageDetailTxt').textContent =
+      `localStorageの使用量: ${kb >= 1024 ? (kb/1024).toFixed(1)+'MB' : kb+'KB'} / 5MB`;
+  } catch {}
+}
+
+// ════════════════════════════════════════
+//  OneDrive / Microsoft Graph API
+// ════════════════════════════════════════
+function loadOdConfig() {
+  odEnabled = localStorage.getItem('od_enabled') === '1';
+  document.getElementById('odClientId').value = localStorage.getItem('od_client_id') || '';
+  document.getElementById('odTenantId').value = localStorage.getItem('od_tenant_id') || 'common';
+  document.getElementById('odFolderPath').value = localStorage.getItem('od_folder') || '現場共有';
+  updateOdUI();
+  // アクセストークンをlocalStorageから復元
+  const savedToken = localStorage.getItem('od_access_token');
+  const savedExpiry = parseInt(localStorage.getItem('od_token_expiry') || '0');
+  if (savedToken && savedExpiry > Date.now()) {
+    odAccessToken = savedToken;
+    initMsal();
+  } else if (savedToken) {
+    // 期限切れ → サイレントリフレッシュ試行
+    initMsal().then(() => silentAcquireToken());
+  }
+}
+
+function saveOdConfig() {
+  localStorage.setItem('od_client_id', document.getElementById('odClientId').value.trim());
+  localStorage.setItem('od_tenant_id', document.getElementById('odTenantId').value.trim() || 'common');
+  localStorage.setItem('od_folder', document.getElementById('odFolderPath').value.trim() || '現場共有');
+}
+
+async function initMsal() {
+  const clientId = localStorage.getItem('od_client_id');
+  const tenantId = localStorage.getItem('od_tenant_id') || 'common';
+  if (!clientId) return;
+  try {
+    msalInstance = new msal.PublicClientApplication({
+      auth: {
+        clientId,
+        authority: `https://login.microsoftonline.com/${tenantId}`,
+        redirectUri: location.origin + location.pathname,
+      },
+      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false },
+    });
+    await msalInstance.initialize();
+    // リダイレクト後のトークン処理
+    const resp = await msalInstance.handleRedirectPromise();
+    if (resp && resp.accessToken) {
+      odAccessToken = resp.accessToken;
+      localStorage.setItem('od_access_token', odAccessToken);
+      localStorage.setItem('od_token_expiry', String(resp.expiresOn?.getTime() || (Date.now() + 3600000)));
+      updateOdUI();
+    }
+  } catch(e) { console.warn('MSAL init:', e); }
+}
+
+async function silentAcquireToken() {
+  if (!msalInstance) return;
+  try {
+    const accounts = msalInstance.getAllAccounts();
+    if (!accounts.length) return;
+    const resp = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: accounts[0] });
+    odAccessToken = resp.accessToken;
+    localStorage.setItem('od_access_token', odAccessToken);
+    localStorage.setItem('od_token_expiry', String(resp.expiresOn?.getTime() || (Date.now() + 3600000)));
+    updateOdUI();
+  } catch(e) {
+    odAccessToken = null;
+    updateOdUI();
+  }
+}
+
+async function odLogin() {
+  saveOdConfig();
+  const clientId = localStorage.getItem('od_client_id');
+  if (!clientId) { showToast('クライアントIDを入力してください', 'err'); return; }
+  await initMsal();
+  if (!msalInstance) { showToast('MSALの初期化に失敗しました', 'err'); return; }
+  try {
+    // サイレント取得を試みる
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length) {
+      await silentAcquireToken();
+      if (odAccessToken) { showToast('サインイン済みです ✓', 'ok'); updateOdUI(); return; }
+    }
+    // ポップアップ認証
+    const resp = await msalInstance.loginPopup({ scopes: SCOPES });
+    const tokenResp = await msalInstance.acquireTokenSilent({ scopes: SCOPES, account: resp.account });
+    odAccessToken = tokenResp.accessToken;
+    localStorage.setItem('od_access_token', odAccessToken);
+    localStorage.setItem('od_token_expiry', String(tokenResp.expiresOn?.getTime() || (Date.now() + 3600000)));
+    showToast(`サインイン完了: ${resp.account.username}`, 'ok');
+    updateOdUI();
+  } catch(e) {
+    showToast('サインインに失敗しました: ' + e.message, 'err');
+  }
+}
+
+function odLogout() {
+  odAccessToken = null;
+  localStorage.removeItem('od_access_token');
+  localStorage.removeItem('od_token_expiry');
+  if (msalInstance) {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length) msalInstance.logoutPopup({ account: accounts[0] }).catch(()=>{});
+  }
+  showToast('サインアウトしました', 'warn');
+  updateOdUI();
+}
+
+function toggleOdMode() {
+  odEnabled = !odEnabled;
+  localStorage.setItem('od_enabled', odEnabled ? '1' : '0');
+  updateOdUI();
+  if (odEnabled) {
+    showToast('OneDrive同期モードON', 'ok');
+    if (!odAccessToken) showToast('Microsoftアカウントでサインインしてください', 'warn');
+    startPolling();
+  } else {
+    showToast('ローカルモードに切替', 'warn');
+    stopPolling();
+  }
+}
+
+function updateOdUI() {
+  document.getElementById('odModeToggle').className = 'toggle' + (odEnabled ? ' on' : '');
+  document.getElementById('odModeText').textContent = odEnabled ? 'ON（OneDrive同期）' : 'OFF（ローカルのみ）';
+  // ログイン状態
+  const accounts = msalInstance?.getAllAccounts() || [];
+  const loggedIn = odAccessToken && accounts.length;
+  document.getElementById('odLoginStatus').textContent = loggedIn ? (accounts[0]?.username || 'サインイン済み') : '未サインイン';
+  // シンク状態インジケータ
+  const dot = document.getElementById('syncDot'), lbl = document.getElementById('syncLabel');
+  if (!odEnabled) { dot.className = 'sync-dot off'; lbl.textContent = 'ローカル'; }
+  else if (loggedIn) { dot.className = 'sync-dot'; lbl.textContent = 'OneDrive'; }
+  else { dot.className = 'sync-dot error'; lbl.textContent = '未接続'; }
+}
+
+// ────── Graph API ヘルパー ──────
+function folderPath() {
+  const p = localStorage.getItem('od_folder') || '現場共有';
+  return p.replace(/^\/|\/$/g, '');
+}
+
+async function graphRequest(method, endpoint, body = null) {
+  // トークン期限チェック
+  const expiry = parseInt(localStorage.getItem('od_token_expiry') || '0');
+  if (expiry - Date.now() < 60000) await silentAcquireToken();
+  if (!odAccessToken) throw new Error('未認証');
+
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'Bearer ' + odAccessToken,
+      'Content-Type': body !== null ? (typeof body === 'string' ? 'application/json' : 'application/octet-stream') : undefined,
+    },
+  };
+  if (body !== null) opts.body = typeof body === 'string' ? body : body;
+  const res = await fetch(GRAPH_BASE + endpoint, opts);
+  if (res.status === 401) {
+    // トークン再取得して再試行
+    await silentAcquireToken();
+    opts.headers['Authorization'] = 'Bearer ' + odAccessToken;
+    const res2 = await fetch(GRAPH_BASE + endpoint, opts);
+    if (!res2.ok) throw new Error(`Graph API error: ${res2.status}`);
+    if (res2.status === 204) return null;
+    return res2.json().catch(() => null);
+  }
+  if (!res.ok && res.status !== 404) throw new Error(`Graph API error: ${res.status}`);
+  if (res.status === 204 || res.status === 404) return null;
+  return res.json().catch(() => null);
+}
+
+// ファイル内容をテキストで取得
+async function graphDownloadText(endpoint) {
+  const expiry = parseInt(localStorage.getItem('od_token_expiry') || '0');
+  if (expiry - Date.now() < 60000) await silentAcquireToken();
+  if (!odAccessToken) throw new Error('未認証');
+  const res = await fetch(GRAPH_BASE + endpoint, {
+    headers: { 'Authorization': 'Bearer ' + odAccessToken },
+    // キャッシュ無効化（スマホ最新データ未反映の修正）
+    cache: 'no-store',
+  });
+  if (!res.ok) return null;
+  return res.text();
+}
+
+// OneDriveにファイルをアップロード
+async function odUploadFile(filename, content) {
+  const fp = folderPath();
+  const path = `/me/drive/root:/${fp}/${filename}:/content`;
+  return graphRequest('PUT', path, JSON.stringify(content));
+}
+
+// OneDriveからファイルを取得（ETag差分確認付き）
+async function odDownloadFile(filename) {
+  const fp = folderPath();
+  const path = `/me/drive/root:/${fp}/${filename}:/content`;
+  const text = await graphDownloadText(path);
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { return null; }
+}
+
+// ────── 同期ロジック ──────
+async function autoSyncToOd() {
+  if (!odEnabled || !odAccessToken) return;
+  try { await pushToOd(); } catch(e) { console.warn('AutoSync:', e); }
+}
+
+async function pushToOd() {
+  setSyncState('syncing');
+  const ts = new Date().toISOString();
+  const payload = { map_id: currentMapId, synced_at: ts, pins };
+  await odUploadFile(`pins_${currentMapId}.json`, payload);
+  // 図面もアップロード
+  const imgData = localStorage.getItem('map_img_' + currentMapId);
+  if (imgData) {
+    const kb = Math.round(imgData.length * 0.75 / 1024);
+    if (kb > 20000) { showToast(`図面が大きすぎます(${kb}KB)。圧縮してください`, 'warn'); }
+    else {
+      const mp = {
+        map_id: currentMapId, synced_at: ts,
+        map_name: localStorage.getItem('map_name_' + currentMapId) || currentMapId,
+        image: imgData
+      };
+      await odUploadFile(`map_${currentMapId}.json`, mp);
+    }
+  }
+  localStorage.setItem('synced_at_' + currentMapId, ts);
+  setSyncState('ok');
+}
+
+async function pullFromOd(silent = false) {
+  if (!odEnabled || !odAccessToken) {
+    if (!silent) showToast('OneDrive未接続', 'warn'); return;
+  }
+  setSyncState('syncing');
+  try {
+    const data = await odDownloadFile(`pins_${currentMapId}.json`);
+    // 図面取得
+    const mp = await odDownloadFile(`map_${currentMapId}.json`);
+    let mapUpdated = false;
+    if (mp?.image) {
+      const localSynced = localStorage.getItem('synced_at_' + currentMapId) || '';
+      if (mp.synced_at > localSynced) {
+        localStorage.setItem('map_img_' + currentMapId, mp.image);
+        if (mp.map_name) localStorage.setItem('map_name_' + currentMapId, mp.map_name);
+        showMapImage(mp.image);
+        document.getElementById('currentMapName').textContent = mp.map_name || currentMapId;
+        document.getElementById('mapNameDisplay').textContent = mp.map_name || currentMapId;
+        mapUpdated = true;
+      }
+    }
+    if (!data) { setSyncState(mapUpdated ? 'ok' : 'ok'); return; }
+    const localSynced = localStorage.getItem('synced_at_' + currentMapId) || '';
+    if (data.synced_at > localSynced && Array.isArray(data.pins)) {
+      if (!silent) {
+        if (!confirm(`OneDriveから${data.pins.length}件を取得します。上書きしますか？`)) { setSyncState('ok'); return; }
+      }
+      pins = data.pins;
+      localStorage.setItem('pins_' + currentMapId, JSON.stringify(pins));
+      localStorage.setItem('synced_at_' + currentMapId, data.synced_at);
+      renderPins(); updateStorageDisplay();
+      renderAll();
+      if (!silent) showToast(`${pins.length}件${mapUpdated ? '＋図面' : ''}を取得しました`, 'ok');
+      else showToast(`最新データ受信: ${pins.length}件`, 'ok');
+    }
+    setSyncState('ok');
+  } catch(e) { setSyncState('error'); if (!silent) showToast('取得エラー: ' + e.message, 'err'); }
+}
+
+async function silentPullFromOd() {
+  await pullFromOd(true);
+}
+
+async function manualSync() {
+  if (!odEnabled || !odAccessToken) {
+    showToast('OneDriveに接続してください（設定 → Microsoftアカウントでサインイン）', 'warn');
+    return;
+  }
+  try {
+    await pushToOd();
+    showToast('OneDriveに同期しました ✓', 'ok');
+  } catch(e) { setSyncState('error'); showToast('同期失敗: ' + e.message, 'err'); }
+}
+
+function setSyncState(s) {
+  const dot = document.getElementById('syncDot'), lbl = document.getElementById('syncLabel');
+  if (s === 'syncing') { dot.className = 'sync-dot syncing'; lbl.textContent = '同期中...'; }
+  else if (s === 'error') { dot.className = 'sync-dot error'; lbl.textContent = 'エラー'; }
+  else if (s === 'ok') { dot.className = 'sync-dot'; lbl.textContent = 'OneDrive'; }
+  else { dot.className = 'sync-dot off'; lbl.textContent = 'ローカル'; }
+  if (!odEnabled) { dot.className = 'sync-dot off'; lbl.textContent = 'ローカル'; }
+}
+
+// ────── ポーリング（スマホ最新データ未反映の修正） ──────
+function startPolling() {
+  stopPolling();
+  if (!odEnabled) return;
+  // 30秒ごとにサイレントpull
+  pollTimer = setInterval(() => {
+    if (odEnabled && odAccessToken && document.visibilityState !== 'hidden') {
+      silentPullFromOd();
+    }
+  }, 30000);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+// ページ表示時にも即再取得
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && odEnabled && odAccessToken) {
+    silentPullFromOd();
+  }
+});
+
+// ════════════════════════════════════════
+//  TAB / LAYOUT
+// ════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t, i) =>
+    t.classList.toggle('active', ['map','list','report'][i] === name));
+  document.querySelectorAll('.content > .page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById(name + '-page');
+  if (target) target.classList.add('active');
+  if (name === 'list') renderList();
+  if (name === 'report') renderReport();
+  if (name === 'settings') updateStorageDisplay();
+}
+
+function switchPcTab(name) {
+  document.querySelectorAll('.pc-tab').forEach((t, i) =>
+    t.classList.toggle('active', ['list','report'][i] === name));
+  document.querySelectorAll('.pc-page').forEach(p => p.classList.remove('active'));
+  document.getElementById('pc-' + name + '-page')?.classList.add('active');
+  if (name === 'list') renderListPc();
+  if (name === 'report') renderReportPc();
+}
+
+function isPC() { return window.innerWidth >= 900; }
+
+function applyLayout() {
+  if (isPC()) {
+    renderListPc();
+    renderReportPc();
+  }
+}
+
+function renderAll() {
+  renderPins();
+  if (document.getElementById('list-page').classList.contains('active')) renderList();
+  if (document.getElementById('report-page').classList.contains('active')) renderReport();
+  if (isPC()) { renderListPc(); renderReportPc(); }
+}
+
+const layoutObserver = new ResizeObserver(() => applyLayout());
+layoutObserver.observe(document.body);
+
+// ════════════════════════════════════════
+//  設定モーダル
+// ════════════════════════════════════════
+function openSettings() {
+  updateStorageDisplay();
+  document.getElementById('settings-modal').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settings-modal').classList.remove('open');
+}
+
+// ════════════════════════════════════════
+//  MAP UPLOAD
+// ════════════════════════════════════════
+async function uploadMap(input) {
+  const file = input.files[0]; if (!file) return;
+  showToast('図面を読み込み中...', 'warn');
+  let img = null;
+  if (file.name.toLowerCase().endsWith('.pdf')) img = await pdfToJpeg(file);
+  else img = await loadAndCompressPhoto(file, 1920, 0.85);
+  if (!img) return;
+  localStorage.setItem('map_img_' + currentMapId, img);
+  localStorage.setItem('map_name_' + currentMapId, file.name);
+  showMapImage(img);
+  document.getElementById('currentMapName').textContent = file.name;
+  document.getElementById('mapNameDisplay').textContent = file.name;
+  const kb = Math.round(img.length * 0.75 / 1024);
+  updateStorageDisplay();
+  showToast(`図面設定完了 (${kb}KB)`, 'ok');
+  input.value = '';
+  if (odEnabled && odAccessToken) autoSyncToOd();
+}
+
+async function pdfToJpeg(file, maxPx = 1920, quality = 0.85) {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const ab = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(ab) }).promise;
+    const page = await pdf.getPage(1);
+    const vp0 = page.getViewport({ scale: 1 });
+    const scale = maxPx / Math.max(vp0.width, vp0.height);
+    const vp = page.getViewport({ scale });
+    const canvas = document.createElement('canvas');
+    canvas.width = vp.width; canvas.height = vp.height;
+    await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+    return canvas.toDataURL('image/jpeg', quality);
+  } catch(e) { showToast('PDF変換エラー: ' + e.message, 'err'); return null; }
+}
+
+function showMapImage(src) {
+  const img = document.getElementById('mapImg');
+  img.src = src; img.style.display = 'block';
+  document.getElementById('mapPlaceholder').style.display = 'none';
+  img.onload = () => { fitMap(); renderPins(); };
+}
+
+function fitMap() {
+  const c = document.getElementById('mapContainer'), img = document.getElementById('mapImg');
+  if (!img.naturalWidth) return;
+  mapScale = Math.min(c.clientWidth / img.naturalWidth, c.clientHeight / img.naturalHeight, 1);
+  mapOffX = (c.clientWidth - img.naturalWidth * mapScale) / 2;
+  mapOffY = (c.clientHeight - img.naturalHeight * mapScale) / 2;
+  applyTransform();
+}
+
+function applyTransform() {
+  document.getElementById('mapImg').style.transform = `translate(${mapOffX}px,${mapOffY}px) scale(${mapScale})`;
+  renderPinPositions();
+}
+
+// ════════════════════════════════════════
+//  MAP EVENTS
+// ════════════════════════════════════════
+const mc = document.getElementById('mapContainer');
+mc.addEventListener('pointerdown', e => {
+  if (e.target.closest('.map-pin')) return;
+  if (addMode) {
+    const rect = mc.getBoundingClientRect(), img = document.getElementById('mapImg');
+    if (!img.naturalWidth) return showToast('先に図面をアップロードしてください', 'err');
+    const cx = (e.clientX - rect.left - mapOffX) / mapScale / img.naturalWidth;
+    const cy = (e.clientY - rect.top - mapOffY) / mapScale / img.naturalHeight;
+    if (cx < 0 || cx > 1 || cy < 0 || cy > 1) return;
+    pendingX = cx; pendingY = cy; editingId = null; openPinSheet(null);
+  } else {
+    isDragging = true; lastX = e.clientX; lastY = e.clientY;
+    mc.setPointerCapture(e.pointerId);
+  }
+});
+mc.addEventListener('pointermove', e => {
+  if (!isDragging || addMode) return;
+  mapOffX += e.clientX - lastX; mapOffY += e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY; applyTransform();
+});
+mc.addEventListener('pointerup', () => isDragging = false);
+mc.addEventListener('touchstart', e => {
+  if (e.touches.length === 2)
+    pinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+}, { passive: true });
+mc.addEventListener('touchmove', e => {
+  if (e.touches.length !== 2) return; e.preventDefault();
+  const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+  mapScale = Math.max(0.1, Math.min(6, mapScale * d / pinchDist));
+  pinchDist = d; applyTransform();
+}, { passive: false });
+mc.addEventListener('wheel', e => {
+  e.preventDefault();
+  mapScale = Math.max(0.1, Math.min(6, mapScale * (e.deltaY < 0 ? 1.12 : 0.9)));
+  applyTransform();
+}, { passive: false });
+
+function toggleAdd() {
+  addMode = !addMode; moveMode = false;
+  document.getElementById('addBtn').classList.toggle('active', addMode);
+  document.getElementById('moveBtn').classList.remove('active');
+  document.getElementById('mapHint').style.display = addMode ? 'block' : 'none';
+}
+function toggleMove() {
+  moveMode = !moveMode; addMode = false;
+  document.getElementById('moveBtn').classList.toggle('active', moveMode);
+  document.getElementById('addBtn').classList.remove('active');
+  document.getElementById('mapHint').style.display = 'none';
+}
+
+// ════════════════════════════════════════
+//  PINS
+// ════════════════════════════════════════
+function renderPins() {
+  const c = document.getElementById('mapPins'); c.innerHTML = '';
+  const img = document.getElementById('mapImg');
+  if (!img.naturalWidth) return;
+  pins.forEach(pin => {
+    const el = document.createElement('div');
+    const cls = pin.completed ? 'pin-complete' : `pin-${pin.division || '施工'} pin-${pin.priority || 'low'}`;
+    el.className = `map-pin ${cls}${pin.photos?.length ? ' pin-has-photo' : ''}`;
+    el.style.left = (pin.x * img.naturalWidth * mapScale + mapOffX) + 'px';
+    el.style.top = (pin.y * img.naturalHeight * mapScale + mapOffY) + 'px';
+    el.innerHTML = `<div class="pin-marker"><span class="pin-no">${pin.pin_no}</span></div>`;
+    el.onclick = e => { e.stopPropagation(); openPinSheet(pin); };
+    c.appendChild(el);
+  });
+  updateStats();
+}
+
+function renderPinPositions() {
+  const img = document.getElementById('mapImg');
+  if (!img.naturalWidth) return;
+  document.querySelectorAll('.map-pin').forEach((el, i) => {
+    const p = pins[i]; if (!p) return;
+    el.style.left = (p.x * img.naturalWidth * mapScale + mapOffX) + 'px';
+    el.style.top = (p.y * img.naturalHeight * mapScale + mapOffY) + 'px';
+  });
+}
+
+function updateStats() {
+  const t = pins.length, d = pins.filter(p => p.completed).length;
+  document.getElementById('stTotal').textContent = t;
+  document.getElementById('stDone').textContent = d;
+  document.getElementById('stTodo').textContent = t - d;
+}
+
+// ════════════════════════════════════════
+//  PIN FORM
+// ════════════════════════════════════════
+function openPinSheet(pin) {
+  editingId = pin ? pin.id : null;
+  doneState = pin ? !!pin.completed : false;
+  currentDiv = pin ? (pin.division || '施工') : '施工';
+  currentPhotos = pin ? (pin.photos ? [...pin.photos] : []) : [];
+  document.getElementById('sheetTitle').textContent = pin ? `ピン #${pin.pin_no} 編集` : 'ピン追加';
+  document.getElementById('delBtn').style.display = pin ? 'flex' : 'none';
+  document.getElementById('doneToggle').classList.toggle('on', doneState);
+  setDiv(currentDiv); renderPhotoGrid();
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('f-date').value = pin?.date || today;
+  document.getElementById('f-item').value = pin?.item || '';
+  document.getElementById('f-priority').value = pin?.priority || '';
+  document.getElementById('f-author').value = pin?.author || localStorage.getItem('lastAuthor') || '';
+  document.getElementById('f-target').value = pin?.target || '';
+  document.getElementById('f-location').value = pin?.location || '';
+  document.getElementById('f-content').value = pin?.content || '';
+  document.getElementById('f-action').value = pin?.action || '';
+  document.getElementById('f-complete-date').value = pin?.complete_date || '';
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('pinSheet').classList.add('open');
+}
+
+function setDiv(div) {
+  currentDiv = div;
+  document.getElementById('divBtn施工').className = `div-btn${div === '施工' ? ' active-施工' : ''}`;
+  document.getElementById('divBtn設計').className = `div-btn${div === '設計' ? ' active-設計' : ''}`;
+  const sel = document.getElementById('f-item'), cur = sel.value;
+  sel.innerHTML = '<option value="">選択</option>';
+  (ITEMS_BY_DIV[div] || []).forEach(opt => {
+    const o = document.createElement('option'); o.value = o.textContent = opt; sel.appendChild(o);
+  });
+  sel.value = cur;
+}
+
+function toggleDone() { doneState = !doneState; document.getElementById('doneToggle').classList.toggle('on', doneState); }
+
+// ════════════════════════════════════════
+//  PHOTOS
+// ════════════════════════════════════════
+async function addPhotos(input) {
+  const files = Array.from(input.files); if (!files.length) return;
+  showToast('写真を読み込み中...', 'warn');
+  let added = 0;
+  for (const file of files) {
+    const c = await loadAndCompressPhoto(file, 1200, 0.75);
+    if (c) { currentPhotos.push(c); added++; }
+  }
+  renderPhotoGrid(); input.value = '';
+  showToast(added > 0 ? `写真を${added}枚追加しました` : '写真の読み込みに失敗しました', added > 0 ? 'ok' : 'err');
+}
+
+function loadAndCompressPhoto(file, maxPx = 1200, quality = 0.75) {
+  return new Promise(resolve => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    const compress = imgEl => {
+      try {
+        let w = imgEl.width, h = imgEl.height;
+        if (!w || !h) { resolve(null); return; }
+        if (w > maxPx || h > maxPx) {
+          if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+          else { w = Math.round(w * maxPx / h); h = maxPx; }
+        }
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(imgEl, 0, 0, w, h);
+        resolve(cv.toDataURL('image/jpeg', quality));
+      } catch { resolve(null); }
+    };
+    img.onload = () => { URL.revokeObjectURL(url); compress(img); };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      const fr = new FileReader();
+      fr.onload = e => { const i2 = new Image(); i2.onload = () => compress(i2); i2.onerror = () => resolve(null); i2.src = e.target.result; };
+      fr.onerror = () => resolve(null);
+      fr.readAsDataURL(file);
+    };
+    img.src = url;
+  });
+}
+
+function renderPhotoGrid() {
+  const g = document.getElementById('photoGrid'); g.innerHTML = '';
+  currentPhotos.forEach((src, i) => {
+    const d = document.createElement('div'); d.className = 'photo-thumb';
+    d.innerHTML = `<img src="${src}"><button class="del-photo" onclick="removePhoto(${i})">✕</button>`;
+    g.appendChild(d);
+  });
+  const a = document.createElement('div'); a.className = 'photo-add-btn';
+  a.onclick = () => triggerPhotoInput();
+  a.innerHTML = '<div class="ph-i">📷</div><span>追加</span>'; g.appendChild(a);
+}
+
+function removePhoto(i) { currentPhotos.splice(i, 1); renderPhotoGrid(); }
+
+// ════════════════════════════════════════
+//  SAVE / DELETE PIN
+// ════════════════════════════════════════
+function savePin() {
+  const author = document.getElementById('f-author').value;
+  if (author) localStorage.setItem('lastAuthor', author);
+  const pd = {
+    division: currentDiv, item: document.getElementById('f-item').value,
+    priority: document.getElementById('f-priority').value, date: document.getElementById('f-date').value,
+    author, target: document.getElementById('f-target').value,
+    location: document.getElementById('f-location').value, content: document.getElementById('f-content').value,
+    action: document.getElementById('f-action').value, complete_date: document.getElementById('f-complete-date').value,
+    completed: doneState, photos: currentPhotos, map_id: currentMapId,
+  };
+  if (editingId) {
+    const i = pins.findIndex(p => p.id === editingId);
+    if (i >= 0) pins[i] = { ...pins[i], ...pd };
+  } else {
+    pins.push({ id: crypto.randomUUID(), pin_no: pins.length > 0 ? Math.max(...pins.map(p => p.pin_no)) + 1 : 1, x: pendingX, y: pendingY, ...pd });
+  }
+  saveData(); closeSheet(); renderAll();
+  showToast(editingId ? '更新しました ✓' : 'ピンを追加しました ✓', 'ok');
+}
+
+function deletePin() {
+  if (!editingId || !confirm('このピンを削除しますか？')) return;
+  pins = pins.filter(p => p.id !== editingId);
+  saveData(); closeSheet(); renderAll();
+  showToast('削除しました', 'err');
+}
+
+// ════════════════════════════════════════
+//  LIST
+// ════════════════════════════════════════
+function buildListHTML(pinArr) {
+  if (!pinArr.length) return '<div class="empty"><div class="ei">📋</div><p>該当するピンがありません</p></div>';
+  return pinArr.map(pin => `
+    <div class="pin-card ${pin.division||'施工'}-${pin.priority||'low'}${pin.completed?' done':''}" onclick="openPinSheet(pins.find(p=>p.id==='${pin.id}'))">
+      ${pin.photos?.length ? `<div class="pin-card-thumb"><img src="${pin.photos[0]}"></div>` : `<div class="pin-card-thumb">📍</div>`}
+      <div class="pin-card-body">
+        <div class="pin-card-row">
+          <span class="badge badge-no">#${String(pin.pin_no).padStart(2,'0')}</span>
+          <span class="badge badge-${pin.division||'施工'}">${pin.division||'施工'}</span>
+          ${pin.item ? `<span class="badge badge-${pin.item}">${pin.item}</span>` : ''}
+          <span class="badge ${pin.completed?'badge-done':'badge-todo'}">${pin.completed?'完了':'未完了'}</span>
+        </div>
+        <div class="pin-card-title">${pin.content||pin.target||'(内容なし)'}</div>
+        <div class="pin-card-meta">
+          ${pin.location ? `<span>📍 ${pin.location}</span>` : ''}
+          ${pin.date ? `<span>📅 ${pin.date}</span>` : ''}
+          ${pin.author ? `<span>👤 ${pin.author}</span>` : ''}
+          ${pin.photos?.length ? `<span>📷 ${pin.photos.length}枚</span>` : ''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function filterPins(q, incomplete) {
+  return pins.filter(p => {
+    if (incomplete && p.completed) return false;
+    if (!q) return true;
+    return [p.content, p.location, p.target, p.action, p.author, p.item, p.division].some(v => v?.toLowerCase().includes(q));
+  }).sort((a, b) => a.pin_no - b.pin_no);
+}
+
+function renderList() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  document.getElementById('pinList').innerHTML = buildListHTML(filterPins(q, filterIncomplete));
+}
+
+function renderListPc() {
+  const q = document.getElementById('searchInputPc').value.toLowerCase();
+  document.getElementById('pinListPc').innerHTML = buildListHTML(filterPins(q, filterIncomplPc));
+}
+
+function toggleFilter() {
+  filterIncomplete = !filterIncomplete;
+  const b = document.getElementById('filterBtn');
+  b.classList.toggle('active', filterIncomplete);
+  b.textContent = filterIncomplete ? '▼ 未完了のみ' : '未完了';
+  renderList();
+}
+
+function toggleFilterPc() {
+  filterIncomplPc = !filterIncomplPc;
+  const b = document.getElementById('filterBtnPc');
+  b.classList.toggle('active', filterIncomplPc);
+  b.textContent = filterIncomplPc ? '▼ 未完了のみ' : '未完了';
+  renderListPc();
+}
+
+// ════════════════════════════════════════
+//  REPORT
+// ════════════════════════════════════════
+function calcReport() {
+  const t = pins.length, d = pins.filter(p => p.completed).length;
+  const cats = {}, pris = {}, divs = {};
+  pins.forEach(p => {
+    if (p.item) cats[p.item] = (cats[p.item] || 0) + 1;
+    if (p.priority) pris[p.priority] = (pris[p.priority] || 0) + 1;
+    divs[p.division || '施工'] = (divs[p.division || '施工'] || 0) + 1;
+  });
+  return { t, d, cats, pris, divs };
+}
+
+function renderReport() {
+  const { t, d, cats, pris, divs } = calcReport();
+  document.getElementById('rTotal').textContent = t;
+  document.getElementById('rTodo').textContent = t - d;
+  document.getElementById('rDone').textContent = d;
+  renderBars('catBars', cats, { 改善:'#e05555',確認:'#e09040',残工事:'#9040e0',対策:'#3b6fd4',改善案:'#2ea87e',検討:'#607080' });
+  renderBars('priBars', pris, { high:'#e05555',mid:'#e09040',low:'#3b6fd4' }, { high:'高',mid:'中',low:'低' });
+  renderBars('divBars', divs, { 施工:'#3b6fd4',設計:'#9040e0' });
+}
+
+function renderReportPc() {
+  const { t, d, cats, pris, divs } = calcReport();
+  document.getElementById('rTotalPc').textContent = t;
+  document.getElementById('rTodoPc').textContent = t - d;
+  document.getElementById('rDonePc').textContent = d;
+  renderBars('catBarsPc', cats, { 改善:'#e05555',確認:'#e09040',残工事:'#9040e0',対策:'#3b6fd4',改善案:'#2ea87e',検討:'#607080' });
+  renderBars('priBarsPc', pris, { high:'#e05555',mid:'#e09040',low:'#3b6fd4' }, { high:'高',mid:'中',low:'低' });
+  renderBars('divBarsPc', divs, { 施工:'#3b6fd4',設計:'#9040e0' });
+}
+
+function renderBars(id, data, colors, labels) {
+  const el = document.getElementById(id); if (!el) return;
+  const max = Math.max(...Object.values(data), 1);
+  el.innerHTML = Object.entries(data).map(([k, v]) => `
+    <div class="bar-row"><span class="bar-lbl">${labels ? labels[k] || k : k}</span>
+    <div class="bar-track"><div class="bar-fill" style="width:${(v/max*100).toFixed(0)}%;background:${colors[k]||'#5b8ff0'}"></div></div>
+    <span class="bar-n">${v}</span></div>`).join('');
+}
+
+// ════════════════════════════════════════
+//  EXPORT / IMPORT
+// ════════════════════════════════════════
+async function exportPinReport() {
+  if (!pins.length) return showToast('ピンがありません', 'warn');
+  showToast('レポートを生成中...', 'warn');
+  await new Promise(r => setTimeout(r, 100));
+  const sorted = [...pins].sort((a, b) => a.pin_no - b.pin_no);
+  const priLabel = { high:'高',mid:'中',low:'低' };
+  let html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <style>body{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#222;margin:0;}
+  .cover{padding:40px;background:#1a2744;color:#fff;text-align:center;page-break-after:always;}
+  .cover h1{font-size:24px;margin-bottom:8px;}.cover p{font-size:13px;opacity:0.7;}
+  .pin-page{padding:20px 24px;page-break-after:always;border-bottom:2px solid #eee;}
+  .pin-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #ddd;}
+  .pin-num{font-size:22px;font-weight:700;color:#3b6fd4;font-family:monospace;min-width:48px;}
+  .pin-tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .tag{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+  .tag-施工{background:#dbeafe;color:#1d4ed8;}.tag-設計{background:#ede9fe;color:#6d28d9;}
+  .tag-high{background:#fee2e2;color:#dc2626;}.tag-mid{background:#fef3c7;color:#d97706;}.tag-low{background:#dbeafe;color:#1d4ed8;}
+  .tag-done{background:#d1fae5;color:#065f46;}.tag-todo{background:#fee2e2;color:#991b1b;}
+  table{width:100%;border-collapse:collapse;margin-bottom:12px;}
+  td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top;}
+  td:first-child{width:100px;font-weight:600;background:#f9fafb;color:#555;}
+  .photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .photos img{width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ddd;}
+  @media print{.pin-page{page-break-after:always;}}</style></head><body>
+  <div class="cover"><h1>📍 現場指摘レポート</h1>
+  <p>図面ID: ${currentMapId}</p><p>出力日: ${new Date().toLocaleDateString('ja-JP')}</p>
+  <p>総件数: ${pins.length}件 / 未完了: ${pins.filter(p=>!p.completed).length}件</p></div>`;
+  for (const pin of sorted) {
+    html += `<div class="pin-page"><div class="pin-header">
+      <div class="pin-num">#${String(pin.pin_no).padStart(2,'0')}</div>
+      <div class="pin-tags">
+        <span class="tag tag-${pin.division||'施工'}">${pin.division||'施工'}</span>
+        ${pin.item?`<span class="tag">${pin.item}</span>`:''}
+        ${pin.priority?`<span class="tag tag-${pin.priority}">${priLabel[pin.priority]||pin.priority}</span>`:''}
+        <span class="tag tag-${pin.completed?'done':'todo'}">${pin.completed?'完了':'未完了'}</span>
+      </div></div>
+      <table>
+        <tr><td>日付</td><td>${pin.date||'-'}</td></tr>
+        <tr><td>対象</td><td>${pin.target||'-'}</td></tr>
+        <tr><td>場所</td><td>${pin.location||'-'}</td></tr>
+        <tr><td>指摘内容</td><td>${(pin.content||'-').replace(/\n/g,'<br>')}</td></tr>
+        <tr><td>対処方法</td><td>${(pin.action||'-').replace(/\n/g,'<br>')}</td></tr>
+        <tr><td>完了予定日</td><td>${pin.complete_date||'-'}</td></tr>
+        <tr><td>記入者</td><td>${pin.author||'-'}</td></tr>
+      </table>
+      ${pin.photos?.length?`<div class="photos">${pin.photos.map(s=>`<img src="${s}">`).join('')}</div>`:''}</div>`;
+  }
+  html += '</body></html>';
+  dl(`pin_report_${currentMapId}_${now()}.html`, html, 'text/html;charset=utf-8');
+  showToast('レポートをダウンロードしました（ブラウザで開いて印刷→PDF保存）', 'ok');
+}
+
+async function exportMapPDF() {
+  const imgData = localStorage.getItem('map_img_' + currentMapId);
+  if (!imgData) return showToast('図面がアップロードされていません', 'warn');
+  if (!pins.length) return showToast('ピンがありません', 'warn');
+  showToast('図面PDFを生成中...', 'warn');
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    pins.forEach(pin => {
+      const px = pin.x * img.width, py = pin.y * img.height;
+      const colors = { 施工:{high:'#e05555',mid:'#e09040',low:'#3b6fd4'}, 設計:{high:'#9040e0',mid:'#20a0c0',low:'#40a060'} };
+      const color = pin.completed ? '#2ea87e' : (colors[pin.division||'施工']?.[pin.priority||'low'] || '#3b6fd4');
+      const r = Math.max(14, img.width * 0.012);
+      ctx.beginPath(); ctx.arc(px, py - r, r, 0, Math.PI * 2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.strokeStyle = 'white'; ctx.lineWidth = r * 0.15; ctx.stroke();
+      ctx.fillStyle = 'white'; ctx.font = `bold ${r * 1.1}px monospace`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(pin.pin_no), px, py - r);
+    });
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <style>body{margin:0;padding:20px;font-family:'Noto Sans JP',sans-serif;}
+    h2{font-size:16px;margin-bottom:8px;color:#333;}
+    img{max-width:100%;height:auto;border:1px solid #ddd;border-radius:4px;}
+    .legend{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;}
+    .legend-item{display:flex;align-items:center;gap:5px;font-size:11px;}
+    .legend-dot{width:12px;height:12px;border-radius:50%;}
+    @media print{body{padding:10px;}}</style></head><body>
+    <h2>📍 ピン配置図面 — ${currentMapId} (${new Date().toLocaleDateString('ja-JP')})</h2>
+    <img src="${canvas.toDataURL('image/jpeg', 0.92)}">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e05555"></div>優先度：高</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e09040"></div>優先度：中</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b6fd4"></div>優先度：低</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2ea87e"></div>完了</div>
+    </div></body></html>`;
+    dl(`map_${currentMapId}_${now()}.html`, html, 'text/html;charset=utf-8');
+    showToast('図面をダウンロードしました（ブラウザで開いて印刷→PDF保存）', 'ok');
+  };
+  img.src = imgData;
+}
+
+function exportCSV() {
+  const rows = [['No.','区分','指摘項目','優先度','日付','対象','場所','指摘内容','対処方法','完了予定日','記入者','写真枚数','完了']];
+  [...pins].sort((a,b)=>a.pin_no-b.pin_no).forEach(p => rows.push([
+    p.pin_no,p.division||'',p.item||'',p.priority||'',p.date||'',p.target||'',
+    p.location||'',p.content||'',p.action||'',p.complete_date||'',p.author||'',
+    p.photos?.length||0,p.completed?'完了':'未完了'
+  ]));
+  const csv = '\ufeff' + rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  dl(`pins_${currentMapId}_${now()}.csv`, csv, 'text/csv');
+  showToast('CSV出力しました', 'ok');
+}
+
+function exportJSON() {
+  const data = {
+    map_id: currentMapId, exported: new Date().toISOString(),
+    map_name: localStorage.getItem('map_name_' + currentMapId),
+    map_image: localStorage.getItem('map_img_' + currentMapId),
+    pins,
+  };
+  dl(`backup_${currentMapId}_${now()}.json`, JSON.stringify(data, null, 2), 'application/json');
+  showToast('バックアップ（図面含む）を保存しました', 'ok');
+}
+
+function importJSON() { document.getElementById('json-import-input').click(); }
+function doImportJSON(input) {
+  const file = input.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!confirm(`${d.pins?.length||0}件を読み込みます。上書きされます。`)) return;
+      if (d.pins) { pins = d.pins; localStorage.setItem('pins_' + currentMapId, JSON.stringify(pins)); }
+      if (d.map_image) {
+        localStorage.setItem('map_img_' + currentMapId, d.map_image);
+        if (d.map_name) localStorage.setItem('map_name_' + currentMapId, d.map_name);
+        showMapImage(d.map_image);
+        document.getElementById('currentMapName').textContent = d.map_name || currentMapId;
+        document.getElementById('mapNameDisplay').textContent = d.map_name || currentMapId;
+      }
+      renderAll(); updateStorageDisplay();
+      showToast(`${pins.length}件${d.map_image ? '＋図面' : ''}を読み込みました`, 'ok');
+    } catch { showToast('読み込みエラー', 'err'); }
+  };
+  r.readAsText(file); input.value = '';
+}
+
+function dl(name, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name; a.click();
+}
+function now() { return new Date().toISOString().slice(0, 10); }
+
+// ════════════════════════════════════════
+//  MAP SHEET / MAP 管理
+// ════════════════════════════════════════
+function showMapSheet() {
+  const maps = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k?.startsWith('map_img_')) { const id = k.replace('map_img_', ''); if (!maps.includes(id)) maps.push(id); }
+  }
+  const body = document.getElementById('mapSheetBody'); body.innerHTML = '';
+  if (!maps.length) { body.innerHTML = '<div class="empty"><p>図面はありません</p></div>'; }
+  else maps.forEach(id => {
+    const b = document.createElement('div'); b.className = 'export-item';
+    const cnt = JSON.parse(localStorage.getItem('pins_' + id) || '[]').length;
+    const name = localStorage.getItem('map_name_' + id) || id;
+    b.innerHTML = `<span class="ei">🗺️</span><div><strong>${name}</strong><span>${cnt}件 / ID: ${id}</span></div>`;
+    b.onclick = () => {
+      currentMapId = id;
+      document.getElementById('currentMapId').textContent = id;
+      loadData(); renderPins(); renderAll();
+      closeSheet();
+    };
+    body.appendChild(b);
+  });
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('mapSheet').classList.add('open');
+}
+
+function promptMapId() {
+  const id = prompt('現場IDを入力', currentMapId);
+  if (id?.trim()) {
+    currentMapId = id.trim();
+    document.getElementById('currentMapId').textContent = currentMapId;
+    loadData(); renderPins(); renderAll();
+    showToast('現場IDを変更しました', 'ok');
+  }
+}
+
+function clearPins() {
+  if (!confirm(`「${currentMapId}」の全ピンを削除しますか？`)) return;
+  pins = []; saveData(); renderAll();
+  showToast('削除しました', 'err');
+}
+
+function deleteMap() {
+  if (!confirm('図面を削除しますか？')) return;
+  ['map_img_', 'map_name_'].forEach(p => localStorage.removeItem(p + currentMapId));
+  document.getElementById('mapImg').style.display = 'none';
+  document.getElementById('mapImg').src = '';
+  document.getElementById('mapPlaceholder').style.display = 'flex';
+  document.getElementById('mapPins').innerHTML = '';
+  document.getElementById('currentMapName').textContent = 'PNG・JPG・PDF・HEIC対応';
+  document.getElementById('mapNameDisplay').textContent = '図面未選択';
+  updateStorageDisplay(); showToast('図面を削除しました', 'err');
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('show');
+  document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('open'));
+  addMode = false;
+  document.getElementById('addBtn').classList.remove('active');
+  document.getElementById('mapHint').style.display = 'none';
+}
+
+// ════════════════════════════════════════
+//  動的ファイル入力（iOS対応）
+// ════════════════════════════════════════
+function triggerPhotoInput() {
+  const old = document.getElementById('photo-input-dynamic');
+  if (old) old.remove();
+  const input = document.createElement('input');
+  input.type = 'file'; input.id = 'photo-input-dynamic'; input.accept = 'image/*';
+  input.multiple = true;
+  input.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0;';
+  input.onchange = () => addPhotos(input);
+  document.body.appendChild(input); input.click();
+}
+
+function triggerMapInput() {
+  const old = document.getElementById('map-input-dynamic');
+  if (old) old.remove();
+  const input = document.createElement('input');
+  input.type = 'file'; input.id = 'map-input-dynamic';
+  input.accept = '.jpg,.jpeg,.png,.bmp,.heic,.heif,.tiff,.tif,.pdf,.webp';
+  input.style.cssText = 'position:fixed;top:-999px;left:-999px;opacity:0;';
+  input.onchange = () => uploadMap(input);
+  document.body.appendChild(input); input.click();
+}
+
+// ════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════
+let toastTimer;
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════
+if (!checkSession()) {
+  document.addEventListener('keydown', e => {
+    if (/^[0-9]$/.test(e.key)) pinKey(e.key);
+    if (e.key === 'Backspace') pinBack();
+  });
+}
+// MSALリダイレクト処理（SharePoint URL使用時）
+window.addEventListener('load', async () => {
+  const clientId = localStorage.getItem('od_client_id');
+  if (clientId) await initMsal();
+});
+</script>
+</body>
+</html>
