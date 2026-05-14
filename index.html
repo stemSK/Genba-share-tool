@@ -644,7 +644,21 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:1
 
 <!-- MSAL (Microsoft認証) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script>
+// MSAL を動的に読み込む（CDN障害対策）
+(function(){
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.7.1/lib/msal-browser.min.js';
+  s.onload = () => { window._msalReady = true; };
+  s.onerror = () => {
+    const s2 = document.createElement('script');
+    s2.src = 'https://unpkg.com/@azure/msal-browser@3.7.1/lib/msal-browser.min.js';
+    s2.onload = () => { window._msalReady = true; };
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+})();
+</script>
 
 <script>
 'use strict';
@@ -836,29 +850,36 @@ function saveOdConfig() {
   localStorage.setItem('od_folder', document.getElementById('odFolderPath').value.trim() || '現場共有');
 }
 
+async function waitForMsal(timeout = 10000) {
+  const t0 = Date.now();
+  while (!window.msal && (Date.now() - t0) < timeout)
+    await new Promise(r => setTimeout(r, 100));
+  if (!window.msal) throw new Error("MSALライブラリの読み込みに失敗しました");
+}
+
 async function initMsal() {
-  const clientId = localStorage.getItem('od_client_id');
-  const tenantId = localStorage.getItem('od_tenant_id') || 'common';
+  const clientId = localStorage.getItem("od_client_id");
+  const tenantId = localStorage.getItem("od_tenant_id") || "common";
   if (!clientId) return;
   try {
+    await waitForMsal();
     msalInstance = new msal.PublicClientApplication({
       auth: {
         clientId,
         authority: `https://login.microsoftonline.com/${tenantId}`,
         redirectUri: location.origin + location.pathname,
       },
-      cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: false },
+      cache: { cacheLocation: "localStorage", storeAuthStateInCookie: false },
     });
     await msalInstance.initialize();
-    // リダイレクト後のトークン処理
     const resp = await msalInstance.handleRedirectPromise();
     if (resp && resp.accessToken) {
       odAccessToken = resp.accessToken;
-      localStorage.setItem('od_access_token', odAccessToken);
-      localStorage.setItem('od_token_expiry', String(resp.expiresOn?.getTime() || (Date.now() + 3600000)));
+      localStorage.setItem("od_access_token", odAccessToken);
+      localStorage.setItem("od_token_expiry", String(resp.expiresOn?.getTime() || (Date.now() + 3600000)));
       updateOdUI();
     }
-  } catch(e) { console.warn('MSAL init:', e); }
+  } catch(e) { console.warn("MSAL init:", e); }
 }
 
 async function silentAcquireToken() {
