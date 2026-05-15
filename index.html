@@ -394,17 +394,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <!-- PC右ペイン -->
 <div class="pc-right" id="pcRight">
   <div class="pc-tabs">
-    <div class="pc-tab active" onclick="switchPcTab('list')"><span class="pc-tab-icon">📋</span>一覧</div>
-    <div class="pc-tab" onclick="switchPcTab('report')"><span class="pc-tab-icon">📊</span>集計</div>
+    <div class="pc-tab active" onclick="switchPcTab('report')"><span class="pc-tab-icon">📊</span>集計</div>
   </div>
-  <div class="pc-page active" id="pc-list-page">
-    <div class="list-header">
-      <input class="search-input" type="search" placeholder="🔍  検索..." id="searchInputPc" oninput="renderListPc()">
-      <button class="filter-chip" id="filterBtnPc" onclick="toggleFilterPc()">未完了</button>
-    </div>
-    <div class="pin-list" id="pinListPc"></div>
+  <!-- pc-list-page は非表示（DOM上は残してエラー回避） -->
+  <div style="display:none" id="pc-list-page">
+    <input id="searchInputPc" type="hidden">
+    <button id="filterBtnPc" style="display:none"></button>
+    <div id="pinListPc"></div>
   </div>
-  <div class="pc-page" id="pc-report-page">
+  <div class="pc-page active" id="pc-report-page">
     <div class="report-scroll">
       <div class="rc"><h3>📊 集計</h3>
         <div class="stat-grid">
@@ -1096,15 +1094,14 @@ function switchTab(name){
   if(name==='report')renderReport();
 }
 function switchPcTab(name){
-  document.querySelectorAll('.pc-tab').forEach((t,i)=>t.classList.toggle('active',['list','report'][i]===name));
-  document.querySelectorAll('.pc-page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('pc-'+name+'-page')?.classList.add('active');
-  if(name==='list')renderListPc();
-  if(name==='report')renderReportPc();
+  document.querySelectorAll('.pc-tab').forEach(t=>t.classList.toggle('active',t.textContent.includes('集計')));
+  document.querySelectorAll('.pc-right .pc-page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pc-report-page')?.classList.add('active');
+  renderReportPc();
 }
 function isPC(){return window.innerWidth>=900;}
-function applyLayout(){ if(isPC()){renderListPc();renderReportPc();} }
-function renderAll(){renderPins();renderList();renderReport();if(isPC()){renderListPc();renderReportPc();}}
+function applyLayout(){ if(isPC()){renderReportPc();} }
+function renderAll(){renderPins();renderList();renderReport();if(isPC()){renderReportPc();}}
 new ResizeObserver(()=>applyLayout()).observe(document.body);
 
 // ══════════════════════════════════════
