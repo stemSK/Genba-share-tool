@@ -79,6 +79,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
 .tabs::-webkit-scrollbar{display:none;}
 .tab{flex:1;min-width:64px;padding:9px 4px 7px;text-align:center;font-size:10px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;}
+@media(min-width:900px){.tabs{display:none;}}
 .tab.active{color:var(--accent3);border-bottom-color:var(--accent);}
 .tab-icon{font-size:17px;display:block;margin-bottom:1px;}
 
@@ -569,7 +570,7 @@ const SP_SITE_URL    = 'stem365.sharepoint.com';
 const SP_SITE_PATH   = '/sites/チームサイト';
 const SP_BASE_FOLDER = '設計工事課共通/genba-share-tool'; // SharePoint内のパス
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
-const SCOPES         = ['Sites.ReadWrite.All', 'Files.ReadWrite.All', 'User.Read'];
+const SCOPES         = ['Files.ReadWrite.All', 'User.Read', 'offline_access'];
 const DEFAULT_PIN    = '0000';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -586,7 +587,7 @@ let editingId=null, pendingX=0, pendingY=0;
 let currentPhotos=[], doneState=false, currentDiv='施工';
 let filterIncomplete=false, filterIncomplPc=false;
 let odEnabled=false, msalInstance=null, odAccessToken=null;
-let pollTimer=null, spSiteId=null;
+let pollTimer=null, spDriveId=null; // spDriveId: SharePointドライブIDキャッシュ
 let lastSyncedEtag = {};  // リアルタイム競合検知用
 
 // ══════════════════════════════════════
@@ -718,7 +719,7 @@ async function odLogin(){
     localStorage.setItem('od_token_expiry',String(tokenResp.expiresOn?.getTime()||(Date.now()+3600000)));
     showToast(`サインイン完了: ${resp.account.username}`,'ok');
     updateOdUI();
-    spSiteId=null; // サイトIDキャッシュクリア
+    spDriveId=null; // ドライブIDキャッシュクリア
     if(currentProjectId) silentPullFromOd();
     startPolling();
   }catch(e){ showToast('サインインに失敗: '+e.message,'err'); }
@@ -779,36 +780,37 @@ async function graphDownload(endpoint){
   return {text,etag};
 }
 
-// SharePointサイトIDを取得（キャッシュ）
-async function getSiteId(){
-  if(spSiteId) return spSiteId;
-  const res=await graphRequest('GET',`/sites/${SP_SITE_URL}:${SP_SITE_PATH}`);
-  if(!res?.id) throw new Error('SharePointサイトが見つかりません。SP_SITE_PATHを確認してください');
-  spSiteId=res.id;
-  return spSiteId;
+// SharePoint共有ドキュメントへのパスを構築
+// Files.ReadWrite.All のみで動作（管理者承認不要）
+async function getSpDriveId(){
+  if(spDriveId) return spDriveId;
+  const res = await graphRequest('GET', `/sites/${SP_SITE_URL}:${SP_SITE_PATH}:/drive`);
+  if(!res?.id) throw new Error('SharePointドライブが見つかりません');
+  spDriveId = res.id;
+  return spDriveId;
 }
 
 // SharePointにファイルをアップロード
-async function spUpload(projectId,filename,content){
-  const siteId=await getSiteId();
-  const path=`${SP_BASE_FOLDER}/${projectId}/${filename}`;
-  return graphRequest('PUT',`/sites/${siteId}/drive/root:/${path}:/content`,content);
+async function spUpload(projectId, filename, content){
+  const driveId = await getSpDriveId();
+  const path = `${SP_BASE_FOLDER}/${projectId}/${filename}`;
+  return graphRequest('PUT', `/drives/${driveId}/root:/${path}:/content`, content);
 }
 
 // SharePointからファイルをダウンロード（ETag付き）
-async function spDownload(projectId,filename){
-  const siteId=await getSiteId();
-  const path=`${SP_BASE_FOLDER}/${projectId}/${filename}`;
-  const {text,etag}=await graphDownload(`/sites/${siteId}/drive/root:/${path}:/content`);
-  if(!text) return {data:null,etag:null};
-  try{ return {data:JSON.parse(text),etag}; }catch{ return {data:null,etag:null}; }
+async function spDownload(projectId, filename){
+  const driveId = await getSpDriveId();
+  const path = `${SP_BASE_FOLDER}/${projectId}/${filename}`;
+  const {text, etag} = await graphDownload(`/drives/${driveId}/root:/${path}:/content`);
+  if(!text) return {data:null, etag:null};
+  try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
 }
 
 // プロジェクト一覧をSharePointから取得
 async function spListProjects(){
   try{
-    const siteId=await getSiteId();
-    const res=await graphRequest('GET',`/sites/${siteId}/drive/root:/${SP_BASE_FOLDER}:/children`);
+    const driveId = await getSpDriveId();
+    const res = await graphRequest('GET', `/drives/${driveId}/root:/${SP_BASE_FOLDER}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
