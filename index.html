@@ -251,20 +251,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   body{max-width:none;border:none;display:flex;flex-direction:column;}
   header{padding:8px 20px;flex-shrink:0;}
   .tabs{display:none!important;}
-  /* contentを横並びに */
-  .content{
-    flex:1;overflow:hidden;
-    display:flex!important;
-    flex-direction:row!important;
-  }
-  /* map-pageを左に全幅で */
-  #map-page{
-    display:flex!important;
-    flex:1!important;
-    min-width:0;
-    border-right:1px solid var(--border);
-  }
-  /* モバイル専用ページはPC時非表示 */
+  #main-wrapper{flex-direction:row;}
+  .content{flex:1;min-width:0;}
+  #map-page{display:flex!important;flex:1!important;min-width:0;border-right:1px solid var(--border);}
   #list-page,#report-page{display:none!important;}
   /* PC右ペイン */
   .pc-right{
@@ -366,7 +355,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="tab" onclick="switchTab('report')"><span class="tab-icon">📊</span>集計</div>
 </div>
 
-<div class="content">
+<div id="main-wrapper"><div class="content">
   <!-- MAP -->
   <div id="map-page" class="page active">
     <div class="map-hint" id="mapHint">タップでピン追加</div>
@@ -452,6 +441,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     </div>
   </div>
 </div>
+</div><!-- /main-wrapper -->
 
 <!-- 設定モーダル -->
 <div id="settings-modal">
