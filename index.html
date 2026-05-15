@@ -717,10 +717,10 @@ const APP_CLIENT_ID  = 'c3791faa-e116-4a99-a93e-c8670ced32b1';
 const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
 // SharePoint チームサイト設定
 const SP_SITE_URL    = 'stem365.sharepoint.com';
-const SP_SITE_PATH   = '/sites/チームサイト';
+const SP_SITE_PATH   = '';
 const SP_BASE_FOLDER = '設計工事課共通/genba-share-tool'; // SharePoint内のパス
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
-const SCOPES         = ['Files.ReadWrite', 'User.Read'];
+const SCOPES         = ['Files.ReadWrite', 'Sites.Read.All', 'User.Read'];
 const DEFAULT_PIN    = '0000';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -934,13 +934,22 @@ async function graphDownload(endpoint){
 // Files.ReadWrite + User.Read（管理者承認不要）
 async function getSpDriveId(){
   if(spDriveId) return spDriveId;
-  // サイトID → ドライブID の順で取得
-  const siteRes = await graphRequest('GET', `/sites/${SP_SITE_URL}:${SP_SITE_PATH}`);
-  if(!siteRes?.id) throw new Error('SharePointサイトが見つかりません');
-  const driveRes = await graphRequest('GET', `/sites/${siteRes.id}/drive`);
-  if(!driveRes?.id) throw new Error('SharePointドライブが見つかりません');
-  spDriveId = driveRes.id;
-  return spDriveId;
+  try {
+    // チームサイトのドライブを取得
+    // SP_SITE_PATHが空の場合はルートサイト
+    const siteEndpoint = SP_SITE_PATH
+      ? `/sites/${SP_SITE_URL}:${SP_SITE_PATH}`
+      : `/sites/${SP_SITE_URL}`;
+    const siteRes = await graphRequest('GET', siteEndpoint);
+    if(!siteRes?.id) throw new Error('SharePointサイトが見つかりません');
+    const driveRes = await graphRequest('GET', `/sites/${siteRes.id}/drive`);
+    if(!driveRes?.id) throw new Error('SharePointドライブが見つかりません');
+    spDriveId = driveRes.id;
+    return spDriveId;
+  } catch(e) {
+    console.warn('getSpDriveId error:', e);
+    throw e;
+  }
 }
 
 // SharePointにファイルをアップロード
