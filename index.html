@@ -715,8 +715,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 // ══════════════════════════════════════
 // SharePoint REST API設定（MSALなし・SharePointログインセッション利用）
 const SP_ORIGIN      = 'https://stem365.sharepoint.com';
-const SP_BASE_FOLDER = '設計工事課共通/genba-share-tool';
-const SP_DOC_ROOT    = '/sites/チームサイト/Shared Documents';
+const SP_BASE_FOLDER = 'genba-share-tool';
+const SP_DOC_ROOT    = '/DocLib1';
 const DEFAULT_PIN    = '0000';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -816,7 +816,7 @@ async function init(){
 
 // リクエストダイジェスト取得
 async function spGetDigest(){
-  const res = await fetch(`${SP_ORIGIN}/sites/チームサイト/_api/contextinfo`, {
+  const res = await fetch(`${SP_ORIGIN}/_api/contextinfo`, {
     method:'POST', credentials:'include',
     headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'}
   });
@@ -827,7 +827,7 @@ async function spGetDigest(){
 // フォルダ存在確認・作成
 async function spEnsureFolder(relPath){
   const check = await fetch(
-    `${SP_ORIGIN}/sites/チームサイト/_api/web/GetFolderByServerRelativeUrl('${SP_DOC_ROOT}/${encodeURIComponent(relPath)}')`,
+    `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${SP_DOC_ROOT}/${encodeURIComponent(relPath)}')`,
     {method:'GET', credentials:'include', headers:{'Accept':'application/json;odata=verbose'}}
   );
   if(check.ok) return;
@@ -836,7 +836,7 @@ async function spEnsureFolder(relPath){
   const name = parts.pop();
   const digest = await spGetDigest();
   await fetch(
-    `${SP_ORIGIN}/sites/チームサイト/_api/web/GetFolderByServerRelativeUrl('${SP_DOC_ROOT}/${encodeURIComponent(parent)}')/folders`,
+    `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${SP_DOC_ROOT}/${encodeURIComponent(parent)}')/folders`,
     {
       method:'POST', credentials:'include',
       headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},
@@ -851,7 +851,7 @@ async function spUpload(projectId, filename, data){
   await spEnsureFolder(`${SP_BASE_FOLDER}/${projectId}`);
   const digest = await spGetDigest();
   const folderEncoded = encodeURIComponent(`${SP_DOC_ROOT}/${SP_BASE_FOLDER}/${projectId}`);
-  const url = `${SP_ORIGIN}/sites/チームサイト/_api/web/GetFolderByServerRelativeUrl('${folderEncoded}')/Files/Add(url='${filename}',overwrite=true)`;
+  const url = `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${folderEncoded}')/Files/Add(url='${filename}',overwrite=true)`;
   const res = await fetch(url, {
     method:'POST', credentials:'include',
     headers:{'Accept':'application/json;odata=verbose','X-RequestDigest':digest},
@@ -864,7 +864,7 @@ async function spUpload(projectId, filename, data){
 // ファイルダウンロード
 async function spDownload(projectId, filename){
   const fileRel = encodeURIComponent(`${SP_DOC_ROOT}/${SP_BASE_FOLDER}/${projectId}/${filename}`);
-  const url = `${SP_ORIGIN}/sites/チームサイト/_api/web/GetFileByServerRelativeUrl('${fileRel}')/$value`;
+  const url = `${SP_ORIGIN}/_api/web/GetFileByServerRelativeUrl('${fileRel}')/$value`;
   const res = await fetch(url, {method:'GET', credentials:'include', cache:'no-store'});
   if(!res.ok) return {data:null, etag:null};
   try{ const text = await res.text(); return {data:JSON.parse(text), etag:null}; }
@@ -875,7 +875,7 @@ async function spDownload(projectId, filename){
 async function spListProjects(){
   try{
     const folderEncoded = encodeURIComponent(`${SP_DOC_ROOT}/${SP_BASE_FOLDER}`);
-    const url = `${SP_ORIGIN}/sites/チームサイト/_api/web/GetFolderByServerRelativeUrl('${folderEncoded}')/Folders`;
+    const url = `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${folderEncoded}')/Folders`;
     const res = await fetch(url, {method:'GET', credentials:'include', cache:'no-store', headers:{'Accept':'application/json;odata=verbose'}});
     if(!res.ok) return [];
     const data = await res.json();
@@ -886,7 +886,7 @@ async function spListProjects(){
 // サインイン確認
 async function checkSpLogin(){
   try{
-    const res = await fetch(`${SP_ORIGIN}/sites/チームサイト/_api/web/currentuser`, {
+    const res = await fetch(`${SP_ORIGIN}/_api/web/currentuser`, {
       method:'GET', credentials:'include', headers:{'Accept':'application/json;odata=verbose'}
     });
     if(res.ok){
@@ -901,7 +901,7 @@ async function checkSpLogin(){
 
 // サインイン（SharePointページに誘導）
 function odLogin(){
-  const w = window.open(`${SP_ORIGIN}/sites/チームサイト`, '_blank');
+  const w = window.open(`${SP_ORIGIN}/DocLib1`, '_blank');
   showToast('SharePointにサインイン後、このページを再読み込みしてください', 'warn');
   const timer = setInterval(async ()=>{
     if(await checkSpLogin()){ clearInterval(timer); showToast('サインイン完了 ✓','ok'); }
