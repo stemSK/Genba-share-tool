@@ -307,7 +307,24 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   .bottom-sheet{position:fixed;right:0;left:auto;bottom:0;width:400px;max-height:92%;border-radius:16px 16px 0 0;}
   #pinSheet{position:fixed;right:0;left:auto;width:400px;}
   /* PC版：設定モーダルは非表示（右ペインのpc-settings-pageを使用） */
-  #settings-modal{display:none!important;}
+  /* PC版設定モーダル: 右端固定・全高・スクロール */
+  #settings-modal{
+    position:fixed!important;
+    inset:unset!important;
+    left:auto!important;right:0!important;top:0!important;
+    width:360px!important;height:100dvh!important;
+    border-radius:0!important;
+    border-left:1px solid var(--border);
+    box-shadow:-8px 0 32px rgba(0,0,0,0.6);
+    z-index:600!important;
+  }
+  #settings-modal.open{display:flex!important;}
+  .settings-scroll{
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    flex:1;
+  }
   /* PC版設定スクロール */
   #pc-settings-page .settings-scroll{
     overflow-y:auto!important;
