@@ -246,47 +246,81 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 /* CONFLICT BADGE */
 .conflict-badge{background:rgba(224,144,64,0.15);border:1px solid var(--warn);border-radius:6px;padding:8px 12px;font-size:11px;color:#f0b060;display:flex;align-items:center;gap:8px;}
 
-/* PC */
+/* ═══ PC レイアウト (900px以上) ═══ */
 @media(min-width:900px){
-  body{max-width:none;border:none;display:flex;flex-direction:column;}
-  header{padding:8px 20px;flex-shrink:0;}
+  body{max-width:none;border:none;}
+  header{padding:8px 20px;}
+  /* タブは非表示 */
   .tabs{display:none!important;}
-  #main-wrapper{flex-direction:row;}
-  .content{flex:1;min-width:0;}
-  #map-page{display:flex!important;flex:1!important;min-width:0;border-right:1px solid var(--border);}
-  #list-page,#report-page{display:none!important;}
-  /* PC右ペイン */
+  /* main-wrapperを横並びに */
+  #main-wrapper{
+    flex-direction:row!important;
+    flex:1;
+    overflow:hidden;
+  }
+  /* .contentは左ペイン（図面エリア）として機能 */
+  .content{
+    flex:1!important;
+    min-width:0;
+    overflow:hidden;
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  /* 図面ページを常時表示 */
+  #map-page{
+    display:flex!important;
+    flex:1!important;
+    min-width:0;
+    border-right:1px solid var(--border);
+  }
+  /* モバイル用の一覧・集計ページはPC時非表示 */
+  #list-page{display:none!important;}
+  #report-page{display:none!important;}
+  /* PC右ペイン：一覧・集計・設定を切り替え */
   .pc-right{
     display:flex!important;
     flex-direction:column;
-    width:280px;
+    width:320px;
     flex-shrink:0;
     background:var(--surface);
     overflow:hidden;
+    border-left:1px solid var(--border);
   }
-  .pc-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
-  .pc-tab{flex:1;padding:10px 4px 8px;text-align:center;font-size:11px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;}
+  .pc-tabs{
+    display:flex;
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .pc-tab{
+    flex:1;padding:10px 4px 8px;
+    text-align:center;font-size:11px;
+    color:var(--text2);cursor:pointer;
+    border-bottom:2px solid transparent;
+    transition:all 0.2s;
+  }
   .pc-tab.active{color:var(--accent3);border-bottom-color:var(--accent);}
-  .pc-tab-icon{font-size:16px;display:block;margin-bottom:2px;}
+  .pc-tab-icon{font-size:15px;display:block;margin-bottom:2px;}
   .pc-right .pc-page{display:none;flex:1;overflow-y:auto;flex-direction:column;}
   .pc-right .pc-page.active{display:flex;}
+  /* ボトムシートはPC右端 */
   .bottom-sheet{position:fixed;right:0;left:auto;bottom:0;width:400px;max-height:92%;border-radius:16px 16px 0 0;}
   #pinSheet{position:fixed;right:0;left:auto;width:400px;}
-  /* 設定モーダル: 右端スライドイン・全高・スクロール */
+  /* 設定はPC右ペイン内にインライン表示（モーダルなし） */
   #settings-modal{
-    left:auto!important;right:0;transform:none!important;
-    width:340px;height:100dvh;top:0;
-    border-left:1px solid var(--border);border-radius:0;
-    box-shadow:-4px 0 24px rgba(0,0,0,0.6);
-    overflow:hidden;
+    position:fixed;
+    left:auto!important;right:0;top:0;
+    transform:none!important;
+    width:320px;height:100dvh;
+    border-left:1px solid var(--border);
+    border-radius:0;
+    box-shadow:-8px 0 32px rgba(0,0,0,0.5);
   }
   .settings-scroll{
-    padding:12px 14px 60px;
-    gap:9px;
     overflow-y:auto!important;
     -webkit-overflow-scrolling:touch;
     height:calc(100dvh - 52px);
-    max-height:none;
+    padding:12px 14px 40px;
+    gap:9px;
   }
   .si{padding:10px 12px;}
   .si .si-body strong{font-size:13px;}
@@ -294,8 +328,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   .ss-title{padding:6px 12px;font-size:10px;}
   .od-config-box{padding:10px 12px;gap:8px;}
   .od-config-box input{padding:7px 9px;font-size:12px;}
-  #project-screen{left:50%;right:auto;transform:translateX(-50%);width:min(540px,90vw);top:5vh;height:90vh;border-radius:16px;border:1px solid var(--border);}
+  #project-screen{
+    left:50%;right:auto;
+    transform:translateX(-50%);
+    width:min(540px,90vw);
+    top:5vh;height:90vh;
+    border-radius:16px;
+    border:1px solid var(--border);
+  }
 }
+/* ═══ モバイル ═══ */
 @media(max-width:899px){
   .pc-right{display:none!important;}
   .pc-tabs{display:none!important;}
@@ -415,17 +457,22 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   </div>
 </div>
 
-<!-- PC右ペイン -->
+<!-- PC右ペイン：一覧／集計／設定 を切り替え -->
 <div class="pc-right" id="pcRight">
   <div class="pc-tabs">
+    <div class="pc-tab" onclick="switchPcTab('list')"><span class="pc-tab-icon">📋</span>一覧</div>
     <div class="pc-tab active" onclick="switchPcTab('report')"><span class="pc-tab-icon">📊</span>集計</div>
+    <div class="pc-tab" onclick="switchPcTab('settings')"><span class="pc-tab-icon">⚙️</span>設定</div>
   </div>
-  <!-- pc-list-page は非表示（DOM上は残してエラー回避） -->
-  <div style="display:none" id="pc-list-page">
-    <input id="searchInputPc" type="hidden">
-    <button id="filterBtnPc" style="display:none"></button>
-    <div id="pinListPc"></div>
+  <!-- 一覧 -->
+  <div class="pc-page" id="pc-list-page">
+    <div class="list-header">
+      <input class="search-input" type="search" placeholder="🔍  検索..." id="searchInputPc" oninput="renderListPc()">
+      <button class="filter-chip" id="filterBtnPc" onclick="toggleFilterPc()">未完了</button>
+    </div>
+    <div class="pin-list" id="pinListPc"></div>
   </div>
+  <!-- 集計 -->
   <div class="pc-page active" id="pc-report-page">
     <div class="report-scroll">
       <div class="rc"><h3>📊 集計</h3>
@@ -438,7 +485,20 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="rc"><h3>🏷️ 指摘項目別</h3><div id="catBarsPc"></div></div>
       <div class="rc"><h3>⚡ 優先度別</h3><div id="priBarsPc"></div></div>
       <div class="rc"><h3>📁 区分別</h3><div id="divBarsPc"></div></div>
+      <div class="rc"><h3>📤 出力</h3>
+        <div class="export-list">
+          <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
+          <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート</strong><span>各ピンの詳細・写真付きHTML</span></div></div>
+          <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
+          <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>全データを保存</span></div></div>
+          <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONから復元</span></div></div>
+        </div>
+      </div>
     </div>
+  </div>
+  <!-- 設定（インライン） -->
+  <div class="pc-page" id="pc-settings-page">
+    <div class="settings-scroll" id="pcSettingsScroll"></div>
   </div>
 </div>
 </div><!-- /main-wrapper -->
@@ -1120,14 +1180,42 @@ function switchTab(name){
   if(name==='report')renderReport();
 }
 function switchPcTab(name){
-  document.querySelectorAll('.pc-tab').forEach(t=>t.classList.toggle('active',t.textContent.includes('集計')));
+  const labels={list:'一覧',report:'集計',settings:'設定'};
+  document.querySelectorAll('.pc-tab').forEach(t=>{
+    const isActive=Object.entries(labels).some(([k,v])=>k===name&&t.textContent.includes(v));
+    t.classList.toggle('active',isActive);
+  });
   document.querySelectorAll('.pc-right .pc-page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('pc-report-page')?.classList.add('active');
-  renderReportPc();
+  document.getElementById('pc-'+name+'-page')?.classList.add('active');
+  if(name==='list'){renderListPc();}
+  if(name==='report'){renderReportPc();}
+  if(name==='settings'){renderPcSettings();}
+}
+
+function renderPcSettings(){
+  // 設定の内容をPC右ペインにコピー
+  const src=document.querySelector('#settings-modal .settings-scroll');
+  const dst=document.getElementById('pcSettingsScroll');
+  if(src&&dst){
+    dst.innerHTML=src.innerHTML;
+    // イベントの再バインド（ボタン類）
+    dst.querySelectorAll('[onclick]').forEach(el=>{
+      const fn=el.getAttribute('onclick');
+      el.setAttribute('onclick',fn);
+    });
+  }
+  updateStorageDisplay();
 }
 function isPC(){return window.innerWidth>=900;}
-function applyLayout(){ if(isPC()){renderReportPc();} }
-function renderAll(){renderPins();renderList();renderReport();if(isPC()){renderReportPc();}}
+function applyLayout(){ if(isPC()){switchPcTab('report');} }
+function renderAll(){
+  renderPins();renderList();renderReport();
+  if(isPC()){
+    const activePcPage=document.querySelector('.pc-right .pc-page.active');
+    if(activePcPage?.id==='pc-list-page') renderListPc();
+    else renderReportPc();
+  }
+}
 new ResizeObserver(()=>applyLayout()).observe(document.body);
 
 // ══════════════════════════════════════
