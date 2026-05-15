@@ -84,7 +84,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .tab-icon{font-size:17px;display:block;margin-bottom:1px;}
 
 /* CONTENT */
-#main-wrapper{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 .content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 .page{display:none;flex:1;overflow:hidden;flex-direction:column;}
 .page.active{display:flex;}
@@ -517,7 +516,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
         <div class="si" onclick="odLogin()">
           <span class="sii">🔑</span>
-          <div class="si-body"><strong>SharePointにサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
+          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="manualSync()">
@@ -601,7 +600,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
       <div class="si" onclick="odLogin()">
         <span class="sii">🔑</span>
-        <div class="si-body"><strong>SharePointにサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
+        <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
         <span class="si-arrow">›</span>
       </div>
       <div class="si" onclick="manualSync()">
@@ -706,6 +705,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <input type="file" id="json-import-input" accept=".json" style="display:none" onchange="doImportJSON(this)">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 
 <script>
 'use strict';
@@ -713,10 +713,13 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 // ══════════════════════════════════════
 //  設定定数（管理者設定済み）
 // ══════════════════════════════════════
-// SharePoint REST API設定（MSALなし・SharePointログインセッション利用）
-const SP_ORIGIN      = 'https://stem365.sharepoint.com';
-const SP_BASE_FOLDER = 'genba-share-tool';
-const SP_DOC_ROOT    = '/DocLib1';
+const APP_CLIENT_ID  = 'c3791faa-e116-4a99-a93e-c8670ced32b1';
+const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
+// OneDrive個人フォルダ設定（共有フォルダで全員がアクセス）
+const SP_BASE_FOLDER = 'genba-kyoyu'; // OneDriveのフォルダ名
+const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
+// Files.ReadWrite のみ（管理者承認不要）
+const SCOPES         = ['Files.ReadWrite', 'User.Read'];
 const DEFAULT_PIN    = '0000';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -732,8 +735,8 @@ let lastX=0, lastY=0, mapScale=1, mapOffX=0, mapOffY=0, pinchDist=0;
 let editingId=null, pendingX=0, pendingY=0;
 let currentPhotos=[], doneState=false, currentDiv='施工';
 let filterIncomplete=false, filterIncomplPc=false;
-let odEnabled=false, spLoggedIn=false;
-let pollTimer=null; // spDriveId: SharePointドライブIDキャッシュ
+let odEnabled=false, msalInstance=null, odAccessToken=null;
+let pollTimer=null;
 let lastSyncedEtag = {};  // リアルタイム競合検知用
 
 // ══════════════════════════════════════
@@ -787,8 +790,8 @@ function changePinPrompt(){
 //  INIT
 // ══════════════════════════════════════
 async function init(){
-  // SharePointサインイン状態を確認
-  await checkSpLogin();
+  // MSALを初期化してサインイン状態を復元
+  await initMsal();
   // 前回のプロジェクトを復元
   const lastPj = localStorage.getItem('last_project_id');
   if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
@@ -798,154 +801,161 @@ async function init(){
   updateStorageDisplay();
   applyLayout();
   // サインイン済みなら同期開始
-  if(odEnabled && spLoggedIn){
+  if(odEnabled && odAccessToken){
     if(currentProjectId) silentPullFromOd();
     startPolling();
   }
   // プロジェクト未選択なら選択画面へ
-  if(!currentProjectId && odEnabled && spLoggedIn){
+  if(!currentProjectId && odEnabled && odAccessToken){
     setTimeout(openProjectScreen, 500);
   }
   document.addEventListener('keydown',e=>{ if(/^[0-9]$/.test(e.key)){}; });
 }
 
 // ══════════════════════════════════════
-//  SharePoint REST API（MSALなし）
-//  ブラウザのSharePointログインセッションを利用
+//  MSAL / 認証
 // ══════════════════════════════════════
-
-// リクエストダイジェスト取得
-async function spGetDigest(){
-  const res = await fetch(`${SP_ORIGIN}/_api/contextinfo`, {
-    method:'POST', credentials:'include',
-    headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose'}
-  });
-  const data = await res.json();
-  return data.d.GetContextWebInformation.FormDigestValue;
+async function waitForMsal(timeout=12000){
+  const t0=Date.now();
+  while(!window.msal&&(Date.now()-t0)<timeout) await new Promise(r=>setTimeout(r,150));
+  if(!window.msal) throw new Error('MSALライブラリの読み込みに失敗しました');
 }
-
-// フォルダ存在確認・作成
-async function spEnsureFolder(relPath){
-  const check = await fetch(
-    `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${SP_DOC_ROOT}/${encodeURIComponent(relPath)}')`,
-    {method:'GET', credentials:'include', headers:{'Accept':'application/json;odata=verbose'}}
-  );
-  if(check.ok) return;
-  const parts = relPath.split('/');
-  const parent = parts.slice(0,-1).join('/');
-  const name = parts.pop();
-  const digest = await spGetDigest();
-  await fetch(
-    `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${SP_DOC_ROOT}/${encodeURIComponent(parent)}')/folders`,
-    {
-      method:'POST', credentials:'include',
-      headers:{'Accept':'application/json;odata=verbose','Content-Type':'application/json;odata=verbose','X-RequestDigest':digest},
-      body: JSON.stringify({__metadata:{type:'SP.Folder'}, ServerRelativeUrl: name})
-    }
-  );
-}
-
-// ファイルアップロード
-async function spUpload(projectId, filename, data){
-  await spEnsureFolder(SP_BASE_FOLDER);
-  await spEnsureFolder(`${SP_BASE_FOLDER}/${projectId}`);
-  const digest = await spGetDigest();
-  const folderEncoded = encodeURIComponent(`${SP_DOC_ROOT}/${SP_BASE_FOLDER}/${projectId}`);
-  const url = `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${folderEncoded}')/Files/Add(url='${filename}',overwrite=true)`;
-  const res = await fetch(url, {
-    method:'POST', credentials:'include',
-    headers:{'Accept':'application/json;odata=verbose','X-RequestDigest':digest},
-    body: JSON.stringify(data)
-  });
-  if(!res.ok) throw new Error(`spUpload failed: ${res.status}`);
-  return {ok:true};
-}
-
-// ファイルダウンロード
-async function spDownload(projectId, filename){
-  const fileRel = encodeURIComponent(`${SP_DOC_ROOT}/${SP_BASE_FOLDER}/${projectId}/${filename}`);
-  const url = `${SP_ORIGIN}/_api/web/GetFileByServerRelativeUrl('${fileRel}')/$value`;
-  const res = await fetch(url, {method:'GET', credentials:'include', cache:'no-store'});
-  if(!res.ok) return {data:null, etag:null};
-  try{ const text = await res.text(); return {data:JSON.parse(text), etag:null}; }
-  catch{ return {data:null, etag:null}; }
-}
-
-// プロジェクト一覧取得
-async function spListProjects(){
+async function initMsal(){
   try{
-    const folderEncoded = encodeURIComponent(`${SP_DOC_ROOT}/${SP_BASE_FOLDER}`);
-    const url = `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${folderEncoded}')/Folders`;
-    const res = await fetch(url, {method:'GET', credentials:'include', cache:'no-store', headers:{'Accept':'application/json;odata=verbose'}});
-    if(!res.ok) return [];
-    const data = await res.json();
-    return (data.d?.results||[]).map(f=>f.Name).filter(n=>!n.startsWith('_'));
-  }catch(e){ console.warn('spListProjects:',e); return []; }
-}
-
-// サインイン確認
-async function checkSpLogin(){
-  try{
-    const res = await fetch(`${SP_ORIGIN}/_api/web/currentuser`, {
-      method:'GET', credentials:'include', headers:{'Accept':'application/json;odata=verbose'}
+    await waitForMsal();
+    msalInstance=new msal.PublicClientApplication({
+      auth:{ clientId:APP_CLIENT_ID, authority:`https://login.microsoftonline.com/${APP_TENANT_ID}`, redirectUri:location.origin+location.pathname },
+      cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:false },
     });
-    if(res.ok){
-      const data = await res.json();
-      spLoggedIn = true; odEnabled = true;
-      localStorage.setItem('sp_user', data.d?.Title||'');
-      updateOdUI(); return true;
+    await msalInstance.initialize();
+    const resp=await msalInstance.handleRedirectPromise();
+    if(resp?.accessToken){
+      odAccessToken=resp.accessToken;
+      localStorage.setItem('od_access_token',odAccessToken);
+      localStorage.setItem('od_token_expiry',String(resp.expiresOn?.getTime()||(Date.now()+3600000)));
     }
-  }catch(e){}
-  spLoggedIn = false; updateOdUI(); return false;
+    // 保存済みトークン復元
+    const saved=localStorage.getItem('od_access_token');
+    const expiry=parseInt(localStorage.getItem('od_token_expiry')||'0');
+    if(saved&&expiry>Date.now()){ odAccessToken=saved; odEnabled=true; }
+    else if(saved){ await silentAcquireToken(); }
+    updateOdUI();
+  }catch(e){ console.warn('MSAL init:',e); }
 }
-
-// サインイン（SharePointページに誘導）
-function odLogin(){
-  const w = window.open(`${SP_ORIGIN}/DocLib1`, '_blank');
-  showToast('SharePointにサインイン後、このページを再読み込みしてください', 'warn');
-  const timer = setInterval(async ()=>{
-    if(await checkSpLogin()){ clearInterval(timer); showToast('サインイン完了 ✓','ok'); }
-  }, 2000);
-  setTimeout(()=>clearInterval(timer), 60000);
+async function silentAcquireToken(){
+  if(!msalInstance)return;
+  try{
+    const accounts=msalInstance.getAllAccounts();
+    if(!accounts.length)return;
+    const resp=await msalInstance.acquireTokenSilent({scopes:SCOPES,account:accounts[0]});
+    odAccessToken=resp.accessToken;
+    odEnabled=true;
+    localStorage.setItem('od_access_token',odAccessToken);
+    localStorage.setItem('od_token_expiry',String(resp.expiresOn?.getTime()||(Date.now()+3600000)));
+    updateOdUI();
+  }catch(e){ odAccessToken=null; odEnabled=false; updateOdUI(); }
 }
-
-// サインアウト
+async function odLogin(){
+  try{
+    await waitForMsal();
+    const accounts=msalInstance.getAllAccounts();
+    if(accounts.length){ await silentAcquireToken(); if(odAccessToken){showToast('サインイン済みです ✓','ok');return;} }
+    const resp=await msalInstance.loginPopup({scopes:SCOPES});
+    const tokenResp=await msalInstance.acquireTokenSilent({scopes:SCOPES,account:resp.account});
+    odAccessToken=tokenResp.accessToken;
+    odEnabled=true;
+    localStorage.setItem('od_access_token',odAccessToken);
+    localStorage.setItem('od_token_expiry',String(tokenResp.expiresOn?.getTime()||(Date.now()+3600000)));
+    showToast(`サインイン完了: ${resp.account.username}`,'ok');
+    updateOdUI();
+    // キャッシュクリア
+    if(currentProjectId) silentPullFromOd();
+    startPolling();
+  }catch(e){ showToast('サインインに失敗: '+e.message,'err'); }
+}
 function odLogout(){
-  spLoggedIn=false; odEnabled=false;
-  localStorage.removeItem('sp_user');
-  stopPolling(); updateOdUI();
+  odAccessToken=null; odEnabled=false;
+  localStorage.removeItem('od_access_token');
+  localStorage.removeItem('od_token_expiry');
+  stopPolling();
+  if(msalInstance){ const a=msalInstance.getAllAccounts(); if(a.length) msalInstance.logoutPopup({account:a[0]}).catch(()=>{}); }
   showToast('サインアウトしました','warn');
-}
-
-// 同期モード切替
-function toggleOdMode(){
-  if(!spLoggedIn){ odLogin(); return; }
-  odEnabled=!odEnabled;
-  if(!odEnabled){ stopPolling(); showToast('同期OFF','warn'); }
-  else{ startPolling(); showToast('同期ON','ok'); if(currentProjectId) silentPullFromOd(); }
   updateOdUI();
 }
-
-// UI更新
+function toggleOdMode(){
+  odEnabled=!odEnabled;
+  if(!odEnabled){ stopPolling(); showToast('同期OFF','warn'); }
+  else{ if(!odAccessToken) odLogin(); else{ startPolling(); if(currentProjectId)silentPullFromOd(); } showToast('同期ON','ok'); }
+  updateOdUI();
+}
 function updateOdUI(){
-  const modeText = odEnabled?'ON（SharePoint同期）':'OFF（ローカルのみ）';
-  const user = localStorage.getItem('sp_user')||'未サインイン';
-  const loginText = spLoggedIn ? user : '未サインイン';
-  ['odModeToggle','odModeToggle2'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.className='toggle'+(odEnabled?' on':'');
-  });
-  ['odModeText','odModeText2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=modeText;
-  });
-  ['odLoginStatus','odLoginStatus2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=loginText;
-  });
-  const dot=document.getElementById('syncDot'), lbl=document.getElementById('syncLabel');
-  if(!dot) return;
-  if(!odEnabled){ dot.className='sync-dot off'; lbl.textContent='ローカル'; }
-  else if(spLoggedIn){ dot.className='sync-dot'; lbl.textContent='SharePoint'; }
-  else{ dot.className='sync-dot error'; lbl.textContent='未接続'; }
+  document.getElementById('odModeToggle').className='toggle'+(odEnabled?' on':'');
+  document.getElementById('odModeText').textContent=odEnabled?'ON（SharePoint同期）':'OFF（ローカルのみ）';
+  const accounts=msalInstance?.getAllAccounts()||[];
+  const loggedIn=odAccessToken&&accounts.length;
+  document.getElementById('odLoginStatus').textContent=loggedIn?(accounts[0]?.username||'サインイン済み'):'未サインイン';
+  const dot=document.getElementById('syncDot'),lbl=document.getElementById('syncLabel');
+  if(!odEnabled){dot.className='sync-dot off';lbl.textContent='ローカル';}
+  else if(loggedIn){dot.className='sync-dot';lbl.textContent='OneDrive';}
+  else{dot.className='sync-dot error';lbl.textContent='未接続';}
+}
+
+// ══════════════════════════════════════
+//  GRAPH API / SharePoint
+// ══════════════════════════════════════
+async function ensureToken(){
+  const expiry=parseInt(localStorage.getItem('od_token_expiry')||'0');
+  if(expiry-Date.now()<60000) await silentAcquireToken();
+  if(!odAccessToken) throw new Error('未認証');
+}
+async function graphRequest(method,endpoint,body=null){
+  await ensureToken();
+  const headers={'Authorization':'Bearer '+odAccessToken};
+  if(body!==null) headers['Content-Type']='application/json';
+  const opts={method,headers};
+  if(body!==null) opts.body=JSON.stringify(body);
+  let res=await fetch(GRAPH_BASE+endpoint,opts);
+  if(res.status===401){ await silentAcquireToken(); opts.headers['Authorization']='Bearer '+odAccessToken; res=await fetch(GRAPH_BASE+endpoint,opts); }
+  if(!res.ok&&res.status!==404) throw new Error(`Graph ${res.status}: ${await res.text().catch(()=>'')}`);
+  if(res.status===204||res.status===404) return null;
+  return res.json().catch(()=>null);
+}
+async function graphDownload(endpoint){
+  await ensureToken();
+  const res=await fetch(GRAPH_BASE+endpoint,{headers:{'Authorization':'Bearer '+odAccessToken},cache:'no-store'});
+  if(!res.ok) return {text:null,etag:null};
+  const etag=res.headers.get('ETag')||'';
+  const text=await res.text();
+  return {text,etag};
+}
+
+// SharePoint チームサイトのドライブにアクセス
+// Files.ReadWrite + User.Read（管理者承認不要）
+// 個人OneDrive（/me/drive）を使用
+// Files.ReadWrite のみで動作（管理者承認不要）
+// genba-kyoyu フォルダを共有することでチームで共有
+
+// OneDriveにファイルをアップロード
+async function spUpload(projectId, filename, data){
+  const path = `${SP_BASE_FOLDER}/${projectId}/${filename}`;
+  return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
+}
+
+// OneDriveからファイルをダウンロード
+async function spDownload(projectId, filename){
+  const path = `${SP_BASE_FOLDER}/${projectId}/${filename}`;
+  const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
+  if(!text) return {data:null, etag:null};
+  try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
+}
+
+// プロジェクト一覧をOneDriveから取得
+async function spListProjects(){
+  try{
+    const res = await graphRequest('GET', `/me/drive/root:/${SP_BASE_FOLDER}:/children`);
+    if(!res?.value) return [];
+    return res.value.filter(i=>i.folder).map(i=>i.name);
+  }catch(e){ console.warn('spListProjects:',e); return []; }
 }
 
 // プロジェクトのconfig.jsonを読む
@@ -988,7 +998,7 @@ async function openProjectScreen(){
   screen.classList.add('show');
   const list=document.getElementById('projectList');
   list.innerHTML='<div class="empty"><div class="ei">⏳</div><p>読み込み中...</p></div>';
-  if(!odEnabled||!spLoggedIn){
+  if(!odEnabled||!odAccessToken){
     // ローカルのプロジェクト一覧
     const localProjects=getLocalProjects();
     renderProjectList(localProjects,[]);
@@ -1048,7 +1058,7 @@ async function selectProject(id,name){
   renderPins();
   renderAll();
   updateStorageDisplay();
-  if(odEnabled&&spLoggedIn) await silentPullFromOd();
+  if(odEnabled&&odAccessToken) await silentPullFromOd();
   showToast(`${name} を開きました`,'ok');
 }
 
@@ -1071,7 +1081,7 @@ async function createProject(){
   pins=[];
   localStorage.setItem('pins_'+safeId,JSON.stringify([]));
   updateHeaderProject();
-  if(odEnabled&&spLoggedIn){
+  if(odEnabled&&odAccessToken){
     try{
       await spSaveProjectConfig(safeId,{name:currentProjectName,created:new Date().toISOString(),pin_count:0,updated:new Date().toISOString()});
       showToast(`${currentProjectName} を作成しました`,'ok');
@@ -1090,7 +1100,7 @@ async function renameProject(){
   localStorage.setItem('last_project_name',currentProjectName);
   localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
   updateHeaderProject();
-  if(odEnabled&&spLoggedIn){
+  if(odEnabled&&odAccessToken){
     try{
       const cfg=await spGetProjectConfig(currentProjectId)||{};
       await spSaveProjectConfig(currentProjectId,{...cfg,name:currentProjectName,updated:new Date().toISOString()});
@@ -1117,7 +1127,7 @@ function saveData(){
   if(!currentProjectId) return;
   localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
   updateStorageDisplay();
-  if(odEnabled&&spLoggedIn) autoSyncToOd();
+  if(odEnabled&&odAccessToken) autoSyncToOd();
 }
 function updateStorageDisplay(){
   try{
@@ -1137,7 +1147,7 @@ function updateStorageDisplay(){
 //  同期 (SharePoint)
 // ══════════════════════════════════════
 async function autoSyncToOd(){
-  if(!odEnabled||!spLoggedIn||!currentProjectId)return;
+  if(!odEnabled||!odAccessToken||!currentProjectId)return;
   try{ await pushToOd(); }catch(e){console.warn('AutoSync:',e);}
 }
 async function pushToOd(){
@@ -1163,7 +1173,7 @@ async function pushToOd(){
 }
 
 async function pullFromOd(silent=false){
-  if(!odEnabled||!spLoggedIn){if(!silent)showToast('SharePoint未接続','warn');return;}
+  if(!odEnabled||!odAccessToken){if(!silent)showToast('SharePoint未接続','warn');return;}
   if(!currentProjectId){if(!silent)showToast('プロジェクトを選択してください','warn');return;}
   setSyncState('syncing');
   try{
@@ -1207,7 +1217,7 @@ async function pullFromOd(silent=false){
 async function silentPullFromOd(){ await pullFromOd(true); }
 async function manualSync(){
   if(!currentProjectId){showToast('プロジェクトを選択してください','warn');return;}
-  if(!odEnabled||!spLoggedIn){showToast('SharePointに接続してください','warn');return;}
+  if(!odEnabled||!odAccessToken){showToast('SharePointに接続してください','warn');return;}
   try{ await pushToOd(); showToast('SharePointに同期しました ✓','ok'); }
   catch(e){setSyncState('error');showToast('同期失敗: '+e.message,'err');}
 }
@@ -1216,13 +1226,13 @@ function setSyncState(s){
   if(!odEnabled){dot.className='sync-dot off';lbl.textContent='ローカル';return;}
   if(s==='syncing'){dot.className='sync-dot syncing';lbl.textContent='同期中...';}
   else if(s==='error'){dot.className='sync-dot error';lbl.textContent='エラー';}
-  else{dot.className='sync-dot';lbl.textContent='SharePoint';}
+  else{dot.className='sync-dot';lbl.textContent='OneDrive';}
 }
 
 // ポーリング（15秒ごと）
-function startPolling(){ stopPolling(); if(!odEnabled)return; pollTimer=setInterval(()=>{ if(odEnabled&&spLoggedIn&&currentProjectId&&document.visibilityState!=='hidden') silentPullFromOd(); },15000); }
+function startPolling(){ stopPolling(); if(!odEnabled)return; pollTimer=setInterval(()=>{ if(odEnabled&&odAccessToken&&currentProjectId&&document.visibilityState!=='hidden') silentPullFromOd(); },15000); }
 function stopPolling(){ if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&odEnabled&&spLoggedIn&&currentProjectId) silentPullFromOd(); });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&odEnabled&&odAccessToken&&currentProjectId) silentPullFromOd(); });
 
 // ══════════════════════════════════════
 //  TAB / LAYOUT
@@ -1301,7 +1311,7 @@ async function uploadMap(input){
   updateStorageDisplay();
   showToast(`図面設定完了`,'ok');
   input.value='';
-  if(odEnabled&&spLoggedIn) autoSyncToOd();
+  if(odEnabled&&odAccessToken) autoSyncToOd();
 }
 async function pdfToJpeg(file,maxPx=1920,quality=0.85){
   try{
