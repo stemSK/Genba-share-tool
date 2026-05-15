@@ -84,6 +84,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .tab-icon{font-size:17px;display:block;margin-bottom:1px;}
 
 /* CONTENT */
+#main-wrapper{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 .content{flex:1;overflow:hidden;display:flex;flex-direction:column;}
 .page{display:none;flex:1;overflow:hidden;flex-direction:column;}
 .page.active{display:flex;}
@@ -300,7 +301,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   }
   .pc-tab.active{color:var(--accent3);border-bottom-color:var(--accent);}
   .pc-tab-icon{font-size:15px;display:block;margin-bottom:2px;}
-  .pc-right .pc-page{display:none;flex:1;overflow-y:auto;flex-direction:column;}
+  .pc-right .pc-page{display:none;flex:1;overflow-y:auto;flex-direction:column;overscroll-behavior:contain;}
+  .pc-right .report-scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
+  .pc-right .pin-list{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
   .pc-right .pc-page.active{display:flex;}
   /* ボトムシートはPC右端 */
   .bottom-sheet{position:fixed;right:0;left:auto;bottom:0;width:400px;max-height:92%;border-radius:16px 16px 0 0;}
@@ -366,18 +369,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <!-- PROJECT SELECT -->
 <div id="project-screen">
   <div class="project-header">
-    <h2>🏗️ プロジェクト選択</h2>
+    <h2>🏗️ 案件選択</h2>
     <button class="icon-btn" onclick="closeProjectScreen()">✕</button>
   </div>
   <div class="project-list" id="projectList"></div>
-  <button class="project-add-btn" onclick="createProject()">＋ 新規プロジェクト作成</button>
+  <button class="project-add-btn" onclick="createProject()">＋ 新規案件を作成</button>
 </div>
 
 <!-- APP -->
 <header>
   <div class="header-project" onclick="openProjectScreen()" title="プロジェクトを切り替え">
-    <div class="header-project-id">📁 <span id="headerProjectId">-</span> ▾</div>
-    <div class="header-project-name" id="headerProjectName">プロジェクトを選択</div>
+    <div class="header-project-name" id="headerProjectName">📁 案件を選択 ▾</div>
   </div>
   <div class="sync-indicator" id="syncIndicator" onclick="manualSync()" title="クリックで同期">
     <div class="sync-dot off" id="syncDot"></div>
@@ -457,7 +459,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="pc-tabs">
     <div class="pc-tab" onclick="switchPcTab('list')"><span class="pc-tab-icon">📋</span>一覧</div>
     <div class="pc-tab active" onclick="switchPcTab('report')"><span class="pc-tab-icon">📊</span>集計</div>
-    <div class="pc-tab" onclick="switchPcTab('settings')"><span class="pc-tab-icon">⚙️</span>設定</div>
   </div>
   <!-- 一覧 -->
   <div class="pc-page" id="pc-list-page">
@@ -491,8 +492,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
     </div>
   </div>
-  <!-- 設定（PC右ペイン直接表示） -->
-  <div class="pc-page" id="pc-settings-page">
+  <!-- 設定（歯車ボタンからモーダルで表示） -->
+  <div class="pc-page" id="pc-settings-page" style="display:none!important">
     <div class="settings-scroll">
       <div class="ss">
         <div class="ss-title">📁 現在のプロジェクト</div>
@@ -508,7 +509,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
       </div>
       <div class="ss">
-        <div class="ss-title">☁️ SharePoint 同期設定</div>
+        <div class="ss-title">☁️ OneDrive 同期設定</div>
         <div class="si">
           <span class="sii">🔗</span>
           <div class="si-body"><strong>同期モード</strong><span id="odModeText2">OFF</span></div>
@@ -521,12 +522,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
         <div class="si" onclick="manualSync()">
           <span class="sii">🔄</span>
-          <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
+          <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="pullFromOd(false)">
           <span class="sii">⬇️</span>
-          <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
+          <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="odLogout()">
@@ -592,7 +593,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     </div>
     <!-- SharePoint同期設定 -->
     <div class="ss">
-      <div class="ss-title">☁️ SharePoint 同期設定</div>
+      <div class="ss-title">☁️ OneDrive 同期設定</div>
       <div class="si">
         <span class="sii">🔗</span>
         <div class="si-body"><strong>同期モード</strong><span id="odModeText">OFF</span></div>
@@ -605,12 +606,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
       <div class="si" onclick="manualSync()">
         <span class="sii">🔄</span>
-        <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
+        <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
         <span class="si-arrow">›</span>
       </div>
       <div class="si" onclick="pullFromOd(false)">
         <span class="sii">⬇️</span>
-        <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
+        <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
         <span class="si-arrow">›</span>
       </div>
       <div class="si" onclick="odLogout()">
@@ -716,7 +717,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 const APP_CLIENT_ID  = 'c3791faa-e116-4a99-a93e-c8670ced32b1';
 const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
 // OneDrive個人フォルダ設定（共有フォルダで全員がアクセス）
-const SP_BASE_FOLDER = 'genba-kyoyu'; // OneDriveのフォルダ名
+const SP_BASE_FOLDER = 'Genba-share-tool'; // OneDriveのフォルダ名
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
 // Files.ReadWrite のみ（管理者承認不要）
 const SCOPES         = ['Files.ReadWrite', 'User.Read'];
@@ -890,7 +891,7 @@ function toggleOdMode(){
 }
 function updateOdUI(){
   document.getElementById('odModeToggle').className='toggle'+(odEnabled?' on':'');
-  document.getElementById('odModeText').textContent=odEnabled?'ON（SharePoint同期）':'OFF（ローカルのみ）';
+  document.getElementById('odModeText').textContent=odEnabled?'ON（OneDrive同期）':'OFF（ローカルのみ）';
   const accounts=msalInstance?.getAllAccounts()||[];
   const loggedIn=odAccessToken&&accounts.length;
   document.getElementById('odLoginStatus').textContent=loggedIn?(accounts[0]?.username||'サインイン済み'):'未サインイン';
@@ -973,24 +974,21 @@ async function spSaveProjectConfig(projectId,config){
 //  プロジェクト管理
 // ══════════════════════════════════════
 function updateHeaderProject(){
-  document.getElementById('headerProjectId').textContent=currentProjectId||'-';
   const nameEl=document.getElementById('headerProjectName');
   if(currentProjectName){
-    nameEl.textContent=currentProjectName;
+    nameEl.textContent='📁 '+currentProjectName+' ▾';
     nameEl.classList.remove('placeholder');
   } else {
-    nameEl.textContent='プロジェクトを選択 ▾';
+    nameEl.textContent='📁 案件を選択 ▾';
     nameEl.classList.add('placeholder');
   }
-  const lbl=`${currentProjectId} / ${currentProjectName}`;
-  document.getElementById('settingsProjectLabel').textContent=currentProjectId?lbl:'未選択';
-  document.getElementById('settingsProjectName').textContent=currentProjectName||'-';
-  const l2=document.getElementById('settingsProjectLabel2');
-  if(l2) l2.textContent=currentProjectId?lbl:'未選択';
-  const n2=document.getElementById('settingsProjectName2');
-  if(n2) n2.textContent=currentProjectName||'-';
-  const m2=document.getElementById('currentMapName2');
-  if(m2) m2.textContent=localStorage.getItem('map_name_'+currentProjectId)||'PNG・JPG・PDF・HEIC対応';
+  const lbl=currentProjectName||'未選択';
+  const el=id=>document.getElementById(id);
+  if(el('settingsProjectLabel')) el('settingsProjectLabel').textContent=lbl;
+  if(el('settingsProjectName')) el('settingsProjectName').textContent=lbl;
+  if(el('settingsProjectLabel2')) el('settingsProjectLabel2').textContent=lbl;
+  if(el('settingsProjectName2')) el('settingsProjectName2').textContent=lbl;
+  if(el('currentMapName2')) el('currentMapName2').textContent=localStorage.getItem('map_name_'+currentProjectId)||'PNG・JPG・PDF・HEIC対応';
 }
 
 async function openProjectScreen(){
@@ -1245,16 +1243,15 @@ function switchTab(name){
   if(name==='report')renderReport();
 }
 function switchPcTab(name){
-  const labels={list:'一覧',report:'集計',settings:'設定'};
   document.querySelectorAll('.pc-tab').forEach(t=>{
-    const isActive=Object.entries(labels).some(([k,v])=>k===name&&t.textContent.includes(v));
-    t.classList.toggle('active',isActive);
+    const active=(name==='list'&&t.textContent.includes('一覧'))||(name==='report'&&t.textContent.includes('集計'));
+    t.classList.toggle('active', active);
   });
   document.querySelectorAll('.pc-right .pc-page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('pc-'+name+'-page')?.classList.add('active');
-  if(name==='list'){renderListPc();}
-  if(name==='report'){renderReportPc();}
-  if(name==='settings'){renderPcSettings();}
+  const page = document.getElementById('pc-'+name+'-page');
+  if(page && name !== 'settings') page.classList.add('active');
+  if(name==='list') renderListPc();
+  if(name==='report') renderReportPc();
 }
 
 function renderPcSettings(){
