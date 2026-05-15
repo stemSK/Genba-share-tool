@@ -305,22 +305,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   /* ボトムシートはPC右端 */
   .bottom-sheet{position:fixed;right:0;left:auto;bottom:0;width:400px;max-height:92%;border-radius:16px 16px 0 0;}
   #pinSheet{position:fixed;right:0;left:auto;width:400px;}
-  /* 設定はPC右ペイン内にインライン表示（モーダルなし） */
-  #settings-modal{
-    position:fixed;
-    left:auto!important;right:0;top:0;
-    transform:none!important;
-    width:320px;height:100dvh;
-    border-left:1px solid var(--border);
-    border-radius:0;
-    box-shadow:-8px 0 32px rgba(0,0,0,0.5);
-  }
-  .settings-scroll{
+  /* PC版：設定モーダルは非表示（右ペインのpc-settings-pageを使用） */
+  #settings-modal{display:none!important;}
+  /* PC版設定スクロール */
+  #pc-settings-page .settings-scroll{
     overflow-y:auto!important;
     -webkit-overflow-scrolling:touch;
-    height:calc(100dvh - 52px);
-    padding:12px 14px 40px;
-    gap:9px;
+    height:100%;
+    padding:10px 12px 40px;
+    gap:8px;
+    display:flex;
+    flex-direction:column;
   }
   .si{padding:10px 12px;}
   .si .si-body strong{font-size:13px;}
@@ -496,9 +491,80 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
     </div>
   </div>
-  <!-- 設定（インライン） -->
+  <!-- 設定（PC右ペイン直接表示） -->
   <div class="pc-page" id="pc-settings-page">
-    <div class="settings-scroll" id="pcSettingsScroll"></div>
+    <div class="settings-scroll">
+      <div class="ss">
+        <div class="ss-title">📁 現在のプロジェクト</div>
+        <div class="si" onclick="openProjectScreen()">
+          <span class="sii">🔄</span>
+          <div class="si-body"><strong>プロジェクト切替</strong><span id="settingsProjectLabel2">未選択</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="renameProject()">
+          <span class="sii">✏️</span>
+          <div class="si-body"><strong>案件名を変更</strong><span id="settingsProjectName2">-</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="ss-title">☁️ SharePoint 同期設定</div>
+        <div class="si">
+          <span class="sii">🔗</span>
+          <div class="si-body"><strong>同期モード</strong><span id="odModeText2">OFF</span></div>
+          <div class="toggle" id="odModeToggle2" onclick="toggleOdMode()" style="flex-shrink:0"></div>
+        </div>
+        <div class="si" onclick="odLogin()">
+          <span class="sii">🔑</span>
+          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="manualSync()">
+          <span class="sii">🔄</span>
+          <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="pullFromOd(false)">
+          <span class="sii">⬇️</span>
+          <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="odLogout()">
+          <span class="sii">🚪</span>
+          <div class="si-body"><strong>サインアウト</strong></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="ss-title">図面管理</div>
+        <div class="si" onclick="triggerMapInput()">
+          <span class="sii">🗺️</span>
+          <div class="si-body"><strong>図面をアップロード</strong><span id="currentMapName2">PNG・JPG・PDF・HEIC対応</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="deleteMap()">
+          <span class="sii">🗑️</span>
+          <div class="si-body"><strong style="color:var(--danger)">図面を削除</strong></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
+      <div class="ss">
+        <div class="ss-title">ピンデータ管理</div>
+        <div class="si"><span class="sii">📦</span><div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt2">計算中...</span></div></div>
+        <div class="si" onclick="exportJSON()"><span class="sii">💾</span><div class="si-body"><strong>JSONバックアップ</strong></div><span class="si-arrow">›</span></div>
+        <div class="si" onclick="importJSON()"><span class="sii">📂</span><div class="si-body"><strong>データ読み込み</strong></div><span class="si-arrow">›</span></div>
+        <div class="si" onclick="clearPins()"><span class="sii">🗑️</span><div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div><span class="si-arrow">›</span></div>
+      </div>
+      <div class="ss">
+        <div class="ss-title">認証</div>
+        <div class="si" onclick="changePinPrompt()"><span class="sii">🔐</span><div class="si-body"><strong>PIN変更</strong></div><span class="si-arrow">›</span></div>
+        <div class="si" onclick="logout()"><span class="sii">🚪</span><div class="si-body"><strong>ログアウト</strong></div><span class="si-arrow">›</span></div>
+      </div>
+      <div class="ss">
+        <div class="ss-title">アプリ情報</div>
+        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v5.0</strong><span>SharePoint + プロジェクト管理対応</span></div></div>
+      </div>
+    </div>
   </div>
 </div>
 </div><!-- /main-wrapper -->
@@ -654,7 +720,7 @@ const SP_SITE_URL    = 'stem365.sharepoint.com';
 const SP_SITE_PATH   = '/sites/チームサイト';
 const SP_BASE_FOLDER = '設計工事課共通/genba-share-tool'; // SharePoint内のパス
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
-const SCOPES         = ['Files.ReadWrite.All', 'User.Read', 'offline_access'];
+const SCOPES         = ['Files.ReadWrite', 'User.Read'];
 const DEFAULT_PIN    = '0000';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -864,13 +930,16 @@ async function graphDownload(endpoint){
   return {text,etag};
 }
 
-// SharePoint共有ドキュメントへのパスを構築
-// Files.ReadWrite.All のみで動作（管理者承認不要）
+// SharePoint チームサイトのドライブにアクセス
+// Files.ReadWrite + User.Read（管理者承認不要）
 async function getSpDriveId(){
   if(spDriveId) return spDriveId;
-  const res = await graphRequest('GET', `/sites/${SP_SITE_URL}:${SP_SITE_PATH}:/drive`);
-  if(!res?.id) throw new Error('SharePointドライブが見つかりません');
-  spDriveId = res.id;
+  // サイトID → ドライブID の順で取得
+  const siteRes = await graphRequest('GET', `/sites/${SP_SITE_URL}:${SP_SITE_PATH}`);
+  if(!siteRes?.id) throw new Error('SharePointサイトが見つかりません');
+  const driveRes = await graphRequest('GET', `/sites/${siteRes.id}/drive`);
+  if(!driveRes?.id) throw new Error('SharePointドライブが見つかりません');
+  spDriveId = driveRes.id;
   return spDriveId;
 }
 
@@ -924,8 +993,15 @@ function updateHeaderProject(){
     nameEl.textContent='プロジェクトを選択 ▾';
     nameEl.classList.add('placeholder');
   }
-  document.getElementById('settingsProjectLabel').textContent=currentProjectId?`${currentProjectId} / ${currentProjectName}`:'未選択';
+  const lbl=`${currentProjectId} / ${currentProjectName}`;
+  document.getElementById('settingsProjectLabel').textContent=currentProjectId?lbl:'未選択';
   document.getElementById('settingsProjectName').textContent=currentProjectName||'-';
+  const l2=document.getElementById('settingsProjectLabel2');
+  if(l2) l2.textContent=currentProjectId?lbl:'未選択';
+  const n2=document.getElementById('settingsProjectName2');
+  if(n2) n2.textContent=currentProjectName||'-';
+  const m2=document.getElementById('currentMapName2');
+  if(m2) m2.textContent=localStorage.getItem('map_name_'+currentProjectId)||'PNG・JPG・PDF・HEIC対応';
 }
 
 async function openProjectScreen(){
@@ -1216,7 +1292,11 @@ function renderAll(){
     else renderReportPc();
   }
 }
-new ResizeObserver(()=>applyLayout()).observe(document.body);
+new ResizeObserver(()=>{
+  applyLayout();
+  const img=document.getElementById('mapImg');
+  if(img&&img.naturalWidth) fitMap();
+}).observe(document.body);
 
 // ══════════════════════════════════════
 //  設定モーダル
@@ -1262,11 +1342,16 @@ function showMapImage(src){
   const img=document.getElementById('mapImg');
   img.src=src;img.style.display='block';
   document.getElementById('mapPlaceholder').style.display='none';
-  img.onload=()=>{fitMap();renderPins();};
+  img.onload=()=>{
+    // コンテナサイズが確定してからfitMap
+    requestAnimationFrame(()=>{ fitMap(); renderPins(); });
+  };
+  // 既にロード済みの場合（src同一）
+  if(img.complete&&img.naturalWidth) requestAnimationFrame(()=>{ fitMap(); renderPins(); });
 }
 function fitMap(){
   const c=document.getElementById('mapContainer'),img=document.getElementById('mapImg');
-  if(!img.naturalWidth)return;
+  if(!img.naturalWidth||!c.clientWidth||!c.clientHeight)return;
   mapScale=Math.min(c.clientWidth/img.naturalWidth,c.clientHeight/img.naturalHeight,1);
   mapOffX=(c.clientWidth-img.naturalWidth*mapScale)/2;
   mapOffY=(c.clientHeight-img.naturalHeight*mapScale)/2;
