@@ -54,7 +54,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dv
 .project-add-btn:active{opacity:0.85;}
 
 /* SETTINGS MODAL */
-#settings-modal{position:fixed;inset:0;z-index:500;background:var(--bg);display:none;flex-direction:column;overflow:hidden;}
+#settings-modal{position:fixed;inset:0;z-index:500;background:var(--bg);display:none;flex-direction:column;overflow:hidden;height:100dvh;max-height:100dvh;}
 #settings-modal.open{display:flex;}
 .settings-modal-header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .settings-modal-header h2{flex:1;font-size:16px;font-weight:700;color:var(--accent3);}
@@ -312,19 +312,27 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     position:fixed!important;
     inset:unset!important;
     left:auto!important;right:0!important;top:0!important;
-    width:360px!important;height:100dvh!important;
+    width:360px!important;
+    height:100dvh!important;
+    max-height:100dvh!important;
     border-radius:0!important;
     border-left:1px solid var(--border);
     box-shadow:-8px 0 32px rgba(0,0,0,0.6);
     z-index:600!important;
+    display:none;
+    flex-direction:column;
+    overflow:hidden!important;
   }
   #settings-modal.open{display:flex!important;}
-  .settings-scroll{
+  /* 設定スクロールエリア */
+  #settings-modal .settings-scroll{
+    flex:1 1 0!important;
+    min-height:0!important;
+    max-height:none!important;
     overflow-y:auto!important;
-    -webkit-overflow-scrolling:touch;
+    -webkit-overflow-scrolling:touch!important;
     overscroll-behavior:contain;
-    flex:1;
-    min-height:0;
+    padding:12px 14px 60px!important;
   }
   /* PC版設定スクロール */
   #pc-settings-page .settings-scroll{
@@ -1301,7 +1309,14 @@ new ResizeObserver(()=>{
 // ══════════════════════════════════════
 //  設定モーダル
 // ══════════════════════════════════════
-function openSettings(){ updateStorageDisplay(); document.getElementById('settings-modal').classList.add('open'); }
+function openSettings(){
+  updateStorageDisplay();
+  const modal = document.getElementById('settings-modal');
+  modal.classList.add('open');
+  // スクロール位置をリセット
+  const scroll = modal.querySelector('.settings-scroll');
+  if(scroll) scroll.scrollTop = 0;
+}
 function closeSettings(){ document.getElementById('settings-modal').classList.remove('open'); }
 
 // ══════════════════════════════════════
