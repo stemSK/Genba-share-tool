@@ -320,12 +320,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   }
   #settings-modal.open{display:flex!important;}
   .settings-scroll{
-    overflow-y:scroll!important;
+    overflow-y:auto!important;
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
     flex:1;
     min-height:0;
-    height:0;
   }
   /* PC版設定スクロール */
   #pc-settings-page .settings-scroll{
@@ -386,17 +385,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <!-- PROJECT SELECT -->
 <div id="project-screen">
   <div class="project-header">
-    <h2>🏗️ 案件選択</h2>
+    <h2>🏗️ 現場選択</h2>
     <button class="icon-btn" onclick="closeProjectScreen()">✕</button>
   </div>
   <div class="project-list" id="projectList"></div>
-  <button class="project-add-btn" onclick="createProject()">＋ 新規案件を作成</button>
+  <button class="project-add-btn" onclick="createProject()">＋ 新規現場を作成</button>
 </div>
 
 <!-- APP -->
 <header>
-  <div class="header-project" onclick="openProjectScreen()" title="プロジェクトを切り替え">
-    <div class="header-project-name" id="headerProjectName">📁 案件を選択 ▾</div>
+  <div class="header-project" onclick="openProjectScreen()" title="現場を切り替え">
+    <div class="header-project-name" id="headerProjectName">📁 現場を選択 ▾</div>
   </div>
   <div class="sync-indicator" id="syncIndicator" onclick="manualSync()" title="クリックで同期">
     <div class="sync-dot off" id="syncDot"></div>
@@ -510,15 +509,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="pc-page" id="pc-settings-page">
     <div class="settings-scroll">
       <div class="ss">
-        <div class="ss-title">📁 現在のプロジェクト</div>
+        <div class="ss-title">📁 現在の現場</div>
         <div class="si" onclick="openProjectScreen()">
           <span class="sii">🔄</span>
-          <div class="si-body"><strong>プロジェクト切替</strong><span id="settingsProjectLabel2">未選択</span></div>
+          <div class="si-body"><strong>現場切替</strong><span id="settingsProjectLabel2">未選択</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="renameProject()">
           <span class="sii">✏️</span>
-          <div class="si-body"><strong>案件名を変更</strong><span id="settingsProjectName2">-</span></div>
+          <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName2">-</span></div>
           <span class="si-arrow">›</span>
         </div>
       </div>
@@ -593,15 +592,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="settings-scroll">
     <!-- プロジェクト設定 -->
     <div class="ss">
-      <div class="ss-title">📁 現在のプロジェクト</div>
+      <div class="ss-title">📁 現在の現場</div>
       <div class="si" onclick="openProjectScreen();closeSettings();">
         <span class="sii">🔄</span>
-        <div class="si-body"><strong>プロジェクト切替</strong><span id="settingsProjectLabel">未選択</span></div>
+        <div class="si-body"><strong>現場切替</strong><span id="settingsProjectLabel">未選択</span></div>
         <span class="si-arrow">›</span>
       </div>
       <div class="si" onclick="renameProject()">
         <span class="sii">✏️</span>
-        <div class="si-body"><strong>案件名を変更</strong><span id="settingsProjectName">-</span></div>
+        <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName">-</span></div>
         <span class="si-arrow">›</span>
       </div>
     </div>
@@ -986,13 +985,13 @@ async function spSaveProjectConfig(projectId,config){
 //  プロジェクト管理
 // ══════════════════════════════════════
 function updateHeaderProject(){
-  document.getElementById('headerProjectId').textContent=currentProjectId||'-';
+
   const nameEl=document.getElementById('headerProjectName');
   if(currentProjectName){
     nameEl.textContent=currentProjectName;
     nameEl.classList.remove('placeholder');
   } else {
-    nameEl.textContent='プロジェクトを選択 ▾';
+    nameEl.textContent='現場を選択 ▾';
     nameEl.classList.add('placeholder');
   }
   const lbl=`${currentProjectId} / ${currentProjectName}`;
@@ -1065,14 +1064,14 @@ async function selectProject(id,name){
   localStorage.setItem('last_project_id',id);
   localStorage.setItem('last_project_name',name);
   localStorage.setItem('project_name_'+id,name);
-  updateHeaderProject();
   closeProjectScreen();
   loadData();
+  updateHeaderProject();
   renderPins();
   renderAll();
   updateStorageDisplay();
-  if(odEnabled&&odAccessToken) await silentPullFromOd();
   showToast(`${name} を開きました`,'ok');
+  if(odEnabled&&odAccessToken) silentPullFromOd();
 }
 
 function closeProjectScreen(){
@@ -1084,7 +1083,7 @@ async function createProject(){
   if(!id?.trim()){return;}
   const safeId=id.trim().replace(/[^a-zA-Z0-9_\-]/g,'');
   if(!safeId){showToast('使用できない文字が含まれています','err');return;}
-  const name=prompt('案件名を入力\n（例: ○○ビル新築工事）','');
+  const name=prompt('現場名を入力\n（例: ○○ビル新築工事）','');
   if(name===null)return;
   currentProjectId=safeId;
   currentProjectName=name||safeId;
@@ -1106,8 +1105,8 @@ async function createProject(){
 }
 
 async function renameProject(){
-  if(!currentProjectId){showToast('プロジェクトを選択してください','warn');return;}
-  const newName=prompt('新しい案件名を入力',currentProjectName);
+  if(!currentProjectId){showToast('現場を選択してください','warn');return;}
+  const newName=prompt('新しい現場名を入力',currentProjectName);
   if(!newName?.trim()||newName===currentProjectName)return;
   currentProjectName=newName.trim();
   localStorage.setItem('last_project_name',currentProjectName);
@@ -1117,9 +1116,9 @@ async function renameProject(){
     try{
       const cfg=await spGetProjectConfig(currentProjectId)||{};
       await spSaveProjectConfig(currentProjectId,{...cfg,name:currentProjectName,updated:new Date().toISOString()});
-      showToast('案件名を変更しました ✓','ok');
+      showToast('現場名を変更しました ✓','ok');
     }catch(e){showToast('OneDrive更新エラー: '+e.message,'err');}
-  } else { showToast('案件名を変更しました ✓','ok'); }
+  } else { showToast('現場名を変更しました ✓','ok'); }
   document.getElementById('settingsProjectName').textContent=currentProjectName;
   document.getElementById('settingsProjectLabel').textContent=`${currentProjectId} / ${currentProjectName}`;
 }
@@ -1147,13 +1146,12 @@ function updateStorageDisplay(){
     let total=0;
     for(let i=0;i<localStorage.length;i++) total+=(localStorage.key(i).length+(localStorage.getItem(localStorage.key(i))||'').length)*2;
     const kb=Math.round(total/1024);
-    const pct=Math.min(100,kb/5120*100);
-    document.getElementById('storageTxt').textContent=kb>=1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
-    const fill=document.getElementById('storageBarFill');
-    fill.style.width=pct+'%';
-    fill.className='storage-bar-fill'+(pct>80?' danger':pct>60?' warn':'');
-    document.getElementById('storageDetailTxt').textContent=`localStorage: ${kb>=1024?(kb/1024).toFixed(1)+'MB':kb+'KB'} / 5MB`;
-  }catch{}
+    const txt=kb>=1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
+    ['storageDetailTxt','storageDetailTxt2'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent=`ローカル使用量: ${txt}`;
+    });
+  }catch(e){}
 }
 
 // ══════════════════════════════════════
@@ -1187,7 +1185,7 @@ async function pushToOd(){
 
 async function pullFromOd(silent=false){
   if(!odEnabled||!odAccessToken){if(!silent)showToast('OneDrive未接続','warn');return;}
-  if(!currentProjectId){if(!silent)showToast('プロジェクトを選択してください','warn');return;}
+  if(!currentProjectId){if(!silent)showToast('現場を選択してください','warn');return;}
   setSyncState('syncing');
   try{
     const {data,etag}=await spDownload(currentProjectId,'pins.json');
@@ -1229,7 +1227,7 @@ async function pullFromOd(silent=false){
 }
 async function silentPullFromOd(){ await pullFromOd(true); }
 async function manualSync(){
-  if(!currentProjectId){showToast('プロジェクトを選択してください','warn');return;}
+  if(!currentProjectId){showToast('現場を選択してください','warn');return;}
   if(!odEnabled||!odAccessToken){showToast('OneDriveに接続してください','warn');return;}
   try{ await pushToOd(); showToast('OneDriveに同期しました ✓','ok'); }
   catch(e){setSyncState('error');showToast('同期失敗: '+e.message,'err');}
@@ -1310,7 +1308,7 @@ function closeSettings(){ document.getElementById('settings-modal').classList.re
 //  MAP
 // ══════════════════════════════════════
 async function uploadMap(input){
-  if(!currentProjectId){showToast('先にプロジェクトを選択してください','warn');return;}
+  if(!currentProjectId){showToast('先に現場を選択してください','warn');return;}
   const file=input.files[0];if(!file)return;
   showToast('図面を読み込み中...','warn');
   let img=null;
@@ -1368,7 +1366,7 @@ mc.addEventListener('pointerdown',e=>{
   if(addMode){
     const rect=mc.getBoundingClientRect(),img=document.getElementById('mapImg');
     if(!img.naturalWidth)return showToast('先に図面をアップロードしてください','err');
-    if(!currentProjectId)return showToast('先にプロジェクトを選択してください','warn');
+    if(!currentProjectId)return showToast('先に現場を選択してください','warn');
     const cx=(e.clientX-rect.left-mapOffX)/mapScale/img.naturalWidth;
     const cy=(e.clientY-rect.top-mapOffY)/mapScale/img.naturalHeight;
     if(cx<0||cx>1||cy<0||cy>1)return;
@@ -1624,7 +1622,7 @@ function doImportJSON(input){
     try{
       const d=JSON.parse(e.target.result);
       if(!confirm(`${d.pins?.length||0}件を読み込みます。上書きされます。`))return;
-      if(d.project_id&&d.project_id!==currentProjectId){if(!confirm(`プロジェクトID「${d.project_id}」のデータです。現在のプロジェクト「${currentProjectId}」に読み込みますか？`))return;}
+      if(d.project_id&&d.project_id!==currentProjectId){if(!confirm(`プロジェクトID「${d.project_id}」のデータです。現在の現場「${currentProjectId}」に読み込みますか？`))return;}
       if(d.pins){pins=d.pins;localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));}
       if(d.map_image){localStorage.setItem('map_img_'+currentProjectId,d.map_image);if(d.map_name)localStorage.setItem('map_name_'+currentProjectId,d.map_name);showMapImage(d.map_image);document.getElementById('currentMapName').textContent=d.map_name||currentProjectId;}
       renderAll();updateStorageDisplay();
