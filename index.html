@@ -850,10 +850,10 @@ async function initMsal(){
         clientId:APP_CLIENT_ID,
         authority:`https://login.microsoftonline.com/${APP_TENANT_ID}`,
         redirectUri:location.origin+location.pathname,
-        navigateToLoginRequestUrl:true,
+        navigateToLoginRequestUrl:false,
       },
       cache:{
-        cacheLocation: isSafari ? 'sessionStorage' : 'localStorage',
+        cacheLocation:'localStorage',
         storeAuthStateInCookie:true,
       },
     });
@@ -946,40 +946,14 @@ async function odLogin(){
     const accounts=msalInstance.getAllAccounts();
     if(accounts.length){
       await silentAcquireToken();
-      if(odAccessToken){ showToast('サインイン済みです ✓','ok'); return; }
+      if(odAccessToken){ showToast('サインイン済みです ✓','ok'); updateOdUI(); return; }
     }
-    // Safari/iPad/iPhoneはポップアップがブロックされるためリダイレクト方式を使用
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    const isMobile = /iPad|iPhone|Android/i.test(navigator.userAgent) ||
-                     (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1) ||
-                     /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if(isMobile || isSafari){
-      // リダイレクト前に状態を保存
-      localStorage.setItem('od_login_pending','1');
-      await msalInstance.loginRedirect({scopes:SCOPES});
-      return; // リダイレクトで別ページに遷移するためここで終了
-    }
-    // PC はポップアップ
-    const resp=await msalInstance.loginPopup({scopes:SCOPES});
-    const tokenResp=await msalInstance.acquireTokenSilent({scopes:SCOPES,account:resp.account});
-    odAccessToken=tokenResp.accessToken;
-    odEnabled=true;
-    localStorage.setItem('od_access_token',odAccessToken);
-    localStorage.setItem('od_user_email',resp.account?.username||'');
-    localStorage.setItem('od_token_expiry',String(tokenResp.expiresOn?.getTime()||(Date.now()+3600000)));
-    localStorage.setItem('od_enabled','1');
-    showToast(`サインイン完了: ${resp.account.username}`,'ok');
-    updateOdUI();
-    if(currentProjectId) silentPullFromOd();
-    startPolling();
+    // 全デバイス統一: リダイレクト方式（ポップアップはSafariで動作しない）
+    localStorage.setItem('od_login_pending','1');
+    await msalInstance.loginRedirect({scopes:SCOPES});
+    // ↑ Microsoftログインページへ遷移。戻ってきたらhandleRedirectPromiseで自動処理
   }catch(e){
-    if(e.name==='BrowserAuthError'||(e.errorCode&&e.errorCode.includes('popup'))){
-      // ポップアップブロック時はリダイレクト方式にフォールバック
-      localStorage.setItem('od_login_pending','1');
-      await msalInstance.loginRedirect({scopes:SCOPES});
-    } else {
-      showToast('サインインに失敗: '+e.message,'err');
-    }
+    showToast('サインインに失敗: '+e.message,'err');
   }
 }
 function odLogout(){
