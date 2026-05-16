@@ -307,8 +307,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   .bottom-sheet{position:fixed;right:0;left:auto;bottom:0;width:400px;max-height:92%;border-radius:16px 16px 0 0;}
   #pinSheet{position:fixed;right:0;left:auto;width:400px;}
   /* PC版：設定モーダルは非表示（右ペインのpc-settings-pageを使用） */
-  /* PC版設定モーダル: 右端固定・全高・スクロール */
-  #settings-modal{
+  /* PC版設定モーダル: 非表示（右ペインの設定タブを使用） */
+  #settings-modal.open{display:none!important;}
+  #settings-modal-dummy{
     position:fixed!important;
     inset:unset!important;
     left:auto!important;right:0!important;top:0!important;
@@ -409,7 +410,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     <div class="sync-dot off" id="syncDot"></div>
     <span id="syncLabel">未接続</span>
   </div>
-  <button class="icon-btn" onclick="openSettings()" title="設定">⚙️</button>
 </header>
 
 <div class="tabs">
@@ -479,7 +479,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="pc-tabs">
     <div class="pc-tab" onclick="switchPcTab('list')"><span class="pc-tab-icon">📋</span>一覧</div>
     <div class="pc-tab active" onclick="switchPcTab('report')"><span class="pc-tab-icon">📊</span>集計</div>
-
+    <div class="pc-tab" onclick="switchPcTab('settings')"><span class="pc-tab-icon">⚙️</span>設定</div>
   </div>
   <!-- 一覧 -->
   <div class="pc-page" id="pc-list-page">
@@ -513,9 +513,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
     </div>
   </div>
-  <!-- 設定（PC右ペイン直接表示） -->
-  <div class="pc-page" id="pc-settings-page">
-    <div class="settings-scroll">
+  <!-- 設定（PC右ペイン） -->
+  <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
+    <div style="display:flex;flex-direction:column;gap:10px;padding:12px 12px 40px;">
       <div class="ss">
         <div class="ss-title">📁 現在の現場</div>
         <div class="si" onclick="openProjectScreen()">
@@ -1264,7 +1264,7 @@ function switchTab(name){
   if(name==='report')renderReport();
 }
 function switchPcTab(name){
-  const labels={list:'一覧',report:'集計'};
+  const labels={list:'一覧',report:'集計',settings:'設定'};
   document.querySelectorAll('.pc-tab').forEach(t=>{
     const isActive=Object.entries(labels).some(([k,v])=>k===name&&t.textContent.includes(v));
     t.classList.toggle('active',isActive);
