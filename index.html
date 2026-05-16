@@ -563,7 +563,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <div id="local-settings-rows2">
           <div class="si" onclick="promptLocalFolder()">
             <span class="sii">📁</span>
-            <div class="si-body"><strong>ローカル保存フォルダ名</strong><span id="localFolderLabel2">Genba-share-tool</span></div>
+            <div class="si-body"><strong>ローカル保存フォルダ</strong><span id="localFolderLabel2">未選択</span></div>
             <span class="si-arrow">›</span>
           </div>
         </div>
@@ -663,7 +663,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div id="local-settings-rows">
         <div class="si" onclick="promptLocalFolder()">
           <span class="sii">📁</span>
-          <div class="si-body"><strong>ローカル保存フォルダ名</strong><span id="localFolderLabel">Genba-share-tool</span></div>
+          <div class="si-body"><strong>ローカル保存フォルダ</strong><span id="localFolderLabel">未選択</span></div>
           <span class="si-arrow">›</span>
         </div>
       </div>
@@ -1075,18 +1075,118 @@ function promptOdFolder(){
   updateFolderLabels();
   showToast(`OneDriveフォルダ: ${folder}`, 'ok');
 }
-function promptLocalFolder(){
-  const cur = localStorage.getItem('local_base_folder') || 'Genba-share-tool';
-  const v = prompt('ローカル保存フォルダ名を入力してください', cur);
-  if(v === null) return;
-  const folder = v.trim() || 'Genba-share-tool';
-  localStorage.setItem('local_base_folder', folder);
-  updateFolderLabels();
-  showToast(`ローカルフォルダ: ${folder}`, 'ok');
+// ════════════════════════════════════════
+//  ローカルフォルダ（File System Access API）
+// ════════════════════════════════════════
+let localDirHandle = null; // 選択されたフォルダハンドル
+
+async function promptLocalFolder(){
+  // File System Access API対応チェック
+  if(window.showDirectoryPicker){
+    try{
+      const handle = await window.showDirectoryPicker({mode:'readwrite', id:'genba-tool'});
+      localDirHandle = handle;
+      localStorage.setItem('local_folder_name', handle.name);
+      // IndexedDBにハンドルを保存（再起動後に復元するため）
+      await saveLocalDirHandle(handle);
+      updateFolderLabels();
+      showToast(`フォルダ設定: ${handle.name} ✓`, 'ok');
+    }catch(e){
+      if(e.name !== 'AbortError') showToast('フォルダ選択エラー: '+e.message, 'err');
+    }
+  } else {
+    // 非対応ブラウザ（Safari等）はフォルダ名のみ入力
+    const cur = localStorage.getItem('local_base_folder') || 'Genba-share-tool';
+    const v = prompt('ローカル保存フォルダ名を入力してください\n（このブラウザはフォルダ指定に非対応です）', cur);
+    if(v === null) return;
+    localStorage.setItem('local_base_folder', v.trim() || 'Genba-share-tool');
+    updateFolderLabels();
+    showToast(`フォルダ名設定: ${v.trim()}`, 'ok');
+  }
+}
+
+// IndexedDBにディレクトリハンドルを保存
+function saveLocalDirHandle(handle){
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open('genba-tool-db', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('handles','readwrite');
+      tx.objectStore('handles').put(handle,'localDir');
+      tx.oncomplete = ()=>{ db.close(); res(); };
+      tx.onerror = ()=>{ db.close(); rej(); };
+    };
+    req.onerror = ()=>rej();
+  });
+}
+
+// IndexedDBからディレクトリハンドルを復元
+function loadLocalDirHandle(){
+  return new Promise((res)=>{
+    const req = indexedDB.open('genba-tool-db', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('handles','readonly');
+      const getReq = tx.objectStore('handles').get('localDir');
+      getReq.onsuccess = ()=>{ db.close(); res(getReq.result||null); };
+      getReq.onerror = ()=>{ db.close(); res(null); };
+    };
+    req.onerror = ()=>res(null);
+  });
+}
+
+// ローカルフォルダにファイルを書き込む
+async function localWriteFile(projectId, filename, data){
+  if(!localDirHandle) return false;
+  try{
+    // パーミッション確認
+    const perm = await localDirHandle.requestPermission({mode:'readwrite'});
+    if(perm !== 'granted') return false;
+    // プロジェクトフォルダを取得/作成
+    const projDir = await localDirHandle.getDirectoryHandle(projectId, {create:true});
+    const fileHandle = await projDir.getFileHandle(filename, {create:true});
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    return true;
+  }catch(e){ console.warn('localWriteFile:', e); return false; }
+}
+
+// ローカルフォルダからファイルを読み込む
+async function localReadFile(projectId, filename){
+  if(!localDirHandle) return null;
+  try{
+    const perm = await localDirHandle.queryPermission({mode:'read'});
+    if(perm !== 'granted') return null;
+    const projDir = await localDirHandle.getDirectoryHandle(projectId, {create:false}).catch(()=>null);
+    if(!projDir) return null;
+    const fileHandle = await projDir.getFileHandle(filename).catch(()=>null);
+    if(!fileHandle) return null;
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  }catch(e){ return null; }
+}
+
+// ローカルフォルダのプロジェクト一覧取得
+async function localListProjects(){
+  if(!localDirHandle) return [];
+  try{
+    const perm = await localDirHandle.queryPermission({mode:'read'});
+    if(perm !== 'granted') return [];
+    const projects = [];
+    for await(const [name, handle] of localDirHandle.entries()){
+      if(handle.kind === 'directory') projects.push(name);
+    }
+    return projects;
+  }catch(e){ return []; }
 }
 function updateFolderLabels(){
   const odFolder = localStorage.getItem('od_base_folder') || 'Genba-share-tool';
-  const localFolder = localStorage.getItem('local_base_folder') || 'Genba-share-tool';
+  // ローカルはフォルダハンドルの名前を優先
+  const localFolder = localDirHandle?.name || localStorage.getItem('local_folder_name') || localStorage.getItem('local_base_folder') || '未設定（タップして選択）';
   ['odFolderLabel','odFolderLabel2'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.textContent=odFolder;
   });
@@ -1143,6 +1243,14 @@ async function spDownload(projectId, filename){
 }
 
 async function spListProjects(){
+  // ローカルモードでフォルダが選択されている場合
+  if(!odEnabled && localDirHandle){
+    const ok = await verifyLocalDirHandle();
+    if(ok) return await localListProjects();
+    return [];
+  }
+  // OneDriveモード
+  if(!odEnabled) return [];
   try{
     const res = await graphRequest('GET', `/me/drive/root:/${getBaseFolder()}:/children`);
     if(!res?.value) return [];
@@ -1251,7 +1359,21 @@ async function selectProject(id,name){
   renderAll();
   updateStorageDisplay();
   showToast(`${name} を開きました`,'ok');
-  if(odEnabled&&odAccessToken) silentPullFromOd();
+  if(odEnabled&&odAccessToken){
+    silentPullFromOd();
+  } else if(localDirHandle){
+    // ローカルフォルダから読み込み
+    verifyLocalDirHandle().then(async ok=>{
+      if(!ok) return;
+      const data = await localReadFile(id,'pins.json');
+      if(data?.pins && Array.isArray(data.pins)){
+        pins = data.pins;
+        localStorage.setItem('pins_'+id, JSON.stringify(pins));
+        renderPins(); renderAll();
+        showToast(`ローカルから${pins.length}件を読み込みました`,'ok');
+      }
+    });
+  }
 }
 
 function closeProjectScreen(){
