@@ -527,31 +527,45 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
       </div>
       <div class="ss">
-        <div class="ss-title">☁️ OneDrive 同期設定</div>
+        <div class="ss-title">☁️ 同期設定</div>
         <div class="si">
           <span class="sii">🔗</span>
-          <div class="si-body"><strong>同期モード</strong><span id="odModeText2">OFF</span></div>
+          <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText2">OFF（ローカル）</span></div>
           <div class="toggle" id="odModeToggle2" onclick="toggleOdMode()" style="flex-shrink:0"></div>
         </div>
-        <div class="si" onclick="odLogin()">
-          <span class="sii">🔑</span>
-          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
-          <span class="si-arrow">›</span>
+        <div id="od-settings-rows2">
+          <div class="si" onclick="odLogin()">
+            <span class="sii">🔑</span>
+            <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="promptOdFolder()">
+            <span class="sii">📁</span>
+            <div class="si-body"><strong>OneDrive保存フォルダ</strong><span id="odFolderLabel2">Genba-share-tool</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="manualSync()">
+            <span class="sii">🔄</span>
+            <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="pullFromOd(false)">
+            <span class="sii">⬇️</span>
+            <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="odLogout()">
+            <span class="sii">🚪</span>
+            <div class="si-body"><strong>サインアウト</strong></div>
+            <span class="si-arrow">›</span>
+          </div>
         </div>
-        <div class="si" onclick="manualSync()">
-          <span class="sii">🔄</span>
-          <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <div class="si" onclick="pullFromOd(false)">
-          <span class="sii">⬇️</span>
-          <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <div class="si" onclick="odLogout()">
-          <span class="sii">🚪</span>
-          <div class="si-body"><strong>サインアウト</strong></div>
-          <span class="si-arrow">›</span>
+        <div id="local-settings-rows2">
+          <div class="si" onclick="promptLocalFolder()">
+            <span class="sii">📁</span>
+            <div class="si-body"><strong>ローカル保存フォルダ名</strong><span id="localFolderLabel2">Genba-share-tool</span></div>
+            <span class="si-arrow">›</span>
+          </div>
         </div>
       </div>
       <div class="ss">
@@ -609,33 +623,49 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <span class="si-arrow">›</span>
       </div>
     </div>
-    <!-- OneDrive同期設定 -->
+    <!-- 同期設定 -->
     <div class="ss">
-      <div class="ss-title">☁️ OneDrive 同期設定</div>
+      <div class="ss-title">☁️ 同期設定</div>
       <div class="si">
         <span class="sii">🔗</span>
-        <div class="si-body"><strong>同期モード</strong><span id="odModeText">OFF</span></div>
+        <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText">OFF</span></div>
         <div class="toggle" id="odModeToggle" onclick="toggleOdMode()" style="flex-shrink:0"></div>
       </div>
-      <div class="si" onclick="odLogin()">
-        <span class="sii">🔑</span>
-        <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
-        <span class="si-arrow">›</span>
+      <!-- OneDriveモード時のみ表示 -->
+      <div id="od-settings-rows">
+        <div class="si" onclick="odLogin()">
+          <span class="sii">🔑</span>
+          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="promptOdFolder()">
+          <span class="sii">📁</span>
+          <div class="si-body"><strong>OneDrive保存フォルダ</strong><span id="odFolderLabel">Genba-share-tool</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="manualSync()">
+          <span class="sii">🔄</span>
+          <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="pullFromOd(false)">
+          <span class="sii">⬇️</span>
+          <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="odLogout()">
+          <span class="sii">🚪</span>
+          <div class="si-body"><strong>サインアウト</strong></div>
+          <span class="si-arrow">›</span>
+        </div>
       </div>
-      <div class="si" onclick="manualSync()">
-        <span class="sii">🔄</span>
-        <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <div class="si" onclick="pullFromOd(false)">
-        <span class="sii">⬇️</span>
-        <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <div class="si" onclick="odLogout()">
-        <span class="sii">🚪</span>
-        <div class="si-body"><strong>サインアウト</strong></div>
-        <span class="si-arrow">›</span>
+      <!-- ローカルモード時のみ表示 -->
+      <div id="local-settings-rows">
+        <div class="si" onclick="promptLocalFolder()">
+          <span class="sii">📁</span>
+          <div class="si-body"><strong>ローカル保存フォルダ名</strong><span id="localFolderLabel">Genba-share-tool</span></div>
+          <span class="si-arrow">›</span>
+        </div>
       </div>
     </div>
     <!-- 図面管理 -->
@@ -737,10 +767,10 @@ const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
 // OneDrive設定
 // OneDrive個人フォルダ（共有して使用）
 
-const SP_BASE_FOLDER = 'Genba-share-tool'; // OneDrive内のパス
+// SP_BASE_FOLDERはlocalStorageから動的に取得（下のgetBaseFolderを使用）
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
 const SCOPES         = ['Files.ReadWrite', 'User.Read'];
-const DEFAULT_PIN    = '0000';
+const DEFAULT_PIN    = '0611';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
   '設計': ['改善','改善案','検討'],
@@ -1014,6 +1044,55 @@ function updateOdUI(){
   if(!odEnabled){ dot.className='sync-dot off'; lbl.textContent='ローカル'; }
   else if(loggedIn){ dot.className='sync-dot'; lbl.textContent='OneDrive'; }
   else{ dot.className='sync-dot error'; lbl.textContent='未接続'; }
+  // モード別の設定項目表示切替
+  ['od-settings-rows','od-settings-rows2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=odEnabled?'block':'none';
+  });
+  ['local-settings-rows','local-settings-rows2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=odEnabled?'none':'block';
+  });
+  updateFolderLabels();
+}
+
+// ══════════════════════════════════════
+//  フォルダパス管理
+// ══════════════════════════════════════
+function getBaseFolder(){
+  if(odEnabled && odAccessToken){
+    return localStorage.getItem('od_base_folder') || 'Genba-share-tool';
+  } else {
+    return localStorage.getItem('local_base_folder') || 'Genba-share-tool';
+  }
+}
+function promptOdFolder(){
+  const cur = localStorage.getItem('od_base_folder') || 'Genba-share-tool';
+  const v = prompt('OneDriveの保存フォルダ名を入力してください', cur);
+  if(v === null) return;
+  const folder = v.trim() || 'Genba-share-tool';
+  localStorage.setItem('od_base_folder', folder);
+  updateFolderLabels();
+  showToast(`OneDriveフォルダ: ${folder}`, 'ok');
+}
+function promptLocalFolder(){
+  const cur = localStorage.getItem('local_base_folder') || 'Genba-share-tool';
+  const v = prompt('ローカル保存フォルダ名を入力してください', cur);
+  if(v === null) return;
+  const folder = v.trim() || 'Genba-share-tool';
+  localStorage.setItem('local_base_folder', folder);
+  updateFolderLabels();
+  showToast(`ローカルフォルダ: ${folder}`, 'ok');
+}
+function updateFolderLabels(){
+  const odFolder = localStorage.getItem('od_base_folder') || 'Genba-share-tool';
+  const localFolder = localStorage.getItem('local_base_folder') || 'Genba-share-tool';
+  ['odFolderLabel','odFolderLabel2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=odFolder;
+  });
+  ['localFolderLabel','localFolderLabel2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=localFolder;
+  });
 }
 
 // ══════════════════════════════════════
@@ -1052,12 +1131,12 @@ async function graphDownload(endpoint){
 // genba-kyoyuフォルダを共有してチームで使用
 
 async function spUpload(projectId, filename, data){
-  const path = `${SP_BASE_FOLDER}/${projectId}/${filename}`;
+  const path = `${getBaseFolder()}/${projectId}/${filename}`;
   return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
-  const path = `${SP_BASE_FOLDER}/${projectId}/${filename}`;
+  const path = `${getBaseFolder()}/${projectId}/${filename}`;
   const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
@@ -1065,7 +1144,7 @@ async function spDownload(projectId, filename){
 
 async function spListProjects(){
   try{
-    const res = await graphRequest('GET', `/me/drive/root:/${SP_BASE_FOLDER}:/children`);
+    const res = await graphRequest('GET', `/me/drive/root:/${getBaseFolder()}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
