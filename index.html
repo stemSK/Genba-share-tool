@@ -882,20 +882,41 @@ async function odLogin(){
   try{
     await waitForMsal();
     const accounts=msalInstance.getAllAccounts();
-    if(accounts.length){ await silentAcquireToken(); if(odAccessToken){showToast('サインイン済みです ✓','ok');return;} }
+    if(accounts.length){
+      await silentAcquireToken();
+      if(odAccessToken){ showToast('サインイン済みです ✓','ok'); return; }
+    }
+    // iPad/iPhoneはポップアップがブロックされるためリダイレクト方式を使用
+    const isMobile = /iPad|iPhone|Android/i.test(navigator.userAgent) || 
+                     (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+    if(isMobile){
+      // リダイレクト前に状態を保存
+      localStorage.setItem('od_login_pending','1');
+      await msalInstance.loginRedirect({scopes:SCOPES});
+      return; // リダイレクトで別ページに遷移するためここで終了
+    }
+    // PC はポップアップ
     const resp=await msalInstance.loginPopup({scopes:SCOPES});
     const tokenResp=await msalInstance.acquireTokenSilent({scopes:SCOPES,account:resp.account});
     odAccessToken=tokenResp.accessToken;
     odEnabled=true;
     localStorage.setItem('od_access_token',odAccessToken);
-    localStorage.setItem('od_user_email', resp.account?.username||'');
+    localStorage.setItem('od_user_email',resp.account?.username||'');
     localStorage.setItem('od_token_expiry',String(tokenResp.expiresOn?.getTime()||(Date.now()+3600000)));
+    localStorage.setItem('od_enabled','1');
     showToast(`サインイン完了: ${resp.account.username}`,'ok');
     updateOdUI();
-    
     if(currentProjectId) silentPullFromOd();
     startPolling();
-  }catch(e){ showToast('サインインに失敗: '+e.message,'err'); }
+  }catch(e){
+    if(e.name==='BrowserAuthError'&&e.errorCode==='popup_window_error'){
+      // ポップアップブロック時はリダイレクト方式にフォールバック
+      localStorage.setItem('od_login_pending','1');
+      await msalInstance.loginRedirect({scopes:SCOPES});
+    } else {
+      showToast('サインインに失敗: '+e.message,'err');
+    }
+  }
 }
 function odLogout(){
   odAccessToken=null; odEnabled=false;
