@@ -860,7 +860,7 @@ async function initMsal(){
     // 保存済みトークン復元
     const saved=localStorage.getItem('od_access_token');
     const expiry=parseInt(localStorage.getItem('od_token_expiry')||'0');
-    if(saved&&expiry>Date.now()){ odAccessToken=saved; odEnabled=true; }
+    if(saved&&expiry>Date.now()){ odAccessToken=saved; odEnabled=localStorage.getItem('od_enabled')==='1'; }
     else if(saved){ await silentAcquireToken(); }
     updateOdUI();
   }catch(e){ console.warn('MSAL init:',e); }
@@ -888,6 +888,7 @@ async function odLogin(){
     odAccessToken=tokenResp.accessToken;
     odEnabled=true;
     localStorage.setItem('od_access_token',odAccessToken);
+    localStorage.setItem('od_user_email', resp.account?.username||'');
     localStorage.setItem('od_token_expiry',String(tokenResp.expiresOn?.getTime()||(Date.now()+3600000)));
     showToast(`サインイン完了: ${resp.account.username}`,'ok');
     updateOdUI();
@@ -906,21 +907,54 @@ function odLogout(){
   updateOdUI();
 }
 function toggleOdMode(){
-  odEnabled=!odEnabled;
-  if(!odEnabled){ stopPolling(); showToast('同期OFF','warn'); }
-  else{ if(!odAccessToken) odLogin(); else{ startPolling(); if(currentProjectId)silentPullFromOd(); } showToast('同期ON','ok'); }
+  if(!odAccessToken && !odEnabled){
+    // 未サインインの場合はサインインを促す
+    odLogin();
+    return;
+  }
+  odEnabled = !odEnabled;
+  localStorage.setItem('od_enabled', odEnabled ? '1' : '0');
+  if(!odEnabled){
+    stopPolling();
+    showToast('同期OFF','warn');
+  } else {
+    startPolling();
+    if(currentProjectId) silentPullFromOd();
+    showToast('同期ON','ok');
+  }
   updateOdUI();
 }
 function updateOdUI(){
-  document.getElementById('odModeToggle').className='toggle'+(odEnabled?' on':'');
-  document.getElementById('odModeText').textContent=odEnabled?'ON（OneDrive同期）':'OFF（ローカルのみ）';
-  const accounts=msalInstance?.getAllAccounts()||[];
-  const loggedIn=odAccessToken&&accounts.length;
-  document.getElementById('odLoginStatus').textContent=loggedIn?(accounts[0]?.username||'サインイン済み'):'未サインイン';
-  const dot=document.getElementById('syncDot'),lbl=document.getElementById('syncLabel');
-  if(!odEnabled){dot.className='sync-dot off';lbl.textContent='ローカル';}
-  else if(loggedIn){dot.className='sync-dot';lbl.textContent='OneDrive';}
-  else{dot.className='sync-dot error';lbl.textContent='未接続';}
+  // ログイン状態: odAccessTokenがあればログイン済みとみなす
+  const accounts = msalInstance?.getAllAccounts() || [];
+  const loggedIn = !!(odAccessToken);
+  const username = accounts[0]?.username || localStorage.getItem('od_user_email') || 'サインイン済み';
+  const modeText = odEnabled ? 'ON（OneDrive同期）' : 'OFF（ローカルのみ）';
+  const loginText = loggedIn ? username : '未サインイン';
+
+  // モバイル設定モーダル
+  const t1 = document.getElementById('odModeToggle');
+  if(t1) t1.className = 'toggle' + (odEnabled ? ' on' : '');
+  const m1 = document.getElementById('odModeText');
+  if(m1) m1.textContent = modeText;
+  const l1 = document.getElementById('odLoginStatus');
+  if(l1) l1.textContent = loginText;
+
+  // PC設定タブ
+  const t2 = document.getElementById('odModeToggle2');
+  if(t2) t2.className = 'toggle' + (odEnabled ? ' on' : '');
+  const m2 = document.getElementById('odModeText2');
+  if(m2) m2.textContent = modeText;
+  const l2 = document.getElementById('odLoginStatus2');
+  if(l2) l2.textContent = loginText;
+
+  // ヘッダーインジケータ
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if(!dot) return;
+  if(!odEnabled){ dot.className='sync-dot off'; lbl.textContent='ローカル'; }
+  else if(loggedIn){ dot.className='sync-dot'; lbl.textContent='OneDrive'; }
+  else{ dot.className='sync-dot error'; lbl.textContent='未接続'; }
 }
 
 // ══════════════════════════════════════
@@ -1002,11 +1036,11 @@ function updateHeaderProject(){
     nameEl.textContent='現場を選択 ▾';
     nameEl.classList.add('placeholder');
   }
-  const lbl=`${currentProjectId} / ${currentProjectName}`;
-  document.getElementById('settingsProjectLabel').textContent=currentProjectId?lbl:'未選択';
+  const lbl=currentProjectName||currentProjectId;
+  document.getElementById('settingsProjectLabel').textContent=lbl||'未選択';
   document.getElementById('settingsProjectName').textContent=currentProjectName||'-';
   const l2=document.getElementById('settingsProjectLabel2');
-  if(l2) l2.textContent=currentProjectId?lbl:'未選択';
+  if(l2) l2.textContent=lbl||'未選択';
   const n2=document.getElementById('settingsProjectName2');
   if(n2) n2.textContent=currentProjectName||'-';
   const m2=document.getElementById('currentMapName2');
@@ -1128,7 +1162,7 @@ async function renameProject(){
     }catch(e){showToast('OneDrive更新エラー: '+e.message,'err');}
   } else { showToast('現場名を変更しました ✓','ok'); }
   document.getElementById('settingsProjectName').textContent=currentProjectName;
-  document.getElementById('settingsProjectLabel').textContent=`${currentProjectId} / ${currentProjectName}`;
+  document.getElementById('settingsProjectLabel').textContent=currentProjectName||currentProjectId||'未選択';
 }
 
 // ══════════════════════════════════════
