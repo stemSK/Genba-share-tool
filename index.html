@@ -308,7 +308,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   #pinSheet{position:fixed;right:0;left:auto;width:400px;}
   /* PC版：設定モーダルは非表示（右ペインのpc-settings-pageを使用） */
   /* PC版設定モーダル: 非表示（右ペインの設定タブを使用） */
-  #settings-modal.open{display:none!important;}
   #settings-modal-dummy{
     position:fixed!important;
     inset:unset!important;
@@ -416,6 +415,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="tab active" onclick="switchTab('map')"><span class="tab-icon">📌</span>図面</div>
   <div class="tab" onclick="switchTab('list')"><span class="tab-icon">📋</span>一覧</div>
   <div class="tab" onclick="switchTab('report')"><span class="tab-icon">📊</span>集計</div>
+  <div class="tab" onclick="switchTab('settings')"><span class="tab-icon">⚙️</span>設定</div>
 </div>
 
 <div id="main-wrapper"><div class="content">
@@ -1291,11 +1291,12 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
 //  TAB / LAYOUT
 // ══════════════════════════════════════
 function switchTab(name){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['map','list','report'][i]===name));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['map','list','report','settings'][i]===name));
   document.querySelectorAll('.content > .page').forEach(p=>p.classList.remove('active'));
   document.getElementById(name+'-page')?.classList.add('active');
   if(name==='list')renderList();
   if(name==='report')renderReport();
+  if(name==='settings'){updateStorageDisplay();openSettings();switchTab('map');}
 }
 function switchPcTab(name){
   const labels={list:'一覧',report:'集計',settings:'設定'};
@@ -1347,7 +1348,6 @@ function openSettings(){
   updateStorageDisplay();
   const modal = document.getElementById('settings-modal');
   modal.classList.add('open');
-  // スクロール位置をリセット
   const scroll = modal.querySelector('.settings-scroll');
   if(scroll) scroll.scrollTop = 0;
 }
