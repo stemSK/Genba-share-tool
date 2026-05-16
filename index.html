@@ -843,37 +843,102 @@ async function waitForMsal(timeout=12000){
 async function initMsal(){
   try{
     await waitForMsal();
+    // Safari対応: cookieベースのキャッシュを使用
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     msalInstance=new msal.PublicClientApplication({
-      auth:{ clientId:APP_CLIENT_ID, authority:`https://login.microsoftonline.com/${APP_TENANT_ID}`, redirectUri:location.origin+location.pathname },
-      cache:{ cacheLocation:'localStorage', storeAuthStateInCookie:false },
+      auth:{
+        clientId:APP_CLIENT_ID,
+        authority:`https://login.microsoftonline.com/${APP_TENANT_ID}`,
+        redirectUri:location.origin+location.pathname,
+        navigateToLoginRequestUrl:true,
+      },
+      cache:{
+        cacheLocation: isSafari ? 'sessionStorage' : 'localStorage',
+        storeAuthStateInCookie:true,
+      },
     });
     await msalInstance.initialize();
-    const resp=await msalInstance.handleRedirectPromise();
+
+    // リダイレクト後の処理（Safari対応で必須）
+    const resp = await msalInstance.handleRedirectPromise().catch(e=>{
+      console.warn('handleRedirectPromise error:', e);
+      return null;
+    });
+
     if(resp?.accessToken){
-      odAccessToken=resp.accessToken;
-      localStorage.setItem('od_access_token',odAccessToken);
-      localStorage.setItem('od_token_expiry',String(resp.expiresOn?.getTime()||(Date.now()+3600000)));
+      // リダイレクトログイン成功
+      odAccessToken = resp.accessToken;
+      odEnabled = true;
+      localStorage.setItem('od_access_token', odAccessToken);
+      localStorage.setItem('od_user_email', resp.account?.username||'');
+      localStorage.setItem('od_token_expiry', String(resp.expiresOn?.getTime()||(Date.now()+3600000)));
+      localStorage.setItem('od_enabled','1');
+      localStorage.removeItem('od_login_pending');
+      updateOdUI();
+      showToast(`サインイン完了: ${resp.account?.username||''}`, 'ok');
+      if(currentProjectId) setTimeout(()=>silentPullFromOd(), 1000);
+      startPolling();
+      return;
     }
-    // 保存済みトークン復元
-    const saved=localStorage.getItem('od_access_token');
-    const expiry=parseInt(localStorage.getItem('od_token_expiry')||'0');
-    if(saved&&expiry>Date.now()){ odAccessToken=saved; odEnabled=localStorage.getItem('od_enabled')==='1'; }
-    else if(saved){ await silentAcquireToken(); }
+
+    // MSALキャッシュからアカウント取得
+    const accounts = msalInstance.getAllAccounts();
+
+    // localStorageからトークン復元（有効期限チェック）
+    const saved = localStorage.getItem('od_access_token');
+    const expiry = parseInt(localStorage.getItem('od_token_expiry')||'0');
+    const isValid = saved && expiry > Date.now() + 60000; // 1分以上残っている
+
+    if(isValid){
+      odAccessToken = saved;
+      odEnabled = localStorage.getItem('od_enabled') === '1';
+      updateOdUI();
+      // バックグラウンドでサイレント更新
+      if(accounts.length) silentAcquireToken().catch(()=>{});
+    } else if(accounts.length){
+      // キャッシュは切れているがMSALにアカウントがある → サイレント取得
+      await silentAcquireToken();
+    } else {
+      odAccessToken = null;
+      updateOdUI();
+    }
+  }catch(e){
+    console.warn('MSAL init:', e);
+    // フォールバック: localStorageから復元
+    const saved = localStorage.getItem('od_access_token');
+    const expiry = parseInt(localStorage.getItem('od_token_expiry')||'0');
+    if(saved && expiry > Date.now()){
+      odAccessToken = saved;
+      odEnabled = localStorage.getItem('od_enabled') === '1';
+    }
     updateOdUI();
-  }catch(e){ console.warn('MSAL init:',e); }
+  }
 }
 async function silentAcquireToken(){
-  if(!msalInstance)return;
+  if(!msalInstance) return;
   try{
-    const accounts=msalInstance.getAllAccounts();
-    if(!accounts.length)return;
-    const resp=await msalInstance.acquireTokenSilent({scopes:SCOPES,account:accounts[0]});
-    odAccessToken=resp.accessToken;
-    odEnabled=true;
-    localStorage.setItem('od_access_token',odAccessToken);
-    localStorage.setItem('od_token_expiry',String(resp.expiresOn?.getTime()||(Date.now()+3600000)));
+    const accounts = msalInstance.getAllAccounts();
+    if(!accounts.length) return;
+    const resp = await msalInstance.acquireTokenSilent({scopes:SCOPES, account:accounts[0]});
+    odAccessToken = resp.accessToken;
+    odEnabled = true;
+    localStorage.setItem('od_access_token', odAccessToken);
+    localStorage.setItem('od_user_email', accounts[0].username||'');
+    localStorage.setItem('od_token_expiry', String(resp.expiresOn?.getTime()||(Date.now()+3600000)));
+    localStorage.setItem('od_enabled','1');
     updateOdUI();
-  }catch(e){ odAccessToken=null; odEnabled=false; updateOdUI(); }
+  }catch(e){
+    // サイレント取得失敗 → localStorageのトークンで継続
+    const saved = localStorage.getItem('od_access_token');
+    const expiry = parseInt(localStorage.getItem('od_token_expiry')||'0');
+    if(saved && expiry > Date.now()){
+      odAccessToken = saved;
+      odEnabled = localStorage.getItem('od_enabled') === '1';
+    } else {
+      odAccessToken = null;
+    }
+    updateOdUI();
+  }
 }
 async function odLogin(){
   try{
@@ -883,10 +948,12 @@ async function odLogin(){
       await silentAcquireToken();
       if(odAccessToken){ showToast('サインイン済みです ✓','ok'); return; }
     }
-    // iPad/iPhoneはポップアップがブロックされるためリダイレクト方式を使用
-    const isMobile = /iPad|iPhone|Android/i.test(navigator.userAgent) || 
-                     (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
-    if(isMobile){
+    // Safari/iPad/iPhoneはポップアップがブロックされるためリダイレクト方式を使用
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    const isMobile = /iPad|iPhone|Android/i.test(navigator.userAgent) ||
+                     (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1) ||
+                     /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if(isMobile || isSafari){
       // リダイレクト前に状態を保存
       localStorage.setItem('od_login_pending','1');
       await msalInstance.loginRedirect({scopes:SCOPES});
@@ -906,7 +973,7 @@ async function odLogin(){
     if(currentProjectId) silentPullFromOd();
     startPolling();
   }catch(e){
-    if(e.name==='BrowserAuthError'&&e.errorCode==='popup_window_error'){
+    if(e.name==='BrowserAuthError'||(e.errorCode&&e.errorCode.includes('popup'))){
       // ポップアップブロック時はリダイレクト方式にフォールバック
       localStorage.setItem('od_login_pending','1');
       await msalInstance.loginRedirect({scopes:SCOPES});
