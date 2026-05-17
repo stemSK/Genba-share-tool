@@ -54,9 +54,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dv
 .project-add-btn:active{opacity:0.85;}
 
 /* SETTINGS MODAL */
-#settings-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);display:none;overflow:hidden;}
-#settings-modal.open{display:block;}
-.settings-modal-header{position:absolute;top:0;left:0;right:0;height:52px;z-index:2;background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;display:flex;align-items:center;gap:10px;}
+#settings-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);display:none;flex-direction:column;}
+#settings-modal.open{display:flex;}
+.settings-modal-header{flex-shrink:0;background:var(--surface);border-bottom:1px solid var(--border);padding:0 14px;height:52px;display:flex;align-items:center;gap:10px;}
 .settings-modal-header h2{flex:1;font-size:16px;font-weight:700;color:var(--accent3);}
 
 /* HEADER */
@@ -222,7 +222,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .export-item span{font-size:10px;color:var(--text2);}
 
 /* SETTINGS */
-.settings-scroll{position:absolute!important;top:52px!important;left:0!important;right:0!important;bottom:0!important;overflow-y:scroll!important;-webkit-overflow-scrolling:touch!important;padding:14px 14px 120px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain;touch-action:pan-y;}
+.settings-scroll{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 120px;display:flex;flex-direction:column;gap:10px;}
 .ss{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .ss-title{padding:8px 14px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;background:var(--surface2);}
 .si{padding:13px 14px;display:flex;align-items:center;gap:11px;border-top:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
@@ -324,7 +324,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     overflow:hidden!important;
   }
   #settings-modal.open{display:block!important;}
-  /* PC版設定スクロール（ベースCSSを継承・padding調整のみ） */
   #settings-modal .settings-scroll{
     padding:12px 14px 80px;
   }
@@ -532,12 +531,13 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText2">OFF（ローカル）</span></div>
           <div class="toggle" id="odModeToggle2" onclick="toggleOdMode()" style="flex-shrink:0"></div>
         </div>
+        <!-- サインインは常に表示 -->
+        <div class="si" onclick="odLogin()">
+          <span class="sii">🔑</span>
+          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
+          <span class="si-arrow">›</span>
+        </div>
         <div id="od-settings-rows2">
-          <div class="si" onclick="odLogin()">
-            <span class="sii">🔑</span>
-            <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
-            <span class="si-arrow">›</span>
-          </div>
           <div class="si" onclick="promptOdFolder()">
             <span class="sii">📁</span>
             <div class="si-body"><strong>OneDrive保存フォルダ</strong><span id="odFolderLabel2">Genba-share-tool</span></div>
@@ -553,11 +553,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
             <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
             <span class="si-arrow">›</span>
           </div>
-          <div class="si" onclick="odLogout()">
-            <span class="sii">🚪</span>
-            <div class="si-body"><strong>サインアウト</strong></div>
-            <span class="si-arrow">›</span>
-          </div>
+        </div>
+        <!-- サインアウトも常に表示 -->
+        <div class="si" onclick="odLogout()">
+          <span class="sii">🚪</span>
+          <div class="si-body"><strong>サインアウト</strong></div>
+          <span class="si-arrow">›</span>
         </div>
         <div id="local-settings-rows2">
           <div class="si" onclick="promptLocalFolder()">
@@ -630,13 +631,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText">OFF</span></div>
         <div class="toggle" id="odModeToggle" onclick="toggleOdMode()" style="flex-shrink:0"></div>
       </div>
+      <!-- サインインは常に表示 -->
+      <div class="si" onclick="odLogin()">
+        <span class="sii">🔑</span>
+        <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
+        <span class="si-arrow">›</span>
+      </div>
       <!-- OneDriveモード時のみ表示 -->
       <div id="od-settings-rows">
-        <div class="si" onclick="odLogin()">
-          <span class="sii">🔑</span>
-          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
-          <span class="si-arrow">›</span>
-        </div>
         <div class="si" onclick="promptOdFolder()">
           <span class="sii">📁</span>
           <div class="si-body"><strong>OneDrive保存フォルダ</strong><span id="odFolderLabel">Genba-share-tool</span></div>
@@ -652,11 +654,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
           <span class="si-arrow">›</span>
         </div>
-        <div class="si" onclick="odLogout()">
-          <span class="sii">🚪</span>
-          <div class="si-body"><strong>サインアウト</strong></div>
-          <span class="si-arrow">›</span>
-        </div>
+      </div>
+      <!-- サインアウトも常に表示 -->
+      <div class="si" onclick="odLogout()">
+        <span class="sii">🚪</span>
+        <div class="si-body"><strong>サインアウト</strong></div>
+        <span class="si-arrow">›</span>
       </div>
       <!-- ローカルモード時のみ表示 -->
       <div id="local-settings-rows">
