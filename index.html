@@ -54,7 +54,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dv
 .project-add-btn:active{opacity:0.85;}
 
 /* SETTINGS MODAL */
-#settings-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);display:none;flex-direction:column;overflow:hidden;}
+#settings-modal{position:fixed;top:0;left:0;right:0;bottom:0;z-index:500;background:var(--bg);display:none;flex-direction:column;overflow:hidden;height:100%;}
 #settings-modal.open{display:flex;}
 .settings-modal-header{position:relative;z-index:1;background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;height:52px;}
 .settings-modal-header h2{flex:1;font-size:16px;font-weight:700;color:var(--accent3);}
@@ -222,7 +222,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .export-item span{font-size:10px;color:var(--text2);}
 
 /* SETTINGS */
-.settings-scroll{position:absolute;top:52px;left:0;right:0;bottom:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:14px 14px 80px;display:flex;flex-direction:column;gap:10px;}
+.settings-scroll{position:absolute;top:52px;left:0;right:0;bottom:0;overflow-y:scroll;-webkit-overflow-scrolling:touch;padding:14px 14px 100px;display:flex;flex-direction:column;gap:10px;overscroll-behavior:contain;}
 .ss{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
 .ss-title{padding:8px 14px;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:1px;background:var(--surface2);}
 .si{padding:13px 14px;display:flex;align-items:center;gap:11px;border-top:1px solid var(--border);cursor:pointer;transition:background 0.15s;}
@@ -996,20 +996,32 @@ function odLogout(){
   updateOdUI();
 }
 function toggleOdMode(){
-  if(!odAccessToken && !odEnabled){
-    // 未サインインの場合はサインインを促す
-    odLogin();
+  // トークンチェック（localStorageも含む）
+  const savedToken = localStorage.getItem('od_access_token');
+  const tokenExpiry = parseInt(localStorage.getItem('od_token_expiry')||'0');
+  const hasToken = !!(odAccessToken || (savedToken && tokenExpiry > Date.now()));
+  if(odAccessToken && !odEnabled){
+    // 復元
+    if(savedToken && tokenExpiry > Date.now()) odAccessToken = savedToken;
+  }
+  if(!hasToken && !odEnabled){
+    // 未サインイン → サインインを促すが、リダイレクトではなくトーストで案内
+    showToast('先にMicrosoftアカウントでサインインしてください', 'warn');
     return;
   }
   odEnabled = !odEnabled;
   localStorage.setItem('od_enabled', odEnabled ? '1' : '0');
   if(!odEnabled){
     stopPolling();
-    showToast('同期OFF','warn');
+    showToast('ローカルモードに切替', 'warn');
   } else {
+    // トークン復元
+    if(!odAccessToken && savedToken && tokenExpiry > Date.now()){
+      odAccessToken = savedToken;
+    }
     startPolling();
     if(currentProjectId) silentPullFromOd();
-    showToast('同期ON','ok');
+    showToast('OneDrive同期モードON', 'ok');
   }
   updateOdUI();
 }
@@ -1441,7 +1453,23 @@ function saveData(){
   if(!currentProjectId) return;
   localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
   updateStorageDisplay();
-  if(odEnabled&&odAccessToken) autoSyncToOd();
+  if(odEnabled && odAccessToken){
+    autoSyncToOd();
+  } else if(localDirHandle){
+    verifyLocalDirHandle().then(ok=>{
+      if(ok){
+        localWriteFile(currentProjectId,'pins.json',{
+          pins,
+          saved_at:new Date().toISOString(),
+          project_name:currentProjectName
+        });
+      } else {
+        localDirHandle = null;
+        updateFolderLabels();
+        showToast('フォルダアクセスが失われました。再選択してください','warn');
+      }
+    });
+  }
 }
 function updateStorageDisplay(){
   try{
