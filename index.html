@@ -101,11 +101,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .pin-no{transform:rotate(45deg);font-size:10px;font-weight:700;font-family:var(--mono);color:#fff;}
 .pin-has-photo::after{content:'📷';font-size:8px;position:absolute;bottom:-2px;right:-4px;background:var(--surface);border-radius:50%;padding:1px;line-height:1;}
 .pin-施工.pin-high .pin-marker{background:linear-gradient(135deg,#e05555,#b83030);}
-.pin-施工.pin-mid .pin-marker{background:linear-gradient(135deg,#e09040,#b87020);}
-.pin-施工.pin-low .pin-marker{background:linear-gradient(135deg,#3b6fd4,#2a50a0);}
+.pin-施工.pin-mid .pin-marker{background:linear-gradient(135deg,#f0a000,#c07800);}
+.pin-施工.pin-low .pin-marker{background:linear-gradient(135deg,#d4c800,#a09800);}
 .pin-設計.pin-high .pin-marker{background:linear-gradient(135deg,#9040e0,#6020b0);}
-.pin-設計.pin-mid .pin-marker{background:linear-gradient(135deg,#20a0c0,#1070a0);}
-.pin-設計.pin-low .pin-marker{background:linear-gradient(135deg,#40a060,#207040);}
+.pin-設計.pin-mid .pin-marker{background:linear-gradient(135deg,#f0a000,#c07800);}
+.pin-設計.pin-low .pin-marker{background:linear-gradient(135deg,#d4c800,#a09800);}
 .pin-complete .pin-marker{background:linear-gradient(135deg,#2ea87e,#1a7055);opacity:0.75;}
 .map-toolbar{position:absolute;bottom:16px;right:14px;display:flex;flex-direction:column;gap:8px;z-index:20;}
 .fab{width:48px;height:48px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all 0.2s;box-shadow:var(--sh);}
@@ -136,8 +136,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .pin-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 .pin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;cursor:pointer;transition:all 0.15s;border-left:3px solid var(--border);display:flex;gap:10px;}
 .pin-card:active{transform:scale(0.98);background:var(--surface2);}
-.pin-card.施工-high{border-left-color:#e05555;}.pin-card.施工-mid{border-left-color:#e09040;}.pin-card.施工-low{border-left-color:#3b6fd4;}
-.pin-card.設計-high{border-left-color:#9040e0;}.pin-card.設計-mid{border-left-color:#20a0c0;}.pin-card.設計-low{border-left-color:#40a060;}
+.pin-card.施工-high{border-left-color:#e05555;}.pin-card.施工-mid{border-left-color:#f0a000;}.pin-card.施工-low{border-left-color:#d4c800;}
+.pin-card.設計-high{border-left-color:#9040e0;}.pin-card.設計-mid{border-left-color:#f0a000;}.pin-card.設計-low{border-left-color:#d4c800;}
 .pin-card.done{opacity:0.55;}
 .pin-card-thumb{width:44px;height:44px;border-radius:6px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text3);overflow:hidden;}
 .pin-card-thumb img{width:100%;height:100%;object-fit:cover;}
@@ -639,7 +639,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div id="od-settings-rows">
         <div class="si" onclick="promptOdFolder()">
           <span class="sii">📁</span>
-          <div class="si-body"><strong>OneDrive保存フォルダ</strong><span id="odFolderLabel">Genba-share-tool</span></div>
+          <div class="si-body"><strong>自分のOneDriveフォルダ名</strong><span id="odFolderLabel">Genba-share-tool</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="promptShareUrl()">
+          <span class="sii">🔗</span>
+          <div class="si-body"><strong>共有フォルダURL（他ユーザー用）</strong><span id="odShareLabel">未設定</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="manualSync()">
@@ -1103,6 +1108,59 @@ function getBaseFolder(){
     return localStorage.getItem('local_base_folder') || 'Genba-share-tool';
   }
 }
+
+// 共有フォルダのdriveId/itemIdキャッシュ
+let sharedDriveId = null, sharedItemId = null;
+
+// 共有URLからdriveId/itemIdを解決
+async function resolveSharedFolder(){
+  const shareUrl = localStorage.getItem('od_share_url');
+  if(!shareUrl) return null;
+  if(sharedDriveId && sharedItemId) return {driveId:sharedDriveId, itemId:sharedItemId};
+  try{
+    // URLをbase64エンコードしてGraph APIで解決
+    const encoded = btoa(shareUrl).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    const res = await graphRequest('GET', `/shares/u!${encoded}/driveItem`);
+    if(res?.parentReference?.driveId && res?.id){
+      sharedDriveId = res.parentReference.driveId;
+      sharedItemId = res.id;
+      return {driveId:sharedDriveId, itemId:sharedItemId};
+    }
+  }catch(e){ console.warn('resolveSharedFolder:', e); }
+  return null;
+}
+
+// 共有フォルダかどうか
+function isSharedMode(){
+  return !!(odEnabled && odAccessToken && localStorage.getItem('od_share_url'));
+}
+function promptShareUrl(){
+  const cur = localStorage.getItem('od_share_url') || '';
+  const v = prompt(
+    '共有フォルダのURLを入力してください\n\n' +
+    '【オーナー（小宮さん）がやること】\n' +
+    'OneDriveでGenba-share-toolフォルダを右クリック\n' +
+    '→「共有」→「リンクのコピー」→ここに貼り付け\n\n' +
+    '【共有先メンバーがやること】\n' +
+    'オーナーから送られたリンクをここに貼り付け',
+    cur
+  );
+  if(v === null) return;
+  const url = v.trim();
+  localStorage.setItem('od_share_url', url);
+  sharedDriveId = null; sharedItemId = null; // キャッシュクリア
+  updateShareLabel();
+  showToast(url ? '共有URLを設定しました ✓' : '共有URLをクリアしました', 'ok');
+}
+
+function updateShareLabel(){
+  const url = localStorage.getItem('od_share_url') || '';
+  const label = url ? '設定済み ✓' : '未設定（自分のOneDrive使用）';
+  ['odShareLabel','odShareLabel2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=label;
+  });
+}
+
 function promptOdFolder(){
   const cur = localStorage.getItem('od_base_folder') || 'Genba-share-tool';
   const v = prompt('OneDriveの保存フォルダ名を入力してください', cur);
@@ -1221,6 +1279,7 @@ async function localListProjects(){
   }catch(e){ return []; }
 }
 function updateFolderLabels(){
+  updateShareLabel();
   const odFolder = localStorage.getItem('od_base_folder') || 'Genba-share-tool';
   // ローカルはフォルダハンドルの名前を優先
   const localFolder = localDirHandle?.name || localStorage.getItem('local_folder_name') || localStorage.getItem('local_base_folder') || '未設定（タップして選択）';
@@ -1268,11 +1327,29 @@ async function graphDownload(endpoint){
 // genba-kyoyuフォルダを共有してチームで使用
 
 async function spUpload(projectId, filename, data){
+  if(isSharedMode()){
+    // 共有フォルダへのアップロード
+    const shared = await resolveSharedFolder();
+    if(shared){
+      const path = `${projectId}/${filename}`;
+      return graphRequest('PUT', `/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`, data);
+    }
+  }
+  // 自分のOneDrive
   const path = `${getBaseFolder()}/${projectId}/${filename}`;
   return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
+  if(isSharedMode()){
+    const shared = await resolveSharedFolder();
+    if(shared){
+      const path = `${projectId}/${filename}`;
+      const {text, etag} = await graphDownload(`/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`);
+      if(!text) return {data:null, etag:null};
+      try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
+    }
+  }
   const path = `${getBaseFolder()}/${projectId}/${filename}`;
   const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
   if(!text) return {data:null, etag:null};
@@ -1280,15 +1357,21 @@ async function spDownload(projectId, filename){
 }
 
 async function spListProjects(){
-  // ローカルモードでフォルダが選択されている場合
   if(!odEnabled && localDirHandle){
     const ok = await verifyLocalDirHandle();
     if(ok) return await localListProjects();
     return [];
   }
-  // OneDriveモード
   if(!odEnabled) return [];
   try{
+    if(isSharedMode()){
+      const shared = await resolveSharedFolder();
+      if(shared){
+        const res = await graphRequest('GET', `/drives/${shared.driveId}/items/${shared.itemId}/children`);
+        if(!res?.value) return [];
+        return res.value.filter(i=>i.folder).map(i=>i.name);
+      }
+    }
     const res = await graphRequest('GET', `/me/drive/root:/${getBaseFolder()}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
@@ -1659,10 +1742,19 @@ new ResizeObserver(()=>{
 // ══════════════════════════════════════
 function openSettings(){
   updateStorageDisplay();
+  updateFolderLabels();
   const modal = document.getElementById('settings-modal');
   modal.classList.add('open');
-  const scroll = modal.querySelector('.settings-scroll');
-  if(scroll) scroll.scrollTop = 0;
+  // iOS Safari スクロール修正
+  setTimeout(()=>{
+    const scroll = modal.querySelector('.settings-scroll');
+    if(!scroll) return;
+    scroll.scrollTop = 0;
+    // iOSでスクロール可能にするためのハック
+    scroll.style.webkitOverflowScrolling = 'touch';
+    scroll.style.overflowY = 'scroll';
+    fixIOSScroll(scroll);
+  }, 50);
 }
 function closeSettings(){ document.getElementById('settings-modal').classList.remove('open'); }
 
@@ -1757,7 +1849,38 @@ function renderPins(){
     el.style.left=(pin.x*img.naturalWidth*mapScale+mapOffX)+'px';
     el.style.top=(pin.y*img.naturalHeight*mapScale+mapOffY)+'px';
     el.innerHTML=`<div class="pin-marker"><span class="pin-no">${pin.pin_no}</span></div>`;
-    el.onclick=e=>{e.stopPropagation();openPinSheet(pin);};
+    el.onclick=e=>{
+      if(el._wasMoved){el._wasMoved=false;return;}
+      e.stopPropagation();openPinSheet(pin);
+    };
+    // ピン移動：moveMode時にドラッグで位置変更
+    el.addEventListener('pointerdown', e=>{
+      if(!moveMode) return;
+      e.stopPropagation();
+      el.setPointerCapture(e.pointerId);
+      const img=document.getElementById('mapImg');
+      let moved=false;
+      const onMove=ev=>{
+        if(!moveMode) return;
+        moved=true;
+        const rect=document.getElementById('mapContainer').getBoundingClientRect();
+        const nx=(ev.clientX-rect.left-mapOffX)/mapScale/img.naturalWidth;
+        const ny=(ev.clientY-rect.top-mapOffY)/mapScale/img.naturalHeight;
+        if(nx<0||nx>1||ny<0||ny>1) return;
+        const idx=pins.findIndex(p=>p.id===pin.id);
+        if(idx>=0){pins[idx].x=nx;pins[idx].y=ny;}
+        const c2=document.getElementById('mapContainer').getBoundingClientRect();
+        el.style.left=(nx*img.naturalWidth*mapScale+mapOffX)+'px';
+        el.style.top=(ny*img.naturalHeight*mapScale+mapOffY)+'px';
+      };
+      const onUp=ev=>{
+        el.removeEventListener('pointermove',onMove);
+        el.removeEventListener('pointerup',onUp);
+        if(moved){el._wasMoved=true;saveData();renderPins();}
+      };
+      el.addEventListener('pointermove',onMove);
+      el.addEventListener('pointerup',onUp);
+    });
     c.appendChild(el);
   });
   updateStats();
@@ -2033,6 +2156,23 @@ let toastTimer;
 function showToast(msg,type=''){
   const t=document.getElementById('toast');t.textContent=msg;t.className=`toast show ${type}`;
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+// ══════════════════════════════════════
+//  iOS Safari スクロール修正
+// ══════════════════════════════════════
+function fixIOSScroll(el){
+  if(!el || el._iosFixed) return;
+  el._iosFixed = true;
+  let startY = 0, startScroll = 0;
+  el.addEventListener('touchstart', e=>{
+    startY = e.touches[0].pageY;
+    startScroll = el.scrollTop;
+  }, {passive:true});
+  el.addEventListener('touchmove', e=>{
+    const dy = startY - e.touches[0].pageY;
+    el.scrollTop = startScroll + dy;
+  }, {passive:true});
 }
 
 // ══════════════════════════════════════
