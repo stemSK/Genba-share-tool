@@ -637,11 +637,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <span class="si-arrow">›</span>
       </div>
       <div id="od-settings-rows">
-        <div class="si" onclick="promptOdFolder()">
-          <span class="sii">📁</span>
-          <div class="si-body"><strong>自分のOneDriveフォルダ名</strong><span id="odFolderLabel">Genba-share-tool</span></div>
-          <span class="si-arrow">›</span>
-        </div>
+
         <div class="si" onclick="promptShareUrl()">
           <span class="sii">🔗</span>
           <div class="si-body"><strong>共有フォルダURL（他ユーザー用）</strong><span id="odShareLabel">未設定</span></div>
@@ -1138,7 +1134,7 @@ function promptShareUrl(){
   const cur = localStorage.getItem('od_share_url') || '';
   const v = prompt(
     '共有フォルダのURLを入力してください\n\n' +
-    '【オーナー（小宮さん）がやること】\n' +
+    '【オーナーがやること】\n' +
     'OneDriveでGenba-share-toolフォルダを右クリック\n' +
     '→「共有」→「リンクのコピー」→ここに貼り付け\n\n' +
     '【共有先メンバーがやること】\n' +
@@ -1155,7 +1151,7 @@ function promptShareUrl(){
 
 function updateShareLabel(){
   const url = localStorage.getItem('od_share_url') || '';
-  const label = url ? '設定済み ✓' : '未設定（自分のOneDrive使用）';
+  const label = url ? (url.length > 40 ? url.slice(0,40)+'...' : url) : '未設定';
   ['odShareLabel','odShareLabel2'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.textContent=label;
   });
