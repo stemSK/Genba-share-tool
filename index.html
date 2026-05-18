@@ -1708,18 +1708,9 @@ function switchPcTab(name){
 }
 
 function renderPcSettings(){
-  // 設定の内容をPC右ペインにコピー
-  const src=document.querySelector('#settings-modal .settings-scroll');
-  const dst=document.getElementById('pcSettingsScroll');
-  if(src&&dst){
-    dst.innerHTML=src.innerHTML;
-    // イベントの再バインド（ボタン類）
-    dst.querySelectorAll('[onclick]').forEach(el=>{
-      const fn=el.getAttribute('onclick');
-      el.setAttribute('onclick',fn);
-    });
-  }
   updateStorageDisplay();
+  updateFolderLabels();
+  updateShareLabel();
 }
 function isPC(){return window.innerWidth>=900;}
 function applyLayout(){ if(isPC()){switchPcTab('report');} }
