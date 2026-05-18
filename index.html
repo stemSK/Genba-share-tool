@@ -609,7 +609,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     <button class="icon-btn" onclick="closeSettings()">✕</button>
   </div>
   <div class="settings-scroll">
-    <!-- プロジェクト設定 -->
+
     <div class="ss">
       <div class="ss-title">📁 現在の現場</div>
       <div class="si" onclick="openProjectScreen();closeSettings();">
@@ -623,21 +623,19 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <span class="si-arrow">›</span>
       </div>
     </div>
-    <!-- 同期設定 -->
+
     <div class="ss">
       <div class="ss-title">☁️ 同期設定</div>
       <div class="si">
         <span class="sii">🔗</span>
-        <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText">OFF</span></div>
+        <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText">OFF（ローカル）</span></div>
         <div class="toggle" id="odModeToggle" onclick="toggleOdMode()" style="flex-shrink:0"></div>
       </div>
-      <!-- サインインは常に表示 -->
       <div class="si" onclick="odLogin()">
         <span class="sii">🔑</span>
         <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
         <span class="si-arrow">›</span>
       </div>
-      <!-- OneDriveモード時のみ表示 -->
       <div id="od-settings-rows">
         <div class="si" onclick="promptOdFolder()">
           <span class="sii">📁</span>
@@ -655,13 +653,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <span class="si-arrow">›</span>
         </div>
       </div>
-      <!-- サインアウトも常に表示 -->
       <div class="si" onclick="odLogout()">
         <span class="sii">🚪</span>
         <div class="si-body"><strong>サインアウト</strong></div>
         <span class="si-arrow">›</span>
       </div>
-      <!-- ローカルモード時のみ表示 -->
       <div id="local-settings-rows">
         <div class="si" onclick="promptLocalFolder()">
           <span class="sii">📁</span>
@@ -670,7 +666,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
       </div>
     </div>
-    <!-- 図面管理 -->
+
     <div class="ss">
       <div class="ss-title">図面管理</div>
       <div class="si" onclick="triggerMapInput()">
@@ -684,25 +680,52 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <span class="si-arrow">›</span>
       </div>
     </div>
-    <!-- ピンデータ管理 -->
+
     <div class="ss">
       <div class="ss-title">ピンデータ管理</div>
-      <div class="si"><span class="sii">📦</span><div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt">計算中...</span></div></div>
-      <div class="si" onclick="exportJSON()"><span class="sii">💾</span><div class="si-body"><strong>JSONバックアップ</strong></div><span class="si-arrow">›</span></div>
-      <div class="si" onclick="importJSON()"><span class="sii">📂</span><div class="si-body"><strong>データ読み込み</strong></div><span class="si-arrow">›</span></div>
-      <div class="si" onclick="clearPins()"><span class="sii">🗑️</span><div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div><span class="si-arrow">›</span></div>
+      <div class="si">
+        <span class="sii">📦</span>
+        <div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt">計算中...</span></div>
+      </div>
+      <div class="si" onclick="exportJSON()">
+        <span class="sii">💾</span>
+        <div class="si-body"><strong>JSONバックアップ</strong><span>全データを保存</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="importJSON()">
+        <span class="sii">📂</span>
+        <div class="si-body"><strong>データ読み込み</strong><span>JSONから復元</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="clearPins()">
+        <span class="sii">🗑️</span>
+        <div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div>
+        <span class="si-arrow">›</span>
+      </div>
     </div>
-    <!-- 認証 -->
+
     <div class="ss">
       <div class="ss-title">認証</div>
-      <div class="si" onclick="changePinPrompt()"><span class="sii">🔐</span><div class="si-body"><strong>PIN変更</strong></div><span class="si-arrow">›</span></div>
-      <div class="si" onclick="logout()"><span class="sii">🚪</span><div class="si-body"><strong>ログアウト</strong></div><span class="si-arrow">›</span></div>
+      <div class="si" onclick="changePinPrompt()">
+        <span class="sii">🔐</span>
+        <div class="si-body"><strong>PIN変更</strong></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="logout()">
+        <span class="sii">🚪</span>
+        <div class="si-body"><strong>ログアウト</strong></div>
+        <span class="si-arrow">›</span>
+      </div>
     </div>
-    <!-- アプリ情報 -->
+
     <div class="ss">
       <div class="ss-title">アプリ情報</div>
-      <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v5.0</strong><span>OneDrive同期対応</span></div></div>
+      <div class="si">
+        <span class="sii">ℹ️</span>
+        <div class="si-body"><strong>現場情報共有ツール v5.0</strong><span>OneDrive同期対応</span></div>
+      </div>
     </div>
+
   </div>
 </div>
 
