@@ -932,8 +932,21 @@ async function initMsal(){
       localStorage.removeItem('od_login_pending');
       updateOdUI();
       showToast(`サインイン完了: ${resp.account?.username||''}`, 'ok');
-      if(currentProjectId) setTimeout(()=>silentPullFromOd(), 1000);
       startPolling();
+      setTimeout(()=>{
+        const shareUrl = localStorage.getItem('od_share_url');
+        if(!shareUrl){
+          // 共有URLが未設定 → 設定画面を開いて案内
+          openSettings();
+          showToast('設定 → 共有フォルダURLを入力してください', 'warn');
+        } else if(!currentProjectId){
+          // 共有URL設定済み・現場未選択 → 現場選択画面
+          openProjectScreen();
+        } else {
+          // 現場選択済み → 最新データ取得
+          forcePullFromOd();
+        }
+      }, 800);
       return;
     }
 
@@ -1146,7 +1159,20 @@ function promptShareUrl(){
   localStorage.setItem('od_share_url', url);
   sharedDriveId = null; sharedItemId = null; // キャッシュクリア
   updateShareLabel();
-  showToast(url ? '共有URLを設定しました ✓' : '共有URLをクリアしました', 'ok');
+  if(url){
+    showToast('共有URLを設定しました ✓', 'ok');
+    // 設定後に現場選択を促す
+    setTimeout(()=>{
+      if(odEnabled && odAccessToken){
+        closeSettings();
+        openProjectScreen();
+      } else {
+        showToast('次にOneDrive同期をONにしてサインインしてください', 'warn');
+      }
+    }, 1200);
+  } else {
+    showToast('共有URLをクリアしました', 'warn');
+  }
 }
 
 function updateShareLabel(){
@@ -1476,7 +1502,8 @@ async function selectProject(id,name){
   updateStorageDisplay();
   showToast(`${name} を開きました`,'ok');
   if(odEnabled&&odAccessToken){
-    silentPullFromOd();
+    // 現場切替時は強制取得（確認なし）
+    forcePullFromOd();
   } else if(localDirHandle){
     // ローカルフォルダから読み込み
     verifyLocalDirHandle().then(async ok=>{
@@ -1615,6 +1642,33 @@ async function pushToOd(){
   await spSaveProjectConfig(currentProjectId,{...cfg,name:currentProjectName,pin_count:pins.length,updated:ts});
   localStorage.setItem('synced_at_'+currentProjectId,ts);
   setSyncState('ok');
+}
+
+// 現場切替時の強制取得（確認ダイアログなし）
+async function forcePullFromOd(){
+  if(!odEnabled||!odAccessToken||!currentProjectId) return;
+  setSyncState('syncing');
+  try{
+    const {data,etag}=await spDownload(currentProjectId,'pins.json');
+    const mp=await spDownload(currentProjectId,'map.json');
+    if(mp?.image){
+      localStorage.setItem('map_img_'+currentProjectId,mp.image);
+      if(mp.map_name) localStorage.setItem('map_name_'+currentProjectId,mp.map_name);
+      showMapImage(mp.image);
+      document.getElementById('currentMapName').textContent=mp.map_name||currentProjectId;
+    }
+    if(data?.pins&&Array.isArray(data.pins)){
+      pins=data.pins;
+      localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
+      if(etag) localStorage.setItem('etag_'+currentProjectId,etag);
+      renderPins(); renderAll();
+      showToast(`${pins.length}件を取得しました`,'ok');
+    }
+    setSyncState('ok');
+  }catch(e){
+    setSyncState('error');
+    console.warn('forcePullFromOd:',e);
+  }
 }
 
 async function pullFromOd(silent=false){
