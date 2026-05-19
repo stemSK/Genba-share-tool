@@ -726,6 +726,24 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   </div>
 </div>
 
+<!-- ショートカット誘導モーダル -->
+<div id="shortcut-guide" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:16px;">
+    <h3 style="font-size:16px;font-weight:700;color:var(--accent3)">📂 フォルダの追加が必要です</h3>
+    <p style="font-size:13px;color:var(--text2);line-height:1.7">
+      共有フォルダ <strong style="color:var(--text)">Genba-share-tool</strong> をあなたのOneDriveに追加してください。<br><br>
+      ① 下のボタンでOneDriveを開く<br>
+      ② 「共有」タブを開く<br>
+      ③ <strong style="color:var(--text)">Genba-share-tool</strong> を見つける<br>
+      ④ 右クリック →「マイファイルに追加」<br>
+      ⑤ このページに戻って「確認する」をタップ
+    </p>
+    <button class="btn btn-primary" onclick="window.open('https://stem365-my.sharepoint.com','_blank')">OneDriveを開く</button>
+    <button class="btn btn-secondary" onclick="recheckShortcut()">✓ 追加した・確認する</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('shortcut-guide').style.display='none'" style="font-size:12px;color:var(--text3)">スキップ（後で設定）</button>
+  </div>
+</div>
+
 <div class="overlay" id="overlay" onclick="closeSheet()"></div>
 
 <!-- PIN FORM -->
@@ -1158,6 +1176,25 @@ async function resolveSharedFolder(){
 function isSharedMode(){
   return !!(odEnabled && odAccessToken);
 }
+function showShortcutGuide(){
+  const el = document.getElementById('shortcut-guide');
+  if(el) el.style.display = 'flex';
+}
+
+async function recheckShortcut(){
+  document.getElementById('shortcut-guide').style.display = 'none';
+  showToast('確認中...', 'warn');
+  const ok = await checkShortcut();
+  if(ok){
+    showToast('フォルダを確認しました ✓', 'ok');
+    if(!currentProjectId) openProjectScreen();
+    else forcePullFromOd();
+  } else {
+    showToast('まだ追加されていません。OneDriveで「マイファイルに追加」してください', 'warn');
+    showShortcutGuide();
+  }
+}
+
 async function detectSharedFolder(){
   if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
   showToast('共有フォルダを検索中...','warn');
@@ -1405,21 +1442,18 @@ async function graphDownload(endpoint){
 // OneDrive /me/drive アクセス
 // Files.ReadWrite + User.Read（管理者承認不要）
 // OneDrive個人フォルダ（/me/drive）を使用
-// Files.ReadWriteのみで動作（管理者承認不要）
-// genba-kyoyuフォルダを共有してチームで使用
+// ショートカット経由で全員が同じフォルダにアクセス
+// /me/drive/root:/Genba-share-tool: → ショートカットなら共有フォルダを参照
+const SHARED_BASE = 'Genba-share-tool';
 
 async function spUpload(projectId, filename, data){
-  const shared = await resolveSharedFolder();
-  if(!shared) throw new Error('共有フォルダが見つかりません');
-  const path = `${projectId}/${filename}`;
-  return graphRequest('PUT', `/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`, data);
+  const path = `${SHARED_BASE}/${projectId}/${filename}`;
+  return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
-  const shared = await resolveSharedFolder();
-  if(!shared) return {data:null, etag:null};
-  const path = `${projectId}/${filename}`;
-  const {text, etag} = await graphDownload(`/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`);
+  const path = `${SHARED_BASE}/${projectId}/${filename}`;
+  const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
 }
@@ -1432,13 +1466,27 @@ async function spListProjects(){
   }
   if(!odEnabled) return [];
   try{
-    const shared = await resolveSharedFolder();
-    if(!shared) return [];
-    const res = await graphRequest('GET', `/drives/${shared.driveId}/items/${shared.itemId}/children`);
+    const res = await graphRequest('GET', `/me/drive/root:/${SHARED_BASE}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
 }
+
+// Genba-share-toolフォルダ/ショートカットの存在確認
+async function checkShortcut(){
+  try{
+    const res = await graphRequest('GET', `/me/drive/root:/${SHARED_BASE}`);
+    return !!(res?.id);
+  }catch(e){ return false; }
+}
+
+// ショートカット作成をOneDriveで誘導
+function guideShortcut(){
+  // OneDriveを開いてユーザーにショートカット追加を促す
+  window.open('https://onedrive.live.com', '_blank');
+  showToast('OneDriveで「Genba-share-tool」を検索し「マイファイルに追加」してください', 'warn');
+}
+
 
 // プロジェクトのconfig.jsonを読む
 async function spGetProjectConfig(projectId){
