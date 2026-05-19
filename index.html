@@ -538,9 +538,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <span class="si-arrow">›</span>
         </div>
         <div id="od-settings-rows2">
-          <div class="si" onclick="promptShareUrl()">
-            <span class="sii">🔗</span>
-            <div class="si-body"><strong>共有フォルダURL</strong><span id="odShareLabel2">未設定</span></div>
+          <div class="si" onclick="checkSharedFolder()">
+            <span class="sii">🔍</span>
+            <div class="si-body"><strong>共有フォルダを検出</strong><span id="sharedFolderStatus2">未確認</span></div>
             <span class="si-arrow">›</span>
           </div>
           <div class="si" onclick="manualSync()">
@@ -638,11 +638,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
       <div id="od-settings-rows">
 
-        <div class="si" onclick="promptShareUrl()">
-          <span class="sii">🔗</span>
-          <div class="si-body"><strong>共有フォルダURL</strong><span id="odShareLabel">未設定</span></div>
-          <span class="si-arrow">›</span>
-        </div>
+
         <div class="si" onclick="manualSync()">
           <span class="sii">🔄</span>
           <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
@@ -934,13 +930,8 @@ async function initMsal(){
       showToast(`サインイン完了: ${resp.account?.username||''}`, 'ok');
       startPolling();
       setTimeout(()=>{
-        const shareUrl = localStorage.getItem('od_share_url');
-        if(!shareUrl){
-          // 共有URLが未設定 → 設定画面を開いて案内
-          openSettings();
-          showToast('設定 → 共有フォルダURLを入力してください', 'warn');
-        } else if(!currentProjectId){
-          // 共有URL設定済み・現場未選択 → 現場選択画面
+        if(!currentProjectId){
+          // 現場未選択 → 現場選択画面を自動表示
           openProjectScreen();
         } else {
           // 現場選択済み → 最新データ取得
@@ -1104,6 +1095,14 @@ function updateOdUI(){
     const el=document.getElementById(id);
     if(el) el.style.display=odEnabled?'none':'block';
   });
+  // 共有フォルダ状態の表示更新
+  if(sharedDriveId){
+    const isOwner = localStorage.getItem('od_is_owner') === '1';
+    const detail = isOwner ? 'オーナー接続中' : 'メンバー接続中';
+    ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+      const el=document.getElementById(id); if(el) el.textContent=`検出済み ✓（${detail}）`;
+    });
+  }
   updateFolderLabels();
 }
 
@@ -1120,29 +1119,63 @@ function getBaseFolder(){
 
 // 共有フォルダのdriveId/itemIdキャッシュ
 let sharedDriveId = null, sharedItemId = null;
+const SHARED_FOLDER_NAME = 'Genba-share-tool'; // 共有フォルダ名
 
-// 共有URLからdriveId/itemIdを解決
+// sharedWithMe APIで共有フォルダを自動検出
 async function resolveSharedFolder(){
-  const shareUrl = localStorage.getItem('od_share_url');
-  if(!shareUrl) return null;
   if(sharedDriveId && sharedItemId) return {driveId:sharedDriveId, itemId:sharedItemId};
   try{
-    // URLをbase64エンコードしてGraph APIで解決
-    const encoded = btoa(shareUrl).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-    const res = await graphRequest('GET', `/shares/u!${encoded}/driveItem`);
-    if(res?.parentReference?.driveId && res?.id){
-      sharedDriveId = res.parentReference.driveId;
-      sharedItemId = res.id;
+    // まず自分のOneDriveに同名フォルダがあるか確認
+    const myFolder = await graphRequest('GET', `/me/drive/root:/${SHARED_FOLDER_NAME}`);
+    if(myFolder?.id){
+      // オーナー自身の場合：自分のフォルダを使用
+      sharedDriveId = myFolder.parentReference?.driveId;
+      sharedItemId = myFolder.id;
+      localStorage.setItem('od_is_owner','1');
       return {driveId:sharedDriveId, itemId:sharedItemId};
     }
-  }catch(e){ console.warn('resolveSharedFolder:', e); }
+  }catch(e){}
+
+  // 自分のOneDriveにない場合：共有アイテムを検索
+  try{
+    const res = await graphRequest('GET', '/me/drive/sharedWithMe');
+    if(res?.value){
+      const folder = res.value.find(item=>
+        item.name === SHARED_FOLDER_NAME && item.folder
+      );
+      if(folder){
+        sharedDriveId = folder.remoteItem?.parentReference?.driveId || folder.parentReference?.driveId;
+        sharedItemId = folder.remoteItem?.id || folder.id;
+        localStorage.setItem('od_is_owner','0');
+        return {driveId:sharedDriveId, itemId:sharedItemId};
+      }
+    }
+  }catch(e){ console.warn('sharedWithMe:', e); }
   return null;
 }
 
-// 共有フォルダかどうか
+// 共有フォルダかどうか（常にtrue: オーナーも共有先も同じAPIを使う）
 function isSharedMode(){
-  return !!(odEnabled && odAccessToken && localStorage.getItem('od_share_url'));
+  return !!(odEnabled && odAccessToken);
 }
+async function detectSharedFolder(){
+  if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
+  showToast('共有フォルダを検索中...','warn');
+  sharedDriveId = null; sharedItemId = null;
+  localStorage.removeItem('od_shared_drive_id');
+  localStorage.removeItem('od_shared_item_id');
+  const shared = await resolveSharedFolder();
+  const labels = shared ? '検出済み ✓' : '見つかりませんでした';
+  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=labels;
+  });
+  if(shared){
+    showToast('共有フォルダを検出しました ✓','ok');
+  } else {
+    showToast('共有フォルダが見つかりません。URLを手動入力してください','warn');
+  }
+}
+
 function promptShareUrl(){
   const cur = localStorage.getItem('od_share_url') || '';
   const v = prompt(
@@ -1175,11 +1208,38 @@ function promptShareUrl(){
   }
 }
 
+// 共有フォルダを手動で検出・確認
+async function checkSharedFolder(){
+  if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
+  showToast('共有フォルダを検索中...','warn');
+  sharedDriveId = null; sharedItemId = null; // キャッシュクリア
+  const shared = await resolveSharedFolder();
+  const label = shared ? `検出済み ✓` : '見つかりません';
+  const isOwner = localStorage.getItem('od_is_owner') === '1';
+  const detail = shared
+    ? (isOwner ? 'オーナーとして接続中' : 'メンバーとして接続中')
+    : 'フォルダが共有されているか確認してください';
+  ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=shared ? `${label}（${detail}）` : label;
+  });
+  if(shared){
+    showToast(`共有フォルダを検出しました（${detail}）`,'ok');
+    if(!currentProjectId) setTimeout(openProjectScreen, 500);
+  } else {
+    showToast('共有フォルダが見つかりません。オーナーに共有を依頼してください','err');
+  }
+}
+
 function updateShareLabel(){
   const url = localStorage.getItem('od_share_url') || '';
-  const label = url ? (url.length > 40 ? url.slice(0,40)+'...' : url) : '未設定';
+  const shareLabel = url ? (url.length > 40 ? url.slice(0,40)+'...' : url) : '未設定';
   ['odShareLabel','odShareLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=label;
+    const el=document.getElementById(id); if(el) el.textContent=shareLabel;
+  });
+  const detected = localStorage.getItem('od_shared_drive_id') ? '検出済み ✓' : '未検出';
+  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=detected;
   });
 }
 
@@ -1349,31 +1409,17 @@ async function graphDownload(endpoint){
 // genba-kyoyuフォルダを共有してチームで使用
 
 async function spUpload(projectId, filename, data){
-  if(isSharedMode()){
-    // 共有フォルダへのアップロード
-    const shared = await resolveSharedFolder();
-    if(shared){
-      const path = `${projectId}/${filename}`;
-      return graphRequest('PUT', `/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`, data);
-    }
-  }
-  // 自分のOneDrive
-  const path = `${getBaseFolder()}/${projectId}/${filename}`;
-  return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
+  const shared = await resolveSharedFolder();
+  if(!shared) throw new Error('共有フォルダが見つかりません');
+  const path = `${projectId}/${filename}`;
+  return graphRequest('PUT', `/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
-  if(isSharedMode()){
-    const shared = await resolveSharedFolder();
-    if(shared){
-      const path = `${projectId}/${filename}`;
-      const {text, etag} = await graphDownload(`/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`);
-      if(!text) return {data:null, etag:null};
-      try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
-    }
-  }
-  const path = `${getBaseFolder()}/${projectId}/${filename}`;
-  const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
+  const shared = await resolveSharedFolder();
+  if(!shared) return {data:null, etag:null};
+  const path = `${projectId}/${filename}`;
+  const {text, etag} = await graphDownload(`/drives/${shared.driveId}/items/${shared.itemId}:/${path}:/content`);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
 }
@@ -1386,15 +1432,9 @@ async function spListProjects(){
   }
   if(!odEnabled) return [];
   try{
-    if(isSharedMode()){
-      const shared = await resolveSharedFolder();
-      if(shared){
-        const res = await graphRequest('GET', `/drives/${shared.driveId}/items/${shared.itemId}/children`);
-        if(!res?.value) return [];
-        return res.value.filter(i=>i.folder).map(i=>i.name);
-      }
-    }
-    const res = await graphRequest('GET', `/me/drive/root:/${getBaseFolder()}:/children`);
+    const shared = await resolveSharedFolder();
+    if(!shared) return [];
+    const res = await graphRequest('GET', `/drives/${shared.driveId}/items/${shared.itemId}/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
