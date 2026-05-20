@@ -538,9 +538,19 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <span class="si-arrow">›</span>
         </div>
         <div id="od-settings-rows2">
-          <div class="si" onclick="checkSharedFolder()">
+          <div class="si" onclick="promptSharedBase()">
+            <span class="sii">📁</span>
+            <div class="si-body"><strong>共有フォルダ名</strong><span id="sharedBaseLabel2">Genba-share-tool</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="recheckShortcut()">
             <span class="sii">🔍</span>
-            <div class="si-body"><strong>フォルダの追加を確認</strong><span id="sharedFolderStatus2">未確認</span></div>
+            <div class="si-body"><strong>フォルダの追加を確認</strong><span id="odDetectLabel2">未確認</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="showShortcutGuide()">
+            <span class="sii">📂</span>
+            <div class="si-body"><strong>フォルダ追加の手順を見る</strong></div>
             <span class="si-arrow">›</span>
           </div>
           <div class="si" onclick="manualSync()">
