@@ -734,7 +734,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       共有フォルダ <strong style="color:var(--text)">Genba-share-tool</strong> をあなたのOneDriveに追加してください。<br><br>
       ① 下のボタンでOneDriveを開く<br>
       ② 「共有」タブを開く<br>
-      ③ <strong style="color:var(--text)">Genba-share-tool</strong> を見つける<br>
+      ③ <strong style="color:var(--text)" id="shortcutFolderName">Genba-share-tool</strong> を見つける<br>
       ④ 右クリック →「マイファイルに追加」<br>
       ⑤ このページに戻って「確認する」をタップ
     </p>
@@ -1178,7 +1178,11 @@ function isSharedMode(){
 }
 function showShortcutGuide(){
   const el = document.getElementById('shortcut-guide');
-  if(el) el.style.display = 'flex';
+  if(el){
+    el.style.display = 'flex';
+    const fn = document.getElementById('shortcutFolderName');
+    if(fn) fn.textContent = getSharedBase();
+  }
 }
 
 async function recheckShortcut(){
@@ -1193,6 +1197,33 @@ async function recheckShortcut(){
     showToast('まだ追加されていません。OneDriveで「マイファイルに追加」してください', 'warn');
     showShortcutGuide();
   }
+}
+
+function promptSharedBase(){
+  const cur = getSharedBase();
+  const v = prompt(
+    '共有フォルダ名を入力してください\n\n' +
+    '【オーナー】\n' +
+    '自分のOneDriveに作成するフォルダ名を決めて入力\n' +
+    '（例: Genba-share-tool-komiya）\n' +
+    'メンバーに同じ名前を教えてください\n\n' +
+    '【メンバー】\n' +
+    'オーナーから教えてもらったフォルダ名を入力',
+    cur
+  );
+  if(v === null) return;
+  const folder = v.trim() || 'Genba-share-tool';
+  localStorage.setItem('shared_base_folder', folder);
+  updateSharedBaseLabel();
+  showToast(`共有フォルダ名: ${folder}`, 'ok');
+}
+
+function updateSharedBaseLabel(){
+  const name = getSharedBase();
+  ['sharedBaseLabel','sharedBaseLabel2'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = name;
+  });
 }
 
 async function detectSharedFolder(){
@@ -1399,6 +1430,7 @@ async function localListProjects(){
 }
 function updateFolderLabels(){
   updateShareLabel();
+  updateSharedBaseLabel();
   const odFolder = localStorage.getItem('od_base_folder') || 'Genba-share-tool';
   // ローカルはフォルダハンドルの名前を優先
   const localFolder = localDirHandle?.name || localStorage.getItem('local_folder_name') || localStorage.getItem('local_base_folder') || '未設定（タップして選択）';
@@ -1444,15 +1476,16 @@ async function graphDownload(endpoint){
 // OneDrive個人フォルダ（/me/drive）を使用
 // ショートカット経由で全員が同じフォルダにアクセス
 // /me/drive/root:/Genba-share-tool: → ショートカットなら共有フォルダを参照
-const SHARED_BASE = 'Genba-share-tool';
+// SHARED_BASEはlocalStorageから動的取得
+function getSharedBase(){ return localStorage.getItem('shared_base_folder') || 'Genba-share-tool'; }
 
 async function spUpload(projectId, filename, data){
-  const path = `${SHARED_BASE}/${projectId}/${filename}`;
+  const path = `${getSharedBase()}/${projectId}/${filename}`;
   return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
-  const path = `${SHARED_BASE}/${projectId}/${filename}`;
+  const path = `${getSharedBase()}/${projectId}/${filename}`;
   const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
@@ -1466,7 +1499,7 @@ async function spListProjects(){
   }
   if(!odEnabled) return [];
   try{
-    const res = await graphRequest('GET', `/me/drive/root:/${SHARED_BASE}:/children`);
+    const res = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
@@ -1475,7 +1508,7 @@ async function spListProjects(){
 // Genba-share-toolフォルダ/ショートカットの存在確認
 async function checkShortcut(){
   try{
-    const res = await graphRequest('GET', `/me/drive/root:/${SHARED_BASE}`);
+    const res = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}`);
     return !!(res?.id);
   }catch(e){ return false; }
 }
@@ -2102,17 +2135,27 @@ function savePin(){
   const author=document.getElementById('f-author').value;
   if(author)localStorage.setItem('lastAuthor',author);
   const pd={division:currentDiv,item:document.getElementById('f-item').value,priority:document.getElementById('f-priority').value,date:document.getElementById('f-date').value,author,target:document.getElementById('f-target').value,location:document.getElementById('f-location').value,content:document.getElementById('f-content').value,action:document.getElementById('f-action').value,complete_date:document.getElementById('f-complete-date').value,completed:doneState,photos:currentPhotos};
+  const wasEditing = editingId;
   if(editingId){const i=pins.findIndex(p=>p.id===editingId);if(i>=0)pins[i]={...pins[i],...pd};}
   else{pins.push({id:crypto.randomUUID(),pin_no:pins.length>0?Math.max(...pins.map(p=>p.pin_no))+1:1,x:pendingX,y:pendingY,...pd});}
-  saveData();closeSheet();renderAll();
-  showToast(editingId?'更新しました ✓':'ピンを追加しました ✓','ok');
+  // iPadSafari対応：先にシートを閉じてからデータ保存・描画
+  closeSheet();
+  showToast(wasEditing?'更新しました ✓':'ピンを追加しました ✓','ok');
+  setTimeout(()=>{
+    saveData();
+    renderAll();
+  }, 50);
 }
 function deletePin(){
-  if(!editingId||!confirm('このピンを削除しますか？'))return;
-  pins=pins.filter(p=>p.id!==editingId);
-  renumberPins();
-  saveData();closeSheet();renderAll();
-  showToast('削除しました','err');
+  if(!editingId) return;
+  // iPadSafari対応：confirmの代わりにカスタム確認
+  showConfirm('このピンを削除しますか？', ()=>{
+    pins=pins.filter(p=>p.id!==editingId);
+    renumberPins();
+    closeSheet();
+    showToast('削除しました','err');
+    setTimeout(()=>{ saveData(); renderAll(); }, 50);
+  });
 }
 
 // ══════════════════════════════════════
@@ -2265,6 +2308,11 @@ function clearPins(){
   if(!confirm(`「${currentProjectName||currentProjectId}」の全ピンを削除しますか？`))return;
   pins=[];saveData();renderAll();showToast('削除しました','err');
 }
+function showConfirm(msg, onOk){
+  // iOSでconfirmが動作しない場合の代替
+  if(window.confirm(msg)){ onOk(); }
+}
+
 function closeSheet(){
   document.getElementById('overlay').classList.remove('show');
   document.querySelectorAll('.bottom-sheet').forEach(s=>s.classList.remove('open'));
