@@ -1160,14 +1160,12 @@ function getBaseFolder(){
 
 // 共有フォルダのdriveId/itemIdキャッシュ
 let sharedDriveId = null, sharedItemId = null;
-const SHARED_FOLDER_NAME = 'Genba-share-tool'; // 共有フォルダ名
-
 // sharedWithMe APIで共有フォルダを自動検出
 async function resolveSharedFolder(){
   if(sharedDriveId && sharedItemId) return {driveId:sharedDriveId, itemId:sharedItemId};
   try{
     // まず自分のOneDriveに同名フォルダがあるか確認
-    const myFolder = await graphRequest('GET', `/me/drive/root:/${SHARED_FOLDER_NAME}`);
+    const myFolder = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}`);
     if(myFolder?.id){
       // オーナー自身の場合：自分のフォルダを使用
       sharedDriveId = myFolder.parentReference?.driveId;
@@ -1182,7 +1180,7 @@ async function resolveSharedFolder(){
     const res = await graphRequest('GET', '/me/drive/sharedWithMe');
     if(res?.value){
       const folder = res.value.find(item=>
-        item.name === SHARED_FOLDER_NAME && item.folder
+        item.name === getSharedBase() && item.folder
       );
       if(folder){
         sharedDriveId = folder.remoteItem?.parentReference?.driveId || folder.parentReference?.driveId;
@@ -1209,15 +1207,23 @@ function showShortcutGuide(){
 }
 
 async function recheckShortcut(){
-  document.getElementById('shortcut-guide').style.display = 'none';
+  const guide = document.getElementById('shortcut-guide');
+  if(guide) guide.style.display = 'none';
   showToast('確認中...', 'warn');
+  // キャッシュをクリアして再確認
+  sharedDriveId = null; sharedItemId = null;
   const ok = await checkShortcut();
+  // ラベル更新
+  const label = ok ? `検出済み✓（${localStorage.getItem('od_is_owner')==='1'?'オーナー':'メンバー'}として接続中）` : '未検出';
+  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=label;
+  });
   if(ok){
     showToast('フォルダを確認しました ✓', 'ok');
     if(!currentProjectId) openProjectScreen();
     else forcePullFromOd();
   } else {
-    showToast('まだ追加されていません。OneDriveで「マイファイルに追加」してください', 'warn');
+    showToast(`「${getSharedBase()}」が見つかりません。OneDriveで「マイファイルに追加」してください`, 'warn');
     showShortcutGuide();
   }
 }
@@ -1246,6 +1252,13 @@ function updateSharedBaseLabel(){
   ['sharedBaseLabel','sharedBaseLabel2'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.textContent = name;
+  });
+  // 検出済みラベルも更新
+  const cached = localStorage.getItem('od_shared_drive_id') || (localStorage.getItem('od_is_owner')==='1' ? 'owner' : '');
+  const detectLabel = cached ? `検出済み✓（${localStorage.getItem('od_is_owner')==='1'?'オーナー':'メンバー'}として接続中）` : '未確認';
+  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.textContent = detectLabel;
   });
 }
 
