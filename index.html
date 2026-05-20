@@ -637,8 +637,21 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <span class="si-arrow">›</span>
       </div>
       <div id="od-settings-rows">
-
-
+        <div class="si" onclick="promptSharedBase()">
+          <span class="sii">📁</span>
+          <div class="si-body"><strong>共有フォルダ名</strong><span id="sharedBaseLabel">Genba-share-tool</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="recheckShortcut()">
+          <span class="sii">🔍</span>
+          <div class="si-body"><strong>フォルダの追加を確認</strong><span id="odDetectLabel">未確認</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="showShortcutGuide()">
+          <span class="sii">📂</span>
+          <div class="si-body"><strong>フォルダ追加の手順を見る</strong><span>OneDrive「マイファイルに追加」</span></div>
+          <span class="si-arrow">›</span>
+        </div>
         <div class="si" onclick="manualSync()">
           <span class="sii">🔄</span>
           <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
