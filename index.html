@@ -1179,15 +1179,28 @@ async function resolveSharedFolder(){
   try{
     const res = await graphRequest('GET', '/me/drive/sharedWithMe');
     if(res?.value){
-      const folder = res.value.find(item=>
-        item.name === getSharedBase() && item.folder
-      );
+      const baseName = getSharedBase();
+      // name完全一致 → 部分一致 → remoteItemのname確認 の順で検索
+      const folder = res.value.find(item=>{
+        if(!item.folder && !item.remoteItem?.folder) return false;
+        const n = item.name || '';
+        const rn = item.remoteItem?.name || '';
+        return n === baseName || n.includes(baseName) ||
+               rn === baseName || rn.includes(baseName);
+      });
       if(folder){
-        sharedDriveId = folder.remoteItem?.parentReference?.driveId || folder.parentReference?.driveId;
-        sharedItemId = folder.remoteItem?.id || folder.id;
+        const remote = folder.remoteItem;
+        sharedDriveId = remote?.parentReference?.driveId ||
+                        folder.parentReference?.driveId;
+        sharedItemId = remote?.id || folder.id;
         localStorage.setItem('od_is_owner','0');
+        localStorage.setItem('od_shared_drive_id', sharedDriveId);
+        localStorage.setItem('od_shared_item_id', sharedItemId);
+        console.log('共有フォルダ検出:', folder.name, '→', sharedDriveId, sharedItemId);
         return {driveId:sharedDriveId, itemId:sharedItemId};
       }
+      // 見つからない場合はデバッグ用にリストをログ出力
+      console.log('sharedWithMe items:', res.value.map(i=>({name:i.name, rname:i.remoteItem?.name, isFolder:!!i.folder})));
     }
   }catch(e){ console.warn('sharedWithMe:', e); }
   return null;
