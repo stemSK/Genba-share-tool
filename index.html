@@ -183,9 +183,23 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .photo-thumb{aspect-ratio:1;border-radius:7px;overflow:hidden;position:relative;background:var(--surface2);border:1px solid var(--border);cursor:pointer;}
 .photo-thumb img{width:100%;height:100%;object-fit:cover;}
 .photo-thumb .del-photo{position:absolute;top:3px;right:3px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.photo-thumb .edit-photo{position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,0.7);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .photo-add-btn{aspect-ratio:1;border-radius:7px;border:1.5px dashed var(--border2);background:var(--surface2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--text2);font-size:11px;transition:all 0.15s;}
 .photo-add-btn:active{border-color:var(--accent);color:var(--accent3);}
 .photo-add-btn .ph-i{font-size:22px;}
+/* ═══ 描画エディタ ═══ */
+#draw-editor{position:fixed;inset:0;z-index:700;background:#000;display:none;flex-direction:column;}
+#draw-editor.open{display:flex;}
+.draw-toolbar{background:#1a1a1a;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.draw-toolbar-title{font-size:13px;font-weight:600;color:#fff;margin-right:4px;}
+.pen-btn{width:32px;height:32px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all 0.15s;flex-shrink:0;}
+.pen-btn.active{border-color:#fff;transform:scale(1.15);}
+.pen-size{display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;}
+.pen-size input{width:80px;accent-color:var(--accent);}
+.draw-canvas-wrap{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#111;position:relative;}
+#draw-canvas{display:block;touch-action:none;cursor:crosshair;}
+.draw-actions{background:#1a1a1a;padding:10px 14px;display:flex;gap:8px;flex-shrink:0;}
+.draw-memo{flex:1;background:#222;border:1px solid #444;border-radius:8px;color:#fff;padding:8px 10px;font-size:13px;font-family:var(--sans);resize:none;outline:none;min-height:44px;}
 .toggle-row{display:flex;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:9px 11px;gap:9px;cursor:pointer;}
 .toggle-label{flex:1;font-size:13px;}
 .toggle{width:38px;height:21px;background:var(--border2);border-radius:11px;position:relative;transition:background 0.2s;flex-shrink:0;}
@@ -1190,17 +1204,32 @@ async function resolveSharedFolder(){
       });
       if(folder){
         const remote = folder.remoteItem;
+        // driveIdはremoteItemのparentReference.driveIdから取得
         sharedDriveId = remote?.parentReference?.driveId ||
+                        remote?.id?.split('!')[0] ||
                         folder.parentReference?.driveId;
+        // itemIdはremoteItem.idがGenba-share-toolフォルダ自体のID
         sharedItemId = remote?.id || folder.id;
         localStorage.setItem('od_is_owner','0');
         localStorage.setItem('od_shared_drive_id', sharedDriveId);
         localStorage.setItem('od_shared_item_id', sharedItemId);
-        console.log('共有フォルダ検出:', folder.name, '→', sharedDriveId, sharedItemId);
+        console.log('共有フォルダ検出:', {
+          name: folder.name,
+          remoteName: remote?.name,
+          driveId: sharedDriveId,
+          itemId: sharedItemId,
+          remote: JSON.stringify(remote)
+        });
         return {driveId:sharedDriveId, itemId:sharedItemId};
       }
-      // 見つからない場合はデバッグ用にリストをログ出力
-      console.log('sharedWithMe items:', res.value.map(i=>({name:i.name, rname:i.remoteItem?.name, isFolder:!!i.folder})));
+      // 見つからない場合はデバッグ用
+      console.log('sharedWithMe items:', res.value.map(i=>({
+        name:i.name,
+        rname:i.remoteItem?.name,
+        rid:i.remoteItem?.id,
+        rdriveId:i.remoteItem?.parentReference?.driveId,
+        isFolder:!!(i.folder||i.remoteItem?.folder)
+      })));
     }
   }catch(e){ console.warn('sharedWithMe:', e); }
   return null;
@@ -1529,11 +1558,27 @@ async function graphDownload(endpoint){
 function getSharedBase(){ return localStorage.getItem('shared_base_folder') || 'Genba-share-tool'; }
 
 async function spUpload(projectId, filename, data){
+  const sid = localStorage.getItem('od_shared_drive_id');
+  const iid = localStorage.getItem('od_shared_item_id');
+  const isOwner = localStorage.getItem('od_is_owner') === '1';
+  if(sid && iid && !isOwner){
+    // メンバー：driveId/itemId経由でアップロード
+    return graphRequest('PUT', `/drives/${sid}/items/${iid}:/${projectId}/${filename}:/content`, data);
+  }
   const path = `${getSharedBase()}/${projectId}/${filename}`;
   return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
+  const sid = localStorage.getItem('od_shared_drive_id');
+  const iid = localStorage.getItem('od_shared_item_id');
+  const isOwner = localStorage.getItem('od_is_owner') === '1';
+  if(sid && iid && !isOwner){
+    // メンバー：driveId/itemId経由でダウンロード
+    const {text, etag} = await graphDownload(`/drives/${sid}/items/${iid}:/${projectId}/${filename}:/content`);
+    if(!text) return {data:null, etag:null};
+    try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
+  }
   const path = `${getSharedBase()}/${projectId}/${filename}`;
   const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
   if(!text) return {data:null, etag:null};
@@ -1548,6 +1593,17 @@ async function spListProjects(){
   }
   if(!odEnabled) return [];
   try{
+    // メンバー（ショートカット）の場合はdriveId/itemId経由
+    const sid = localStorage.getItem('od_shared_drive_id');
+    const iid = localStorage.getItem('od_shared_item_id');
+    const isOwner = localStorage.getItem('od_is_owner') === '1';
+    if(sid && iid && !isOwner){
+      const res = await graphRequest('GET', `/drives/${sid}/items/${iid}/children`);
+      console.log('spListProjects result:', res?.value?.map(i=>({name:i.name,isFolder:!!i.folder})));
+      if(!res?.value) return [];
+      return res.value.filter(i=>i.folder).map(i=>i.name);
+    }
+    // オーナーは自分のOneDrive経由
     const res = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
@@ -1557,9 +1613,25 @@ async function spListProjects(){
 // Genba-share-toolフォルダ/ショートカットの存在確認
 async function checkShortcut(){
   try{
+    // まずキャッシュされたdriveId/itemIdで確認
+    const sid = localStorage.getItem('od_shared_drive_id');
+    const iid = localStorage.getItem('od_shared_item_id');
+    if(sid && iid){
+      const res = await graphRequest('GET', `/drives/${sid}/items/${iid}`);
+      if(res?.id) return true;
+    }
+    // 自分のOneDriveにフォルダがあるか（オーナー）
     const res = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}`);
-    return !!(res?.id);
-  }catch(e){ return false; }
+    if(res?.id){
+      localStorage.setItem('od_is_owner','1');
+      localStorage.setItem('od_shared_drive_id', res.parentReference?.driveId||'');
+      localStorage.setItem('od_shared_item_id', res.id);
+      return true;
+    }
+  }catch(e){}
+  // sharedWithMeで再検索
+  const shared = await resolveSharedFolder();
+  return !!(shared);
 }
 
 // ショートカット作成をOneDriveで誘導
@@ -2174,8 +2246,24 @@ function loadAndCompressPhoto(file,maxPx=1200,quality=0.75){
 }
 function renderPhotoGrid(){
   const g=document.getElementById('photoGrid');g.innerHTML='';
-  currentPhotos.forEach((src,i)=>{const d=document.createElement('div');d.className='photo-thumb';d.innerHTML=`<img src="${src}"><button class="del-photo" onclick="removePhoto(${i})">✕</button>`;g.appendChild(d);});
-  const a=document.createElement('div');a.className='photo-add-btn';a.onclick=()=>triggerPhotoInput();a.innerHTML='<div class="ph-i">📷</div><span>追加</span>';g.appendChild(a);
+  currentPhotos.forEach((src,i)=>{
+    const d=document.createElement('div');
+    d.className='photo-thumb';
+    d.innerHTML=`<img src="${src}" onclick="openDrawEditor('${src}',${i})" style="cursor:pointer">
+      <button class="del-photo" onclick="event.stopPropagation();removePhoto(${i})">✕</button>
+      <button class="edit-photo" onclick="event.stopPropagation();openDrawEditor('${src}',${i})" title="描画・メモ">✏️</button>`;
+    g.appendChild(d);
+  });
+  // 写真追加ボタン
+  const a=document.createElement('div');a.className='photo-add-btn';
+  a.onclick=()=>triggerPhotoInput();
+  a.innerHTML='<div class="ph-i">📷</div><span>写真追加</span>';
+  g.appendChild(a);
+  // 新規描画ボタン
+  const b=document.createElement('div');b.className='photo-add-btn';
+  b.onclick=()=>openDrawEditor(null,-1);
+  b.innerHTML='<div class="ph-i">✏️</div><span>描画追加</span>';
+  g.appendChild(b);
 }
 function removePhoto(i){currentPhotos.splice(i,1);renderPhotoGrid();}
 
@@ -2384,6 +2472,163 @@ function showToast(msg,type=''){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2800);
 }
 
+
+// ════════════════════════════════════════
+//  描画エディタ
+// ════════════════════════════════════════
+let drawCanvas=null, drawCtx=null;
+let drawColor='#e05555', drawSize=4;
+let drawHistory=[], drawEditing=-1; // 編集中のphotoIndex
+let drawPointing=false, drawLastX=0, drawLastY=0;
+
+function openDrawEditor(imgSrc, photoIndex){
+  drawEditing = photoIndex; // -1=新規描画
+  const editor = document.getElementById('draw-editor');
+  editor.classList.add('open');
+  drawCanvas = document.getElementById('draw-canvas');
+  drawCtx = drawCanvas.getContext('2d');
+  drawHistory = [];
+  document.getElementById('draw-memo').value = '';
+
+  const wrap = document.getElementById('draw-canvas-wrap');
+  const img = new Image();
+  img.onload = ()=>{
+    // キャンバスサイズをラップに合わせる
+    const maxW = wrap.clientWidth - 16;
+    const maxH = wrap.clientHeight - 16;
+    const scale = Math.min(maxW/img.width, maxH/img.height, 1);
+    drawCanvas.width = img.width * scale;
+    drawCanvas.height = img.height * scale;
+    drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+    saveDrawHistory();
+    setupDrawEvents();
+  };
+  img.src = imgSrc || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+}
+
+function setupDrawEvents(){
+  const c = drawCanvas;
+  // マウス
+  c.onmousedown = e=>{ drawPointing=true; drawLastX=getX(e); drawLastY=getY(e); drawDot(drawLastX,drawLastY); };
+  c.onmousemove = e=>{ if(!drawPointing) return; drawLine(drawLastX,drawLastY,getX(e),getY(e)); drawLastX=getX(e); drawLastY=getY(e); };
+  c.onmouseup = ()=>{ drawPointing=false; saveDrawHistory(); };
+  c.onmouseleave = ()=>{ if(drawPointing){ drawPointing=false; saveDrawHistory(); } };
+  // タッチ
+  c.ontouchstart = e=>{ e.preventDefault(); const t=e.touches[0]; drawPointing=true; drawLastX=getX(t); drawLastY=getY(t); drawDot(drawLastX,drawLastY); };
+  c.ontouchmove = e=>{ e.preventDefault(); const t=e.touches[0]; if(!drawPointing) return; drawLine(drawLastX,drawLastY,getX(t),getY(t)); drawLastX=getX(t); drawLastY=getY(t); };
+  c.ontouchend = ()=>{ drawPointing=false; saveDrawHistory(); };
+}
+
+function getX(e){
+  const r = drawCanvas.getBoundingClientRect();
+  return (e.clientX - r.left) * (drawCanvas.width / r.width);
+}
+function getY(e){
+  const r = drawCanvas.getBoundingClientRect();
+  return (e.clientY - r.top) * (drawCanvas.height / r.height);
+}
+
+function drawDot(x,y){
+  drawCtx.beginPath();
+  if(drawColor==='eraser'){
+    drawCtx.globalCompositeOperation='destination-out';
+    drawCtx.fillStyle='rgba(0,0,0,1)';
+    drawCtx.arc(x,y,drawSize*2,0,Math.PI*2);
+    drawCtx.fill();
+  } else {
+    drawCtx.globalCompositeOperation='source-over';
+    drawCtx.fillStyle=drawColor;
+    drawCtx.arc(x,y,drawSize/2,0,Math.PI*2);
+    drawCtx.fill();
+  }
+}
+
+function drawLine(x1,y1,x2,y2){
+  drawCtx.beginPath();
+  if(drawColor==='eraser'){
+    drawCtx.globalCompositeOperation='destination-out';
+    drawCtx.strokeStyle='rgba(0,0,0,1)';
+    drawCtx.lineWidth=drawSize*3;
+  } else {
+    drawCtx.globalCompositeOperation='source-over';
+    drawCtx.strokeStyle=drawColor;
+    drawCtx.lineWidth=drawSize;
+  }
+  drawCtx.lineCap='round';
+  drawCtx.lineJoin='round';
+  drawCtx.moveTo(x1,y1);
+  drawCtx.lineTo(x2,y2);
+  drawCtx.stroke();
+}
+
+function saveDrawHistory(){
+  drawHistory.push(drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
+  if(drawHistory.length>50) drawHistory.shift();
+}
+
+function undoDraw(){
+  if(drawHistory.length<=1) return;
+  drawHistory.pop();
+  drawCtx.putImageData(drawHistory[drawHistory.length-1],0,0);
+}
+
+function clearDraw(){
+  if(!confirm('描画をすべて消しますか？')) return;
+  drawCtx.putImageData(drawHistory[0],0,0);
+  drawHistory = [drawHistory[0]];
+}
+
+function setPenColor(color, btn){
+  drawColor = color;
+  document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function updatePenSize(v){
+  drawSize = parseInt(v);
+  document.getElementById('pen-size-val').textContent = v;
+}
+
+function saveDrawing(){
+  // メモをcanvasに描画
+  const memo = document.getElementById('draw-memo').value.trim();
+  if(memo){
+    drawCtx.globalCompositeOperation='source-over';
+    const lines = memo.split('\n');
+    const fontSize = Math.max(12, drawCanvas.width * 0.025);
+    drawCtx.font = `bold ${fontSize}px sans-serif`;
+    drawCtx.fillStyle = 'rgba(0,0,0,0.6)';
+    lines.forEach((line,i)=>{
+      const y = drawCanvas.height - fontSize*(lines.length-i) - 8;
+      const w = drawCtx.measureText(line).width;
+      drawCtx.fillRect(4, y-fontSize+2, w+8, fontSize+2);
+    });
+    drawCtx.fillStyle = '#fff';
+    lines.forEach((line,i)=>{
+      drawCtx.fillText(line, 8, drawCanvas.height - fontSize*(lines.length-i) - 4);
+    });
+  }
+  const dataUrl = drawCanvas.toDataURL('image/jpeg', 0.88);
+  if(drawEditing >= 0){
+    currentPhotos[drawEditing] = dataUrl;
+  } else {
+    currentPhotos.push(dataUrl);
+  }
+  closeDrawEditor(true);
+  renderPhotoGrid();
+  showToast('保存しました ✓', 'ok');
+}
+
+function closeDrawEditor(saved){
+  document.getElementById('draw-editor').classList.remove('open');
+  drawCanvas.onmousedown = null;
+  drawCanvas.onmousemove = null;
+  drawCanvas.onmouseup = null;
+  drawCanvas.ontouchstart = null;
+  drawCanvas.ontouchmove = null;
+  drawCanvas.ontouchend = null;
+}
+
 // ══════════════════════════════════════
 //  iOS Safari スクロール修正
 // ══════════════════════════════════════
@@ -2409,5 +2654,32 @@ if(!checkSession()){
 }
 window.addEventListener('load',async()=>{ await initMsal(); });
 </script>
+<!-- 描画エディタ -->
+<div id="draw-editor">
+  <div class="draw-toolbar">
+    <span class="draw-toolbar-title">✏️ 描画</span>
+    <button class="pen-btn active" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
+    <button class="pen-btn" id="pen-blue" style="background:#3b8fd4" onclick="setPenColor('#3b8fd4',this)" title="青"></button>
+    <button class="pen-btn" id="pen-green" style="background:#2ea87e" onclick="setPenColor('#2ea87e',this)" title="緑"></button>
+    <button class="pen-btn" id="pen-white" style="background:#ffffff" onclick="setPenColor('#ffffff',this)" title="白"></button>
+    <button class="pen-btn" id="pen-eraser" style="background:#555;border:2px solid #888;font-size:13px;border-radius:8px;width:36px;" onclick="setPenColor('eraser',this)" title="消しゴム">消</button>
+    <div class="pen-size">
+      <span>太さ</span>
+      <input type="range" id="pen-size" min="1" max="30" value="4" oninput="updatePenSize(this.value)">
+      <span id="pen-size-val">4</span>
+    </div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:auto;" onclick="undoDraw()">↩ 元に戻す</button>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;color:var(--danger);" onclick="clearDraw()">🗑 クリア</button>
+    <button class="icon-btn" onclick="closeDrawEditor(false)" title="キャンセル">✕</button>
+  </div>
+  <div class="draw-canvas-wrap" id="draw-canvas-wrap">
+    <canvas id="draw-canvas"></canvas>
+  </div>
+  <div class="draw-actions">
+    <textarea class="draw-memo" id="draw-memo" placeholder="メモを入力...（省略可）" rows="2"></textarea>
+    <button class="btn btn-primary" style="flex-shrink:0;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
+  </div>
+</div>
+
 </body>
 </html>
