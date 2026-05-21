@@ -768,10 +768,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:16px;">
     <h3 style="font-size:16px;font-weight:700;color:var(--accent3)">📂 フォルダの追加が必要です</h3>
     <p style="font-size:13px;color:var(--text2);line-height:1.7">
-      共有フォルダ <strong style="color:var(--text)">Genba-share-tool</strong> をあなたのOneDriveに追加してください。<br><br>
+      共有フォルダ <strong style="color:var(--text)" id="shortcutFolderName">Genba-share-tool</strong> をあなたのOneDriveに追加してください。<br><br>
       ① 下のボタンでOneDriveを開く<br>
       ② 「共有」タブを開く<br>
-      ③ <strong style="color:var(--text)" id="shortcutFolderName">Genba-share-tool</strong> を見つける<br>
+      ③ <strong style="color:var(--text)" id="shortcutFolderName2">Genba-share-tool</strong> を探す<br>
       ④ 右クリック →「マイファイルに追加」<br>
       ⑤ このページに戻って「確認する」をタップ
     </p>
@@ -846,7 +846,7 @@ const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
 
 // SP_BASE_FOLDERはlocalStorageから動的に取得（下のgetBaseFolderを使用）
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
-const SCOPES         = ['Files.ReadWrite', 'User.Read'];
+const SCOPES         = ['Files.ReadWrite', 'Files.ReadWrite.All', 'User.Read'];
 const DEFAULT_PIN    = '0611';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -1241,11 +1241,17 @@ function isSharedMode(){
 }
 function showShortcutGuide(){
   const el = document.getElementById('shortcut-guide');
-  if(el){
-    el.style.display = 'flex';
-    const fn = document.getElementById('shortcutFolderName');
-    if(fn) fn.textContent = getSharedBase();
-  }
+  if(!el) return;
+  // フォルダ名を動的に更新
+  const fn = document.getElementById('shortcutFolderName');
+  if(fn) fn.textContent = getSharedBase();
+  // 説明文のフォルダ名も更新
+  el.querySelectorAll('strong').forEach(s=>{
+    if(s.textContent.includes('Genba-share-tool') || s.id==='shortcutFolderName'){
+      s.textContent = getSharedBase();
+    }
+  });
+  el.style.display = 'flex';
 }
 
 async function recheckShortcut(){
@@ -1276,7 +1282,7 @@ function promptSharedBase(){
     '共有フォルダ名を入力してください\n\n' +
     '【オーナー】\n' +
     '自分のOneDriveに作成するフォルダ名を決めて入力\n' +
-    '（例: Genba-share-tool-komiya）\n' +
+    '（例: Genba-share-tool-A現場）\n' +
     'メンバーに同じ名前を教えてください\n\n' +
     '【メンバー】\n' +
     'オーナーから教えてもらったフォルダ名を入力',
@@ -2530,32 +2536,62 @@ function getY(e){
 
 function drawDot(x,y){
   drawCtx.beginPath();
+  drawCtx.globalCompositeOperation='source-over';
   if(drawColor==='eraser'){
-    drawCtx.globalCompositeOperation='destination-out';
-    drawCtx.fillStyle='rgba(0,0,0,1)';
-    drawCtx.arc(x,y,drawSize*2,0,Math.PI*2);
-    drawCtx.fill();
-  } else {
-    drawCtx.globalCompositeOperation='source-over';
-    drawCtx.fillStyle=drawColor;
-    drawCtx.arc(x,y,drawSize/2,0,Math.PI*2);
-    drawCtx.fill();
+    // 元の画像を復元（履歴の最初のフレームから該当部分をコピー）
+    const eraserSize = drawSize * 3;
+    drawCtx.putImageData(
+      drawHistory[0],
+      0, 0,
+      Math.max(0, x - eraserSize), Math.max(0, y - eraserSize),
+      eraserSize * 2, eraserSize * 2
+    );
+    // 現在の描画を上から合成
+    if(drawHistory.length > 1){
+      const cur = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+      drawCtx.putImageData(drawHistory[0],0,0);
+      // 消した領域以外は現在の描画を維持
+    }
+    return;
   }
+  drawCtx.fillStyle = drawColor;
+  drawCtx.arc(x, y, drawSize/2, 0, Math.PI*2);
+  drawCtx.fill();
 }
 
 function drawLine(x1,y1,x2,y2){
   drawCtx.beginPath();
+  drawCtx.globalCompositeOperation='source-over';
   if(drawColor==='eraser'){
-    drawCtx.globalCompositeOperation='destination-out';
-    drawCtx.strokeStyle='rgba(0,0,0,1)';
-    drawCtx.lineWidth=drawSize*3;
-  } else {
-    drawCtx.globalCompositeOperation='source-over';
-    drawCtx.strokeStyle=drawColor;
-    drawCtx.lineWidth=drawSize;
+    // 元画像から消しゴム領域を復元
+    const eraserSize = drawSize * 2;
+    const steps = Math.ceil(Math.hypot(x2-x1, y2-y1) / (eraserSize/2)) || 1;
+    for(let i=0;i<=steps;i++){
+      const px = x1 + (x2-x1)*i/steps;
+      const py = y1 + (y2-y1)*i/steps;
+      const sx = Math.max(0, Math.round(px-eraserSize));
+      const sy = Math.max(0, Math.round(py-eraserSize));
+      const sw = Math.min(eraserSize*2, drawCanvas.width-sx);
+      const sh = Math.min(eraserSize*2, drawCanvas.height-sy);
+      if(sw>0&&sh>0){
+        const orig = drawHistory[0].data;
+        const cur = drawCtx.getImageData(sx,sy,sw,sh);
+        for(let j=0;j<cur.data.length;j+=4){
+          const base = ((sy + Math.floor(j/4/sw)) * drawCanvas.width + sx + (j/4%sw)) * 4;
+          cur.data[j]   = orig[base];
+          cur.data[j+1] = orig[base+1];
+          cur.data[j+2] = orig[base+2];
+          cur.data[j+3] = orig[base+3];
+        }
+        drawCtx.putImageData(cur, sx, sy);
+      }
+    }
+    return;
   }
-  drawCtx.lineCap='round';
-  drawCtx.lineJoin='round';
+  drawCtx.strokeStyle = drawColor;
+  drawCtx.lineWidth = drawSize;
+  drawCtx.lineCap = 'round';
+  drawCtx.lineJoin = 'round';
   drawCtx.moveTo(x1,y1);
   drawCtx.lineTo(x2,y2);
   drawCtx.stroke();
@@ -2676,7 +2712,13 @@ window.addEventListener('load',async()=>{ await initMsal(); });
     <canvas id="draw-canvas"></canvas>
   </div>
   <div class="draw-actions">
-    <textarea class="draw-memo" id="draw-memo" placeholder="メモを入力...（省略可）" rows="2"></textarea>
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+      <textarea class="draw-memo" id="draw-memo" placeholder="メモを入力...（省略可）" rows="2"></textarea>
+      <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;align-self:flex-end;" onclick="document.getElementById('draw-memo').value=''">✕ メモを消去</button>
+    </div>
+      <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;align-self:flex-end;" onclick="document.getElementById('draw-memo').value=''">✕ メモを消去</button>
+    </div>
     <button class="btn btn-primary" style="flex-shrink:0;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
   </div>
 </div>
