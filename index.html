@@ -1279,20 +1279,21 @@ async function recheckShortcut(){
 function promptSharedBase(){
   const cur = getSharedBase();
   const v = prompt(
-    '共有フォルダ名を入力してください\n\n' +
-    '【オーナー】\n' +
-    '自分のOneDriveに作成するフォルダ名を決めて入力\n' +
-    '（例: Genba-share-tool-A現場）\n' +
-    'メンバーに同じ名前を教えてください\n\n' +
-    '【メンバー】\n' +
-    'オーナーから教えてもらったフォルダ名を入力',
+    '共有フォルダ名を入力してください\n' +
+    '（現在: ' + cur + '）\n\n' +
+    '【オーナー】自分のOneDriveのフォルダ名\n' +
+    '【メンバー】オーナーから教えてもらったフォルダ名\n\n' +
+    '※ デフォルト: Genba-share-tool',
     cur
   );
   if(v === null) return;
   const folder = v.trim() || 'Genba-share-tool';
   localStorage.setItem('shared_base_folder', folder);
+  // キャッシュをクリアして再検出
+  localStorage.removeItem('od_shared_drive_id');
+  localStorage.removeItem('od_shared_item_id');
   updateSharedBaseLabel();
-  showToast(`共有フォルダ名: ${folder}`, 'ok');
+  showToast(`共有フォルダ名を「${folder}」に変更しました`, 'ok');
 }
 
 function updateSharedBaseLabel(){
@@ -1566,16 +1567,19 @@ function getSharedBase(){ return localStorage.getItem('shared_base_folder') || '
 // 全員 /me/drive/root:/フォルダ名 で統一（ショートカット経由でアクセス）
 // Files.ReadWrite のみで動作（管理者承認不要）
 async function spUpload(projectId, filename, data){
-  const path = `${getSharedBase()}/${projectId}/${filename}`;
-  return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
+  const base = encodeURIComponent(getSharedBase());
+  const proj = encodeURIComponent(projectId);
+  return graphRequest('PUT', `/me/drive/root:/${base}/${proj}/${filename}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
-  const path = `${getSharedBase()}/${projectId}/${filename}`;
-  const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
+  const base = encodeURIComponent(getSharedBase());
+  const proj = encodeURIComponent(projectId);
+  const {text, etag} = await graphDownload(`/me/drive/root:/${base}/${proj}/${filename}:/content`);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
 }
+
 
 async function spListProjects(){
   if(!odEnabled && localDirHandle){
@@ -1585,7 +1589,8 @@ async function spListProjects(){
   }
   if(!odEnabled) return [];
   try{
-    const res = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}:/children`);
+    const base = encodeURIComponent(getSharedBase());
+    const res = await graphRequest('GET', `/me/drive/root:/${base}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
@@ -1602,7 +1607,7 @@ async function checkShortcut(){
       if(res?.id) return true;
     }
     // 自分のOneDriveにフォルダがあるか（オーナー）
-    const res = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}`);
+    const res = await graphRequest('GET', `/me/drive/root:/${encodeURIComponent(getSharedBase())}`);
     if(res?.id){
       localStorage.setItem('od_is_owner','1');
       localStorage.setItem('od_shared_drive_id', res.parentReference?.driveId||'');
