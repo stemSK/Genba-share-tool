@@ -846,7 +846,7 @@ const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
 
 // SP_BASE_FOLDERはlocalStorageから動的に取得（下のgetBaseFolderを使用）
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
-const SCOPES         = ['Files.ReadWrite', 'Files.ReadWrite.All', 'User.Read'];
+const SCOPES         = ['Files.ReadWrite', 'User.Read'];
 const DEFAULT_PIN    = '0611';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -2134,7 +2134,7 @@ function renderPins(){
   pins.forEach(pin=>{
     const el=document.createElement('div');
     const cls=pin.completed?'pin-complete':`pin-${pin.division||'施工'} pin-${pin.priority||'low'}`;
-    el.className=`map-pin ${cls}${pin.photos?.length?' pin-has-photo':''}`;
+    el.className=`map-pin ${cls}${(pin.photos&&pin.photos.length>0)?' pin-has-photo':''}`;
     el.style.left=(pin.x*img.naturalWidth*mapScale+mapOffX)+'px';
     el.style.top=(pin.y*img.naturalHeight*mapScale+mapOffY)+'px';
     el.innerHTML=`<div class="pin-marker"><span class="pin-no">${pin.pin_no}</span></div>`;
@@ -2267,8 +2267,8 @@ function renderPhotoGrid(){
   g.appendChild(a);
   // 新規描画ボタン
   const b=document.createElement('div');b.className='photo-add-btn';
-  b.onclick=()=>openDrawEditor(null,-1);
-  b.innerHTML='<div class="ph-i">✏️</div><span>描画追加</span>';
+  b.onclick=()=>openDrawEditor('white',-1);
+  b.innerHTML='<div class="ph-i">✏️</div><span>手書きメモ</span>';
   g.appendChild(b);
 }
 function removePhoto(i){currentPhotos.splice(i,1);renderPhotoGrid();}
@@ -2277,17 +2277,34 @@ function removePhoto(i){currentPhotos.splice(i,1);renderPhotoGrid();}
 function savePin(){
   const author=document.getElementById('f-author').value;
   if(author)localStorage.setItem('lastAuthor',author);
-  const pd={division:currentDiv,item:document.getElementById('f-item').value,priority:document.getElementById('f-priority').value,date:document.getElementById('f-date').value,author,target:document.getElementById('f-target').value,location:document.getElementById('f-location').value,content:document.getElementById('f-content').value,action:document.getElementById('f-action').value,complete_date:document.getElementById('f-complete-date').value,completed:doneState,photos:currentPhotos};
-  const wasEditing = editingId;
-  if(editingId){const i=pins.findIndex(p=>p.id===editingId);if(i>=0)pins[i]={...pins[i],...pd};}
-  else{pins.push({id:crypto.randomUUID(),pin_no:pins.length>0?Math.max(...pins.map(p=>p.pin_no))+1:1,x:pendingX,y:pendingY,...pd});}
-  // iPadSafari対応：先にシートを閉じてからデータ保存・描画
+  // currentPhotosをコピーしてから閉じる（closeSheetでリセットされないように）
+  const savedPhotos=[...currentPhotos];
+  const pd={
+    division:currentDiv,
+    item:document.getElementById('f-item').value,
+    priority:document.getElementById('f-priority').value,
+    date:document.getElementById('f-date').value,
+    author,
+    target:document.getElementById('f-target').value,
+    location:document.getElementById('f-location').value,
+    content:document.getElementById('f-content').value,
+    action:document.getElementById('f-action').value,
+    complete_date:document.getElementById('f-complete-date').value,
+    completed:doneState,
+    photos:savedPhotos
+  };
+  const wasEditing=editingId;
+  const savedEditingId=editingId;
+  const savedPendingX=pendingX, savedPendingY=pendingY;
+  if(savedEditingId){
+    const i=pins.findIndex(p=>p.id===savedEditingId);
+    if(i>=0)pins[i]={...pins[i],...pd};
+  } else {
+    pins.push({id:crypto.randomUUID(),pin_no:pins.length>0?Math.max(...pins.map(p=>p.pin_no))+1:1,x:savedPendingX,y:savedPendingY,...pd});
+  }
   closeSheet();
   showToast(wasEditing?'更新しました ✓':'ピンを追加しました ✓','ok');
-  setTimeout(()=>{
-    saveData();
-    renderAll();
-  }, 50);
+  setTimeout(()=>{ saveData(); renderAll(); }, 50);
 }
 function deletePin(){
   if(!editingId) return;
@@ -2494,7 +2511,6 @@ function openDrawEditor(imgSrc, photoIndex){
   drawCanvas = document.getElementById('draw-canvas');
   drawCtx = drawCanvas.getContext('2d');
   drawHistory = [];
-  document.getElementById('draw-memo').value = '';
 
   const wrap = document.getElementById('draw-canvas-wrap');
   const img = new Image();
@@ -2627,7 +2643,7 @@ function updatePenSize(v){
 
 function saveDrawing(){
   // メモをcanvasに描画
-  const memo = document.getElementById('draw-memo').value.trim();
+
   if(memo){
     drawCtx.globalCompositeOperation='source-over';
     const lines = memo.split('\n');
@@ -2714,10 +2730,7 @@ window.addEventListener('load',async()=>{ await initMsal(); });
   <div class="draw-actions">
     <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
       <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-      <textarea class="draw-memo" id="draw-memo" placeholder="メモを入力...（省略可）" rows="2"></textarea>
-      <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;align-self:flex-end;" onclick="document.getElementById('draw-memo').value=''">✕ メモを消去</button>
     </div>
-      <button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;align-self:flex-end;" onclick="document.getElementById('draw-memo').value=''">✕ メモを消去</button>
     </div>
     <button class="btn btn-primary" style="flex-shrink:0;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
   </div>
