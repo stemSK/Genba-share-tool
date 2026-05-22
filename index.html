@@ -1563,28 +1563,14 @@ async function graphDownload(endpoint){
 // SHARED_BASEはlocalStorageから動的取得
 function getSharedBase(){ return localStorage.getItem('shared_base_folder') || 'Genba-share-tool'; }
 
+// 全員 /me/drive/root:/フォルダ名 で統一（ショートカット経由でアクセス）
+// Files.ReadWrite のみで動作（管理者承認不要）
 async function spUpload(projectId, filename, data){
-  const sid = localStorage.getItem('od_shared_drive_id');
-  const iid = localStorage.getItem('od_shared_item_id');
-  const isOwner = localStorage.getItem('od_is_owner') === '1';
-  if(sid && iid && !isOwner){
-    // メンバー：driveId/itemId経由でアップロード
-    return graphRequest('PUT', `/drives/${sid}/items/${iid}:/${projectId}/${filename}:/content`, data);
-  }
   const path = `${getSharedBase()}/${projectId}/${filename}`;
   return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
-  const sid = localStorage.getItem('od_shared_drive_id');
-  const iid = localStorage.getItem('od_shared_item_id');
-  const isOwner = localStorage.getItem('od_is_owner') === '1';
-  if(sid && iid && !isOwner){
-    // メンバー：driveId/itemId経由でダウンロード
-    const {text, etag} = await graphDownload(`/drives/${sid}/items/${iid}:/${projectId}/${filename}:/content`);
-    if(!text) return {data:null, etag:null};
-    try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
-  }
   const path = `${getSharedBase()}/${projectId}/${filename}`;
   const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
   if(!text) return {data:null, etag:null};
@@ -1599,17 +1585,6 @@ async function spListProjects(){
   }
   if(!odEnabled) return [];
   try{
-    // メンバー（ショートカット）の場合はdriveId/itemId経由
-    const sid = localStorage.getItem('od_shared_drive_id');
-    const iid = localStorage.getItem('od_shared_item_id');
-    const isOwner = localStorage.getItem('od_is_owner') === '1';
-    if(sid && iid && !isOwner){
-      const res = await graphRequest('GET', `/drives/${sid}/items/${iid}/children`);
-      console.log('spListProjects result:', res?.value?.map(i=>({name:i.name,isFolder:!!i.folder})));
-      if(!res?.value) return [];
-      return res.value.filter(i=>i.folder).map(i=>i.name);
-    }
-    // オーナーは自分のOneDrive経由
     const res = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}:/children`);
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
@@ -2267,7 +2242,7 @@ function renderPhotoGrid(){
   g.appendChild(a);
   // 新規描画ボタン
   const b=document.createElement('div');b.className='photo-add-btn';
-  b.onclick=()=>openDrawEditor('white',-1);
+  b.onclick=()=>{ drawColor='#000000'; document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active')); openDrawEditor('white',-1); };
   b.innerHTML='<div class="ph-i">✏️</div><span>手書きメモ</span>';
   g.appendChild(b);
 }
@@ -2304,7 +2279,8 @@ function savePin(){
   }
   closeSheet();
   showToast(wasEditing?'更新しました ✓':'ピンを追加しました ✓','ok');
-  setTimeout(()=>{ saveData(); renderAll(); }, 50);
+  renderAll();
+  setTimeout(()=>{ saveData(); }, 100);
 }
 function deletePin(){
   if(!editingId) return;
@@ -2314,7 +2290,8 @@ function deletePin(){
     renumberPins();
     closeSheet();
     showToast('削除しました','err');
-    setTimeout(()=>{ saveData(); renderAll(); }, 50);
+    renderAll();
+  setTimeout(()=>{ saveData(); }, 100);
   });
 }
 
@@ -2500,7 +2477,7 @@ function showToast(msg,type=''){
 //  描画エディタ
 // ════════════════════════════════════════
 let drawCanvas=null, drawCtx=null;
-let drawColor='#e05555', drawSize=4;
+let drawColor='#000000', drawSize=4;
 let drawHistory=[], drawEditing=-1; // 編集中のphotoIndex
 let drawPointing=false, drawLastX=0, drawLastY=0;
 
@@ -2513,19 +2490,33 @@ function openDrawEditor(imgSrc, photoIndex){
   drawHistory = [];
 
   const wrap = document.getElementById('draw-canvas-wrap');
-  const img = new Image();
-  img.onload = ()=>{
-    // キャンバスサイズをラップに合わせる
-    const maxW = wrap.clientWidth - 16;
-    const maxH = wrap.clientHeight - 16;
-    const scale = Math.min(maxW/img.width, maxH/img.height, 1);
-    drawCanvas.width = img.width * scale;
-    drawCanvas.height = img.height * scale;
-    drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+
+  if(!imgSrc || imgSrc === 'white'){
+    // 白地の手書きメモ
+    const maxW = Math.max(wrap.clientWidth - 16, 320);
+    const maxH = Math.max(wrap.clientHeight - 16, 480);
+    drawCanvas.width = maxW;
+    drawCanvas.height = maxH;
+    drawCtx.fillStyle = '#ffffff';
+    drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
+    // デフォルトペン色を黒に
+    setPenColor('#000000', document.getElementById('pen-black'));
     saveDrawHistory();
     setupDrawEvents();
-  };
-  img.src = imgSrc || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  } else {
+    const img = new Image();
+    img.onload = ()=>{
+      const maxW = wrap.clientWidth - 16;
+      const maxH = wrap.clientHeight - 16;
+      const scale = Math.min(maxW/img.width, maxH/img.height, 1);
+      drawCanvas.width = img.width * scale;
+      drawCanvas.height = img.height * scale;
+      drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
+      saveDrawHistory();
+      setupDrawEvents();
+    };
+    img.src = imgSrc;
+  }
 }
 
 function setupDrawEvents(){
@@ -2710,7 +2701,8 @@ window.addEventListener('load',async()=>{ await initMsal(); });
 <div id="draw-editor">
   <div class="draw-toolbar">
     <span class="draw-toolbar-title">✏️ 描画</span>
-    <button class="pen-btn active" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
+    <button class="pen-btn active" id="pen-black" style="background:#000000;border:2px solid #fff" onclick="setPenColor('#000000',this)" title="黒"></button>
+    <button class="pen-btn" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
     <button class="pen-btn" id="pen-blue" style="background:#3b8fd4" onclick="setPenColor('#3b8fd4',this)" title="青"></button>
     <button class="pen-btn" id="pen-green" style="background:#2ea87e" onclick="setPenColor('#2ea87e',this)" title="緑"></button>
     <button class="pen-btn" id="pen-white" style="background:#ffffff" onclick="setPenColor('#ffffff',this)" title="白"></button>
