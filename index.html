@@ -19,6 +19,25 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column;}
 
+
+/* ═══ MODE SELECT ═══ */
+#mode-screen{position:fixed;inset:0;z-index:9998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:32px 24px;}
+#mode-screen.show{display:flex;}
+.mode-title{text-align:center;}
+.mode-title h2{font-size:20px;font-weight:700;color:var(--accent3);}
+.mode-title p{font-size:12px;color:var(--text2);margin-top:6px;}
+.mode-cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:400px;}
+.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all 0.2s;display:flex;gap:16px;align-items:flex-start;}
+.mode-card:active,.mode-card:hover{border-color:var(--accent);background:var(--surface2);}
+.mode-card.pc{border-color:rgba(59,111,212,0.4);}
+.mode-card.mobile{border-color:rgba(46,168,126,0.4);}
+.mode-icon{font-size:32px;flex-shrink:0;}
+.mode-info h3{font-size:15px;font-weight:700;margin-bottom:4px;}
+.mode-info p{font-size:11px;color:var(--text2);line-height:1.6;}
+.mode-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;margin-top:6px;font-weight:600;}
+.mode-badge.full{background:rgba(59,111,212,0.2);color:var(--accent3);}
+.mode-badge.lite{background:rgba(46,168,126,0.2);color:var(--success);}
+.mode-features{font-size:10px;color:var(--text3);margin-top:6px;line-height:1.8;}
 /* AUTH */
 #auth-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px 24px;overflow-y:auto;}
 .auth-logo h1{font-size:20px;font-weight:700;color:var(--accent3);text-align:center;}
@@ -378,6 +397,43 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <body>
 
 <!-- AUTH -->
+<!-- モード選択画面 -->
+<div id="mode-screen">
+  <div class="mode-title">
+    <h2>📍 現場情報共有ツール</h2>
+    <p>使用モードを選択してください</p>
+  </div>
+  <div class="mode-cards">
+    <div class="mode-card pc" onclick="selectMode('pc')">
+      <div class="mode-icon">🖥️</div>
+      <div class="mode-info">
+        <h3>PCモード</h3>
+        <p>完全版。チームでのデータ共有が可能です。</p>
+        <div class="mode-features">
+          ✅ OneDrive（共有フォルダ）に保存<br>
+          ✅ 社内サーバーにも自動保存<br>
+          ✅ 社内サーバー接続確認あり<br>
+          ✅ 最新データの自動読み込み
+        </div>
+        <span class="mode-badge full">完全版</span>
+      </div>
+    </div>
+    <div class="mode-card mobile" onclick="selectMode('mobile')">
+      <div class="mode-icon">📱</div>
+      <div class="mode-info">
+        <h3>スマホ・タブレットモード</h3>
+        <p>機能制限版。個人管理の範囲での使用。</p>
+        <div class="mode-features">
+          ✅ 個人のOneDriveに保存<br>
+          ⚠️ 社内サーバーへの保存なし<br>
+          ⚠️ データ共有はPC版が必要
+        </div>
+        <span class="mode-badge lite">機能制限版</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="auth-screen">
   <div class="auth-logo">
     <h1>📍 現場情報共有ツール</h1>
@@ -526,6 +582,59 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
     <div style="display:flex;flex-direction:column;gap:10px;padding:12px 12px 40px;">
       <div class="ss">
+        <div class="ss-title">🔧 動作モード</div>
+        <div class="si">
+          <span class="sii">🖥️</span>
+          <div class="si-body"><strong>現在のモード</strong><span class="current-mode-label">-</span></div>
+        </div>
+        <div class="si" onclick="switchModePrompt()">
+          <span class="sii">🔄</span>
+          <div class="si-body"><strong>モードを切り替え</strong><span>PC版 ⇔ スマホ・タブレット版</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
+      <!-- PCモード専用：社内サーバー設定 -->
+      <div class="ss pc-only-section">
+        <div class="ss-title">🖥️ 社内サーバー設定（PCモード専用）</div>
+        <div class="si">
+          <span class="sii">📂</span>
+          <div class="si-body"><strong>サーバーパス</strong><span class="server-path-label" style="font-family:monospace;font-size:10px;word-break:break-all;"></span></div>
+        </div>
+        <div class="si" onclick="promptServerPath()">
+          <span class="sii">✏️</span>
+          <div class="si-body"><strong>パスを変更</strong></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si">
+          <span class="sii">🔌</span>
+          <div class="si-body"><strong>接続状態</strong><span class="server-status-label">未確認</span></div>
+        </div>
+        <div class="si" onclick="selectServerFolder()">
+          <span class="sii">📁</span>
+          <div class="si-body"><strong>フォルダを選択／再接続</strong></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="checkServerConnection()">
+          <span class="sii">🔍</span>
+          <div class="si-body"><strong>接続確認</strong></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
+      <!-- OneDriveフォルダ設定 -->
+      <div class="ss">
+        <div class="ss-title">☁️ OneDrive保存先設定</div>
+        <div class="si pc-only-section" onclick="promptSharedBase()">
+          <span class="sii">📁</span>
+          <div class="si-body"><strong>共有フォルダ名（PCモード）</strong><span class="od-shared-folder-label"></span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="promptOdPersonalFolder()">
+          <span class="sii">👤</span>
+          <div class="si-body"><strong>個人フォルダ名（スマホモード）</strong><span class="od-personal-folder-label"></span></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
+      <div class="ss">
         <div class="ss-title">📁 現在の現場</div>
         <div class="si" onclick="openProjectScreen()">
           <span class="sii">🔄</span>
@@ -619,7 +728,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
       <div class="ss">
         <div class="ss-title">アプリ情報</div>
-        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v5.0</strong><span>OneDrive同期対応</span></div></div>
+        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v6.0</strong><span>PC/スマホ デュアルモード対応</span></div></div>
       </div>
     </div>
   </div>
@@ -633,6 +742,62 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     <button class="icon-btn" onclick="closeSettings()">✕</button>
   </div>
   <div class="settings-scroll">
+
+    <div class="ss">
+      <div class="ss-title">🔧 動作モード</div>
+      <div class="si">
+        <span class="sii">🖥️</span>
+        <div class="si-body"><strong>現在のモード</strong><span class="current-mode-label">-</span></div>
+      </div>
+      <div class="si" onclick="switchModePrompt()">
+        <span class="sii">🔄</span>
+        <div class="si-body"><strong>モードを切り替え</strong><span>PC版 ⇔ スマホ・タブレット版</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- PCモード専用：保存先設定 -->
+    <div class="ss pc-only-section" id="server-settings-section-modal">
+      <div class="ss-title">🖥️ 社内サーバー設定（PCモード専用）</div>
+      <div class="si">
+        <span class="sii">📂</span>
+        <div class="si-body"><strong>サーバーパス</strong><span class="server-path-label" style="font-family:monospace;font-size:10px;word-break:break-all;"></span></div>
+      </div>
+      <div class="si" onclick="promptServerPath()">
+        <span class="sii">✏️</span>
+        <div class="si-body"><strong>パスを変更</strong><span>参考用パスを編集</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si">
+        <span class="sii">🔌</span>
+        <div class="si-body"><strong>接続状態</strong><span class="server-status-label">未確認</span></div>
+      </div>
+      <div class="si" onclick="selectServerFolder()">
+        <span class="sii">📁</span>
+        <div class="si-body"><strong>フォルダを選択／再接続</strong><span>File System Access APIで接続</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="checkServerConnection()">
+        <span class="sii">🔍</span>
+        <div class="si-body"><strong>接続確認</strong><span>サーバーへの接続をチェック</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+    </div>
+
+    <!-- OneDriveフォルダ設定 -->
+    <div class="ss">
+      <div class="ss-title">☁️ OneDrive保存先設定</div>
+      <div class="si pc-only-section" onclick="promptSharedBase()">
+        <span class="sii">📁</span>
+        <div class="si-body"><strong>共有フォルダ名（PCモード）</strong><span class="od-shared-folder-label"></span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="promptOdPersonalFolder()">
+        <span class="sii">👤</span>
+        <div class="si-body"><strong>個人フォルダ名（スマホモード）</strong><span class="od-personal-folder-label"></span></div>
+        <span class="si-arrow">›</span>
+      </div>
+    </div>
 
     <div class="ss">
       <div class="ss-title">📁 現在の現場</div>
@@ -756,10 +921,58 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="ss-title">アプリ情報</div>
       <div class="si">
         <span class="sii">ℹ️</span>
-        <div class="si-body"><strong>現場情報共有ツール v5.0</strong><span>OneDrive同期対応</span></div>
+        <div class="si-body"><strong>現場情報共有ツール v6.0</strong><span>PC/スマホ デュアルモード対応</span></div>
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- モード切替注意モーダル -->
+<div id="mobile-mode-notice" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:100%;display:flex;flex-direction:column;gap:16px;">
+    <h3 style="font-size:16px;font-weight:700;color:var(--warn)">⚠️ スマホ・タブレットモード</h3>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
+      <p>📱 このモードは<strong style="color:var(--text)">機能制限版</strong>です。</p>
+      <br>
+      <p>⚠️ <strong style="color:var(--warn)">データは個人のOneDriveにしか保存されません。</strong></p>
+      <br>
+      <p>🏢 データを他のメンバーと共有する場合は、<strong style="color:var(--text)">会社サーバーに接続してPC版で起動</strong>してください。</p>
+    </div>
+    <button class="btn btn-primary mobile-notice-ok-btn">理解しました</button>
+  </div>
+</div>
+
+<!-- PCモード：社内サーバー接続モーダル -->
+<div id="server-connect-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;">
+    <h3 style="font-size:16px;font-weight:700;color:var(--accent3)">🖥️ PCモード - 社内サーバー接続</h3>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7;">
+      <p>社内サーバーのフォルダを選択してください。</p>
+      <p style="margin-top:4px;font-size:11px;color:var(--text3);">デフォルトパス:</p>
+      <p style="margin-top:4px;font-size:11px;background:var(--surface2);padding:8px;border-radius:6px;font-family:monospace;word-break:break-all;" id="server-modal-path">\\192.168.1.117\設計工事課\50_部署フォルダ\34現場情報共有ツール</p>
+    </div>
+    <div id="server-status" style="font-size:12px;color:var(--text3);padding:8px;background:var(--surface2);border-radius:6px;">未接続</div>
+    <button class="btn btn-primary" onclick="selectServerFolder()">📁 フォルダを選択する</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('server-connect-modal').style.display='none'">後で設定する（スキップ）</button>
+  </div>
+</div>
+
+<!-- ピン選択PDFモーダル -->
+<div id="pin-select-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:0;max-width:500px;width:100%;max-height:90vh;display:flex;flex-direction:column;">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+      <h3 style="flex:1;font-size:16px;font-weight:700;color:var(--accent3)">📋 出力するピンを選択</h3>
+      <button class="icon-btn" onclick="document.getElementById('pin-select-modal').style.display='none'">✕</button>
+    </div>
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;">
+      <button class="btn btn-secondary" style="flex:1;padding:7px;" onclick="selectAllPins(true)">すべて選択</button>
+      <button class="btn btn-secondary" style="flex:1;padding:7px;" onclick="selectAllPins(false)">すべて解除</button>
+    </div>
+    <div id="pin-select-list" style="flex:1;overflow-y:auto;padding:10px 16px;display:flex;flex-direction:column;gap:6px;"></div>
+    <div style="padding:14px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="exportSelectedPinReport()">📄 選択したピンを出力</button>
+    </div>
   </div>
 </div>
 
@@ -853,6 +1066,265 @@ const ITEMS_BY_DIV   = {
   '設計': ['改善','改善案','検討'],
 };
 
+
+// ══════════════════════════════════════
+//  モード管理
+// ══════════════════════════════════════
+const MODE_PC     = 'pc';
+const MODE_MOBILE = 'mobile';
+function getAppMode(){ return localStorage.getItem('app_mode') || null; }
+function setAppMode(m){ localStorage.setItem('app_mode', m); applyModeUI(); }
+function isPCMode(){ return getAppMode() === MODE_PC; }
+
+// デフォルトパス定数
+const DEFAULT_SERVER_PATH = '\\\\192.168.1.117\\設計工事課\\50_部署フォルダ\\34現場情報共有ツール';
+const DEFAULT_OD_FOLDER   = 'Genba-share-tool';
+
+function getServerPath(){ return localStorage.getItem('server_path') || DEFAULT_SERVER_PATH; }
+function getOdPersonalFolder(){ return localStorage.getItem('od_personal_folder') || DEFAULT_OD_FOLDER; }
+function getOdSharedFolder(){ return getSharedBase(); }
+
+function applyModeUI(){
+  const mode = getAppMode();
+  const modeLabel = mode === MODE_PC ? 'PCモード（完全版）' : 'スマホ・タブレットモード（制限版）';
+  document.querySelectorAll('.current-mode-label').forEach(el=>{ el.textContent = modeLabel; });
+  // PCモード専用セクションの表示制御
+  document.querySelectorAll('.pc-only-section').forEach(el=>{
+    el.style.display = isPCMode() ? '' : 'none';
+  });
+  // サーバー接続状態の表示更新
+  updateServerStatusUI();
+  updateDirectoryLabels();
+}
+
+// サーバー接続状態UI更新
+function updateServerStatusUI(){
+  const path = getServerPath();
+  const connected = !!serverDirHandle;
+  const statusText = connected ? '接続中 ✓' : '未接続';
+  const statusColor = connected ? 'var(--success)' : 'var(--text3)';
+  document.querySelectorAll('.server-status-label').forEach(el=>{
+    el.textContent = statusText;
+    el.style.color = statusColor;
+  });
+  document.querySelectorAll('.server-path-label').forEach(el=>{ el.textContent = path; });
+}
+
+// ディレクトリラベル更新（設定画面の全ラベルを同期）
+function updateDirectoryLabels(){
+  document.querySelectorAll('.od-personal-folder-label').forEach(el=>{ el.textContent = getOdPersonalFolder(); });
+  document.querySelectorAll('.od-shared-folder-label').forEach(el=>{ el.textContent = getSharedBase(); });
+  document.querySelectorAll('.server-path-label').forEach(el=>{ el.textContent = getServerPath(); });
+  updateFolderLabels();
+}
+
+// ═══ モード切替 ═══
+function switchModePrompt(){
+  document.getElementById('mode-screen').classList.add('show');
+}
+
+function selectMode(mode){
+  if(mode === MODE_MOBILE && getAppMode() === MODE_PC){
+    // PCモード→スマホモード切替警告
+    document.getElementById('mode-screen').classList.remove('show');
+    showMobileModeNotice(true);
+    return;
+  }
+  applySelectedMode(mode);
+}
+
+function applySelectedMode(mode){
+  setAppMode(mode);
+  document.getElementById('mode-screen').classList.remove('show');
+  if(mode === MODE_PC){
+    // PCモード: 社内サーバー接続チェックを実行
+    setTimeout(()=>checkAndPromptServerConnection(), 300);
+  }
+  renderAll && renderAll();
+}
+
+function showMobileModeNotice(thenSwitch){
+  const modal = document.getElementById('mobile-mode-notice');
+  modal.style.display = 'flex';
+  // 確認後のコールバックをセット
+  const btn = modal.querySelector('.mobile-notice-ok-btn');
+  if(btn){
+    btn.onclick = ()=>{
+      modal.style.display = 'none';
+      if(thenSwitch) applySelectedMode(MODE_MOBILE);
+    };
+  }
+}
+
+// PCモード起動時：社内サーバー接続チェック＋プロンプト
+async function checkAndPromptServerConnection(){
+  if(!isPCMode()) return;
+  const modal = document.getElementById('server-connect-modal');
+  modal.style.display = 'flex';
+  // 既存ハンドルがあれば自動確認
+  if(serverDirHandle){
+    const ok = await verifyServerDirHandle();
+    if(ok){
+      document.getElementById('server-status').textContent = '✅ 社内サーバーに接続済みです';
+      document.getElementById('server-status').style.color = 'var(--success)';
+      updateServerStatusUI();
+      return;
+    }
+  }
+  document.getElementById('server-status').textContent = '⚠️ 社内サーバーに未接続です。フォルダを選択してください。';
+  document.getElementById('server-status').style.color = 'var(--warn)';
+}
+
+// 社内サーバーフォルダ選択
+async function selectServerFolder(){
+  if(!window.showDirectoryPicker){
+    showToast('このブラウザはフォルダ選択に対応していません（Chrome推奨）','err');
+    return;
+  }
+  try{
+    const handle = await window.showDirectoryPicker({mode:'readwrite', id:'genba-server'});
+    serverDirHandle = handle;
+    localStorage.setItem('server_folder_name', handle.name);
+    await saveServerDirHandle(handle);
+    // モーダル内のステータスを更新
+    const statusEl = document.getElementById('server-status');
+    if(statusEl){ statusEl.textContent = `✅ 接続しました: ${handle.name}`; statusEl.style.color = 'var(--success)'; }
+    updateServerStatusUI();
+    showToast(`社内サーバーフォルダ設定: ${handle.name} ✓`, 'ok');
+    // 接続モーダルを閉じる
+    setTimeout(()=>{ document.getElementById('server-connect-modal').style.display='none'; }, 1200);
+  }catch(e){
+    if(e.name !== 'AbortError'){
+      showToast('フォルダ選択エラー: '+e.message, 'err');
+    }
+  }
+}
+
+// 社内サーバーパス（表示用）を設定
+function promptServerPath(){
+  const cur = getServerPath();
+  const v = prompt('社内サーバーのパスを入力してください\n（表示用・参考用）', cur);
+  if(v === null) return;
+  localStorage.setItem('server_path', v.trim() || DEFAULT_SERVER_PATH);
+  updateDirectoryLabels();
+  showToast('パスを更新しました', 'ok');
+}
+
+// OneDrive個人フォルダ名の設定
+function promptOdPersonalFolder(){
+  const cur = getOdPersonalFolder();
+  const v = prompt('個人OneDriveの保存フォルダ名を入力してください', cur);
+  if(v === null) return;
+  const folder = v.trim() || DEFAULT_OD_FOLDER;
+  localStorage.setItem('od_personal_folder', folder);
+  updateDirectoryLabels();
+  showToast(`個人OneDriveフォルダ: ${folder}`, 'ok');
+}
+
+// 接続チェックを設定から実行
+async function checkServerConnection(){
+  if(!serverDirHandle){
+    showToast('先にフォルダを選択してください','warn');
+    checkAndPromptServerConnection();
+    return;
+  }
+  const ok = await verifyServerDirHandle();
+  if(ok){
+    showToast('社内サーバーに接続できます ✓','ok');
+  } else {
+    serverDirHandle = null;
+    showToast('社内サーバーに接続できません。再選択してください','err');
+    checkAndPromptServerConnection();
+  }
+  updateServerStatusUI();
+}
+
+// IndexedDBに社内サーバーハンドルを保存
+function saveServerDirHandle(handle){
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open('genba-tool-db', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('handles','readwrite');
+      tx.objectStore('handles').put(handle,'serverDir');
+      tx.oncomplete = ()=>{ db.close(); res(); };
+      tx.onerror = ()=>{ db.close(); rej(); };
+    };
+    req.onerror = ()=>rej();
+  });
+}
+
+// IndexedDBから社内サーバーハンドルを復元
+function loadServerDirHandle(){
+  return new Promise((res)=>{
+    const req = indexedDB.open('genba-tool-db', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    req.onsuccess = e => {
+      const db = e.target.result;
+      const tx = db.transaction('handles','readonly');
+      const getReq = tx.objectStore('handles').get('serverDir');
+      getReq.onsuccess = ()=>{ db.close(); res(getReq.result||null); };
+      getReq.onerror = ()=>{ db.close(); res(null); };
+    };
+    req.onerror = ()=>res(null);
+  });
+}
+
+// 社内サーバーハンドルの有効性確認
+async function verifyServerDirHandle(){
+  if(!serverDirHandle) return false;
+  try{
+    const perm = await serverDirHandle.requestPermission({mode:'readwrite'});
+    return perm === 'granted';
+  }catch(e){ return false; }
+}
+
+// 社内サーバーにファイルを書き込む
+async function serverWriteFile(projectId, filename, data){
+  if(!serverDirHandle) return false;
+  try{
+    const perm = await serverDirHandle.requestPermission({mode:'readwrite'});
+    if(perm !== 'granted') return false;
+    const projDir = await serverDirHandle.getDirectoryHandle(projectId, {create:true});
+    const fileHandle = await projDir.getFileHandle(filename, {create:true});
+    const writable = await fileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    return true;
+  }catch(e){ console.warn('serverWriteFile:', e); return false; }
+}
+
+// 社内サーバーからファイルを読み込む
+async function serverReadFile(projectId, filename){
+  if(!serverDirHandle) return null;
+  try{
+    const perm = await serverDirHandle.queryPermission({mode:'read'});
+    if(perm !== 'granted') return null;
+    const projDir = await serverDirHandle.getDirectoryHandle(projectId).catch(()=>null);
+    if(!projDir) return null;
+    const fileHandle = await projDir.getFileHandle(filename).catch(()=>null);
+    if(!fileHandle) return null;
+    const file = await fileHandle.getFile();
+    const text = await file.text();
+    return JSON.parse(text);
+  }catch(e){ return null; }
+}
+
+// 社内サーバーのプロジェクト一覧取得
+async function serverListProjects(){
+  if(!serverDirHandle) return [];
+  try{
+    const perm = await serverDirHandle.queryPermission({mode:'read'});
+    if(perm !== 'granted') return [];
+    const projects = [];
+    for await(const [name, handle] of serverDirHandle.entries()){
+      if(handle.kind === 'directory') projects.push(name);
+    }
+    return projects;
+  }catch(e){ return []; }
+}
+
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
@@ -919,6 +1391,12 @@ function changePinPrompt(){
 async function init(){
   // MSALを初期化してサインイン状態を復元
   await initMsal();
+
+  // IndexedDBからハンドル復元
+  const [lh, sh] = await Promise.all([loadLocalDirHandle(), loadServerDirHandle()]);
+  if(lh){ localDirHandle = lh; }
+  if(sh){ serverDirHandle = sh; }
+
   // 前回のプロジェクトを復元
   const lastPj = localStorage.getItem('last_project_id');
   if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
@@ -927,6 +1405,16 @@ async function init(){
   renderPins();
   updateStorageDisplay();
   applyLayout();
+  applyModeUI();
+
+  // モード未設定なら選択画面を表示
+  if(!getAppMode()){
+    document.getElementById('mode-screen').classList.add('show');
+  } else if(isPCMode()){
+    // PCモード: サーバー接続確認
+    setTimeout(()=>checkAndPromptServerConnection(), 500);
+  }
+
   // サインイン済みなら同期開始
   if(odEnabled && odAccessToken){
     if(currentProjectId) silentPullFromOd();
@@ -934,7 +1422,7 @@ async function init(){
   }
   // プロジェクト未選択なら選択画面へ
   if(!currentProjectId && odEnabled && odAccessToken){
-    setTimeout(openProjectScreen, 500);
+    setTimeout(openProjectScreen, 800);
   }
   document.addEventListener('keydown',e=>{ if(/^[0-9]$/.test(e.key)){}; });
 }
@@ -1408,7 +1896,8 @@ function promptOdFolder(){
 // ════════════════════════════════════════
 //  ローカルフォルダ（File System Access API）
 // ════════════════════════════════════════
-let localDirHandle = null; // 選択されたフォルダハンドル
+let localDirHandle = null; // ローカルフォルダハンドル
+let serverDirHandle = null; // 社内サーバーフォルダハンドル
 
 async function promptLocalFolder(){
   // File System Access API対応チェック
@@ -1564,16 +2053,23 @@ async function graphDownload(endpoint){
 // SHARED_BASEはlocalStorageから動的取得
 function getSharedBase(){ return localStorage.getItem('shared_base_folder') || 'Genba-share-tool'; }
 
+// モードに応じてOneDriveの保存先フォルダを返す
+function getOdBaseForMode(){
+  // PCモード: 共有フォルダ（getSharedBase）を使用
+  // スマホモード: 個人フォルダ（getOdPersonalFolder）を使用
+  return isPCMode() ? getSharedBase() : getOdPersonalFolder();
+}
+
 // 全員 /me/drive/root:/フォルダ名 で統一（ショートカット経由でアクセス）
 // Files.ReadWrite のみで動作（管理者承認不要）
 async function spUpload(projectId, filename, data){
-  const base = encodeURIComponent(getSharedBase());
+  const base = encodeURIComponent(getOdBaseForMode());
   const proj = encodeURIComponent(projectId);
   return graphRequest('PUT', `/me/drive/root:/${base}/${proj}/${filename}:/content`, data);
 }
 
 async function spDownload(projectId, filename){
-  const base = encodeURIComponent(getSharedBase());
+  const base = encodeURIComponent(getOdBaseForMode());
   const proj = encodeURIComponent(projectId);
   const {text, etag} = await graphDownload(`/me/drive/root:/${base}/${proj}/${filename}:/content`);
   if(!text) return {data:null, etag:null};
@@ -1814,7 +2310,9 @@ function saveData(){
   updateStorageDisplay();
   if(odEnabled && odAccessToken){
     autoSyncToOd();
-  } else if(localDirHandle){
+  }
+  // ローカルフォルダへの保存（スマホモード or PCモードのサブ保存）
+  if(localDirHandle){
     verifyLocalDirHandle().then(ok=>{
       if(ok){
         localWriteFile(currentProjectId,'pins.json',{
@@ -1825,7 +2323,26 @@ function saveData(){
       } else {
         localDirHandle = null;
         updateFolderLabels();
-        showToast('フォルダアクセスが失われました。再選択してください','warn');
+      }
+    });
+  }
+  // PCモード: 社内サーバーにも保存
+  if(isPCMode() && serverDirHandle){
+    verifyServerDirHandle().then(ok=>{
+      if(ok){
+        serverWriteFile(currentProjectId,'pins.json',{
+          pins,
+          saved_at:new Date().toISOString(),
+          project_name:currentProjectName,
+          saved_by:'pc'
+        }).then(result=>{
+          if(result) updateServerStatusUI();
+          else showToast('社内サーバーへの保存に失敗しました','warn');
+        });
+      } else {
+        serverDirHandle = null;
+        updateServerStatusUI();
+        showToast('社内サーバーの接続が切れました。再接続してください','warn');
       }
     });
   }
@@ -2012,6 +2529,8 @@ new ResizeObserver(()=>{
 function openSettings(){
   updateStorageDisplay();
   updateFolderLabels();
+  applyModeUI();
+  updateDirectoryLabels();
   const modal = document.getElementById('settings-modal');
   modal.classList.add('open');
   // iOS Safari スクロール修正
