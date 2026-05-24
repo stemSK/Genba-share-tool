@@ -529,7 +529,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="rc"><h3>📤 出力</h3>
         <div class="export-list">
           <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
-          <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート</strong><span>各ピンの詳細・写真付きHTML</span></div></div>
+          <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
+          <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
           <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>全データを保存</span></div></div>
           <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONから復元</span></div></div>
@@ -570,7 +571,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="rc"><h3>📤 出力</h3>
         <div class="export-list">
           <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
-          <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート</strong><span>各ピンの詳細・写真付きHTML</span></div></div>
+          <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
+          <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
           <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>全データを保存</span></div></div>
           <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONから復元</span></div></div>
@@ -2028,22 +2030,24 @@ function getSafeFolderName(name){
 // 全員 /me/drive/root:/フォルダ名 で統一（PUT pathでフォルダ自動作成）
 async function spUpload(projectId, filename, data){
   const base = getOdBaseForMode();
-  const projName = getSafeFolderName(
-    localStorage.getItem('project_name_'+projectId) || projectId
-  );
-  // PUT /me/drive/root:/Base/現場名/file.json:/content
-  // → OneDrive Graph APIは中間フォルダを自動作成する
-  const path = encodeURIComponent(base) + '/' + encodeURIComponent(projName) + '/' + encodeURIComponent(filename);
-  return graphRequest('PUT', `/me/drive/root:/${path}:/content`, data);
+  // 現場名を取得（currentProjectId と一致する場合は currentProjectName を使う）
+  const rawName = (projectId === currentProjectId && currentProjectName)
+    ? currentProjectName
+    : (localStorage.getItem('project_name_'+projectId) || projectId);
+  const projName = getSafeFolderName(rawName);
+  // 各セグメントを個別にエンコードし、スラッシュは保持する
+  const url = `/me/drive/root:/${encodeURIComponent(base)}/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  return graphRequest('PUT', url, data);
 }
 
 async function spDownload(projectId, filename){
   const base = getOdBaseForMode();
-  const projName = getSafeFolderName(
-    localStorage.getItem('project_name_'+projectId) || projectId
-  );
-  const path = encodeURIComponent(base) + '/' + encodeURIComponent(projName) + '/' + encodeURIComponent(filename);
-  const {text, etag} = await graphDownload(`/me/drive/root:/${path}:/content`);
+  const rawName = (projectId === currentProjectId && currentProjectName)
+    ? currentProjectName
+    : (localStorage.getItem('project_name_'+projectId) || projectId);
+  const projName = getSafeFolderName(rawName);
+  const url = `/me/drive/root:/${encodeURIComponent(base)}/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  const {text, etag} = await graphDownload(url);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
 }
@@ -2226,14 +2230,13 @@ function closeProjectScreen(){
 }
 
 async function createProject(){
-  const id=prompt('プロジェクトID（例: Project02）\n※半角英数字・ハイフンのみ');
-  if(!id?.trim()){return;}
-  const safeId=id.trim().replace(/[^a-zA-Z0-9_\-]/g,'');
-  if(!safeId){showToast('使用できない文字が含まれています','err');return;}
   const name=prompt('現場名を入力\n（例: ○○ビル新築工事）','');
-  if(name===null)return;
+  if(!name?.trim()){return;}
+  const trimmedName = name.trim();
+  // IDは内部管理用：日時ベースで自動生成
+  const safeId = 'proj_' + Date.now();
   currentProjectId=safeId;
-  currentProjectName=name||safeId;
+  currentProjectName=trimmedName;
   localStorage.setItem('last_project_id',safeId);
   localStorage.setItem('last_project_name',currentProjectName);
   localStorage.setItem('project_name_'+safeId,currentProjectName);
@@ -2245,6 +2248,8 @@ async function createProject(){
       await spSaveProjectConfig(safeId,{name:currentProjectName,created:new Date().toISOString(),pin_count:0,updated:new Date().toISOString()});
       showToast(`${currentProjectName} を作成しました`,'ok');
     }catch(e){showToast('作成エラー: '+e.message,'err');}
+  } else {
+    showToast(`${currentProjectName} を作成しました`,'ok');
   }
   closeProjectScreen();
   renderAll();
@@ -2255,19 +2260,49 @@ async function renameProject(){
   if(!currentProjectId){showToast('現場を選択してください','warn');return;}
   const newName=prompt('新しい現場名を入力',currentProjectName);
   if(!newName?.trim()||newName===currentProjectName)return;
-  currentProjectName=newName.trim();
-  localStorage.setItem('last_project_name',currentProjectName);
-  localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
+  const oldName = currentProjectName;
+  const oldSafeName = getSafeFolderName(oldName);
+  const newSafeName = getSafeFolderName(newName.trim());
+
+  // ローカルを先に更新
+  currentProjectName = newName.trim();
+  localStorage.setItem('last_project_name', currentProjectName);
+  localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
   updateHeaderProject();
-  if(odEnabled&&odAccessToken){
+
+  if(odEnabled && odAccessToken){
     try{
-      const cfg=await spGetProjectConfig(currentProjectId)||{};
-      await spSaveProjectConfig(currentProjectId,{...cfg,name:currentProjectName,updated:new Date().toISOString()});
-      showToast('現場名を変更しました ✓','ok');
-    }catch(e){showToast('OneDrive更新エラー: '+e.message,'err');}
-  } else { showToast('現場名を変更しました ✓','ok'); }
-  document.getElementById('settingsProjectName').textContent=currentProjectName;
-  document.getElementById('settingsProjectLabel').textContent=currentProjectName||currentProjectId||'未選択';
+      showToast('OneDriveのフォルダ名を変更中...','warn');
+      const base = getOdBaseForMode();
+
+      // 旧フォルダのitemIdを取得
+      const oldItem = await graphRequest('GET',
+        `/me/drive/root:/${encodeURIComponent(base)}/${encodeURIComponent(oldSafeName)}`
+      );
+
+      if(oldItem?.id){
+        // PATCH でフォルダ名をリネーム（中身はそのまま）
+        await graphRequest('PATCH', `/me/drive/items/${oldItem.id}`, { name: newSafeName });
+        // config.jsonのnameフィールドも更新
+        const cfg = await spGetProjectConfig(currentProjectId) || {};
+        await spSaveProjectConfig(currentProjectId, {...cfg, name: currentProjectName, updated: new Date().toISOString()});
+        showToast('現場名を変更しました ✓','ok');
+      } else {
+        // フォルダがまだ存在しない場合は新規作成扱い（初回アップロード）
+        await spSaveProjectConfig(currentProjectId, {name: currentProjectName, updated: new Date().toISOString()});
+        showToast('現場名を変更しました ✓','ok');
+      }
+    }catch(e){
+      showToast('OneDrive更新エラー: '+e.message,'err');
+    }
+  } else {
+    showToast('現場名を変更しました ✓','ok');
+  }
+
+  document.getElementById('settingsProjectName').textContent = currentProjectName;
+  document.getElementById('settingsProjectLabel').textContent = currentProjectName||currentProjectId||'未選択';
+  const n2=document.getElementById('settingsProjectName2'); if(n2) n2.textContent = currentProjectName;
+  const l2=document.getElementById('settingsProjectLabel2'); if(l2) l2.textContent = currentProjectName||currentProjectId||'未選択';
 }
 
 // ══════════════════════════════════════
@@ -2896,18 +2931,84 @@ function renderReportPc(){
 // ══════════════════════════════════════
 //  EXPORT
 // ══════════════════════════════════════
-async function exportPinReport(){
-  if(!pins.length)return showToast('ピンがありません','warn');
+async function exportPinReport(selectedIds){
+  const targetPins = selectedIds
+    ? [...pins].filter(p=>selectedIds.has(p.id)).sort((a,b)=>a.pin_no-b.pin_no)
+    : [...pins].sort((a,b)=>a.pin_no-b.pin_no);
+  if(!targetPins.length)return showToast('ピンがありません','warn');
   showToast('レポートを生成中...','warn');
   await new Promise(r=>setTimeout(r,100));
-  const sorted=[...pins].sort((a,b)=>a.pin_no-b.pin_no);
   const priLabel={high:'高',mid:'中',low:'低'};
-  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#222;margin:0;}.cover{padding:40px;background:#1a2744;color:#fff;text-align:center;page-break-after:always;}.cover h1{font-size:24px;}.pin-page{padding:20px 24px;page-break-after:always;border-bottom:2px solid #eee;}.pin-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #ddd;}.pin-num{font-size:22px;font-weight:700;color:#3b6fd4;font-family:monospace;min-width:48px;}.pin-tags{display:flex;gap:6px;flex-wrap:wrap;}.tag{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}.tag-施工{background:#dbeafe;color:#1d4ed8;}.tag-設計{background:#ede9fe;color:#6d28d9;}.tag-high{background:#fee2e2;color:#dc2626;}.tag-mid{background:#fef3c7;color:#d97706;}.tag-low{background:#dbeafe;color:#1d4ed8;}.tag-done{background:#d1fae5;color:#065f46;}.tag-todo{background:#fee2e2;color:#991b1b;}table{width:100%;border-collapse:collapse;margin-bottom:12px;}td{padding:5px 8px;border:1px solid #e5e7eb;vertical-align:top;}td:first-child{width:100px;font-weight:600;background:#f9fafb;color:#555;}.photos{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}.photos img{width:120px;height:90px;object-fit:cover;border-radius:6px;border:1px solid #ddd;}@media print{.pin-page{page-break-after:always;}}</style></head><body>
-  <div class="cover"><h1>📍 現場指摘レポート</h1><p>${currentProjectName||currentProjectId}</p><p>出力日: ${new Date().toLocaleDateString('ja-JP')}</p><p>総件数: ${pins.length}件 / 未完了: ${pins.filter(p=>!p.completed).length}件</p></div>`;
-  for(const pin of sorted){html+=`<div class="pin-page"><div class="pin-header"><div class="pin-num">#${String(pin.pin_no).padStart(2,'0')}</div><div class="pin-tags"><span class="tag tag-${pin.division||'施工'}">${pin.division||'施工'}</span>${pin.item?`<span class="tag">${pin.item}</span>`:''} ${pin.priority?`<span class="tag tag-${pin.priority}">${priLabel[pin.priority]||pin.priority}</span>`:''}<span class="tag tag-${pin.completed?'done':'todo'}">${pin.completed?'完了':'未完了'}</span></div></div><table><tr><td>日付</td><td>${pin.date||'-'}</td></tr><tr><td>対象</td><td>${pin.target||'-'}</td></tr><tr><td>場所</td><td>${pin.location||'-'}</td></tr><tr><td>指摘内容</td><td>${(pin.content||'-').replace(/\n/g,'<br>')}</td></tr><tr><td>対処方法</td><td>${(pin.action||'-').replace(/\n/g,'<br>')}</td></tr><tr><td>完了予定日</td><td>${pin.complete_date||'-'}</td></tr><tr><td>記入者</td><td>${pin.author||'-'}</td></tr></table>${pin.photos?.length?`<div class="photos">${pin.photos.map(s=>`<img src="${s}">`).join('')}</div>`:''}</div>`;}
+  let html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+body{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#222;margin:0;}
+.cover{padding:40px;background:#1a2744;color:#fff;text-align:center;page-break-after:always;}
+.cover h1{font-size:24px;}
+.pin-page{padding:20px 24px;page-break-after:always;border-bottom:2px solid #eee;}
+.pin-header{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #ddd;}
+.pin-num{font-size:22px;font-weight:700;color:#3b6fd4;font-family:monospace;min-width:48px;}
+.pin-tags{display:flex;gap:6px;flex-wrap:wrap;}
+.tag{padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+.tag-施工{background:#dbeafe;color:#1d4ed8;}.tag-設計{background:#ede9fe;color:#6d28d9;}
+.tag-high{background:#fee2e2;color:#dc2626;}.tag-mid{background:#fef3c7;color:#d97706;}
+.tag-low{background:#dbeafe;color:#1d4ed8;}.tag-done{background:#d1fae5;color:#065f46;}
+.tag-todo{background:#fee2e2;color:#991b1b;}
+table{width:100%;border-collapse:collapse;margin-bottom:16px;}
+td{padding:6px 8px;border:1px solid #e5e7eb;vertical-align:top;}
+td:first-child{width:100px;font-weight:600;background:#f9fafb;color:#555;}
+.photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+.photos img{width:220px;height:165px;object-fit:cover;border-radius:6px;border:1px solid #ddd;}
+@media print{.pin-page{page-break-after:always;}.photos img{width:200px;height:150px;}}
+</style></head><body>
+  <div class="cover"><h1>📍 現場指摘レポート</h1><p>${currentProjectName||currentProjectId}</p><p>出力日: ${new Date().toLocaleDateString('ja-JP')}</p><p>出力件数: ${targetPins.length}件 / 未完了: ${targetPins.filter(p=>!p.completed).length}件</p></div>`;
+  for(const pin of targetPins){
+    html+=`<div class="pin-page"><div class="pin-header"><div class="pin-num">#${String(pin.pin_no).padStart(2,'0')}</div><div class="pin-tags"><span class="tag tag-${pin.division||'施工'}">${pin.division||'施工'}</span>${pin.item?`<span class="tag">${pin.item}</span>`:''} ${pin.priority?`<span class="tag tag-${pin.priority}">${priLabel[pin.priority]||pin.priority}</span>`:''}<span class="tag tag-${pin.completed?'done':'todo'}">${pin.completed?'完了':'未完了'}</span></div></div>
+    <table>
+      <tr><td>日付</td><td>${pin.date||'-'}</td></tr>
+      <tr><td>対象</td><td>${pin.target||'-'}</td></tr>
+      <tr><td>場所</td><td>${pin.location||'-'}</td></tr>
+      <tr><td>指摘内容</td><td>${(pin.content||'-').replace(/\n/g,'<br>')}</td></tr>
+      <tr><td>対処方法</td><td>${(pin.action||'-').replace(/\n/g,'<br>')}</td></tr>
+      <tr><td>完了予定日</td><td>${pin.complete_date||'-'}</td></tr>
+      <tr><td>記入者</td><td>${pin.author||'-'}</td></tr>
+    </table>
+    ${pin.photos?.length?`<div class="photos">${pin.photos.map(s=>`<img src="${s}">`).join('')}</div>`:''}</div>`;
+  }
   html+='</body></html>';
   dl(`pin_report_${currentProjectId}_${now()}.html`,html,'text/html;charset=utf-8');
   showToast('レポートをダウンロードしました','ok');
+}
+
+// ピン選択モーダルを開く
+function openPinSelectModal(){
+  if(!pins.length){showToast('ピンがありません','warn');return;}
+  const list=document.getElementById('pin-select-list');
+  const priLabel={high:'高',mid:'中',low:'低'};
+  list.innerHTML=[...pins].sort((a,b)=>a.pin_no-b.pin_no).map(pin=>`
+    <label style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;">
+      <input type="checkbox" class="pin-select-cb" data-id="${pin.id}" checked style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+          <span style="font-size:12px;font-weight:700;color:var(--accent3);font-family:monospace;">#${String(pin.pin_no).padStart(2,'0')}</span>
+          <span style="font-size:10px;background:rgba(59,111,212,0.2);color:var(--accent3);padding:1px 6px;border-radius:10px;">${pin.division||'施工'}</span>
+          ${pin.item?`<span style="font-size:10px;background:var(--surface3);color:var(--text2);padding:1px 6px;border-radius:10px;">${pin.item}</span>`:''}
+          ${pin.priority?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:${pin.priority==='high'?'rgba(224,85,85,0.15)':pin.priority==='mid'?'rgba(224,144,64,0.15)':'rgba(59,111,212,0.15)'};color:${pin.priority==='high'?'#f08080':pin.priority==='mid'?'#f0b060':'#7aa8ff'}">${priLabel[pin.priority]}</span>`:''}
+          <span style="font-size:10px;padding:1px 6px;border-radius:10px;${pin.completed?'background:rgba(46,168,126,0.2);color:#5ec8a0;':'background:rgba(224,85,85,0.12);color:#e08080;'}">${pin.completed?'完了':'未完了'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${pin.content||pin.target||'(内容なし)'}</div>
+      </div>
+    </label>`).join('');
+  document.getElementById('pin-select-modal').style.display='flex';
+}
+
+function selectAllPins(checked){
+  document.querySelectorAll('.pin-select-cb').forEach(cb=>cb.checked=checked);
+}
+
+async function exportSelectedPinReport(){
+  const checked=new Set([...document.querySelectorAll('.pin-select-cb:checked')].map(cb=>cb.dataset.id));
+  if(!checked.size){showToast('ピンを1件以上選択してください','warn');return;}
+  document.getElementById('pin-select-modal').style.display='none';
+  await exportPinReport(checked);
 }
 async function exportMapPDF(){
   const imgData=localStorage.getItem('map_img_'+currentProjectId);
