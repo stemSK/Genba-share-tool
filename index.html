@@ -1063,12 +1063,30 @@ function applyModeUI(){
   updateDirectoryLabels();
 }
 
-// サーバー接続状態UI更新
-function updateServerStatusUI(){
+// サーバー接続状態UI更新（実際のパーミッション確認あり）
+async function updateServerStatusUI(){
   const path = getServerPath();
-  const connected = !!serverDirHandle;
-  const statusText = connected ? '接続中 ✓' : '未接続';
-  const statusColor = connected ? 'var(--success)' : 'var(--text3)';
+  // ハンドルがない場合は即座に未接続
+  if(!serverDirHandle){
+    _applyServerStatusUI('未接続', 'var(--text3)', path);
+    return;
+  }
+  // ハンドルがあっても実際にパーミッションが取れるか確認
+  try{
+    const perm = await serverDirHandle.queryPermission({mode:'readwrite'});
+    if(perm === 'granted'){
+      _applyServerStatusUI('接続中 ✓', 'var(--success)', path);
+    } else {
+      // パーミッション未付与（ブラウザ再起動後など）
+      _applyServerStatusUI('要再接続', 'var(--warn)', path);
+    }
+  }catch(e){
+    // ハンドルが無効（サーバー切断等）
+    serverDirHandle = null;
+    _applyServerStatusUI('未接続', 'var(--text3)', path);
+  }
+}
+function _applyServerStatusUI(statusText, statusColor, path){
   document.querySelectorAll('.server-status-label').forEach(el=>{
     el.textContent = statusText;
     el.style.color = statusColor;
@@ -1246,13 +1264,21 @@ async function verifyServerDirHandle(){
   }catch(e){ return false; }
 }
 
-// 社内サーバーにファイルを書き込む
+// 社内サーバーにファイルを書き込む（フォルダ構造: 共有フォルダ名/現場名/ファイル）
 async function serverWriteFile(projectId, filename, data){
   if(!serverDirHandle) return false;
   try{
     const perm = await serverDirHandle.requestPermission({mode:'readwrite'});
     if(perm !== 'granted') return false;
-    const projDir = await serverDirHandle.getDirectoryHandle(projectId, {create:true});
+    // 現場名をフォルダ名として使用（ファイルシステム非許容文字を除去）
+    const rawName = (projectId === currentProjectId && currentProjectName)
+      ? currentProjectName
+      : (localStorage.getItem('project_name_'+projectId) || projectId);
+    const folderName = rawName.replace(/[\\/:*?"<>|]/g,'_').trim() || projectId;
+    // 共有フォルダ名サブフォルダを作成し、その中に現場名フォルダを作成
+    const sharedBase = getSharedBase().replace(/[\\/:*?"<>|]/g,'_').trim() || '現場情報共有ツール';
+    const sharedDir = await serverDirHandle.getDirectoryHandle(sharedBase, {create:true});
+    const projDir = await sharedDir.getDirectoryHandle(folderName, {create:true});
     const fileHandle = await projDir.getFileHandle(filename, {create:true});
     const writable = await fileHandle.createWritable();
     await writable.write(JSON.stringify(data, null, 2));
@@ -1261,13 +1287,20 @@ async function serverWriteFile(projectId, filename, data){
   }catch(e){ console.warn('serverWriteFile:', e); return false; }
 }
 
-// 社内サーバーからファイルを読み込む
+// 社内サーバーからファイルを読み込む（共有フォルダ名/現場名/ファイル）
 async function serverReadFile(projectId, filename){
   if(!serverDirHandle) return null;
   try{
     const perm = await serverDirHandle.queryPermission({mode:'read'});
     if(perm !== 'granted') return null;
-    const projDir = await serverDirHandle.getDirectoryHandle(projectId).catch(()=>null);
+    const rawName = (projectId === currentProjectId && currentProjectName)
+      ? currentProjectName
+      : (localStorage.getItem('project_name_'+projectId) || projectId);
+    const folderName = rawName.replace(/[\\\/:*?"<>|]/g,'_').trim() || projectId;
+    const sharedBase = getSharedBase().replace(/[\\\/:*?"<>|]/g,'_').trim() || '現場情報共有ツール';
+    const sharedDir = await serverDirHandle.getDirectoryHandle(sharedBase).catch(()=>null);
+    if(!sharedDir) return null;
+    const projDir = await sharedDir.getDirectoryHandle(folderName).catch(()=>null);
     if(!projDir) return null;
     const fileHandle = await projDir.getFileHandle(filename).catch(()=>null);
     if(!fileHandle) return null;
@@ -1277,14 +1310,17 @@ async function serverReadFile(projectId, filename){
   }catch(e){ return null; }
 }
 
-// 社内サーバーのプロジェクト一覧取得
+// 社内サーバーのプロジェクト一覧取得（共有フォルダ名の中のフォルダ一覧）
 async function serverListProjects(){
   if(!serverDirHandle) return [];
   try{
     const perm = await serverDirHandle.queryPermission({mode:'read'});
     if(perm !== 'granted') return [];
+    const sharedBase = getSharedBase().replace(/[\\\/:*?"<>|]/g,'_').trim() || '現場情報共有ツール';
+    const sharedDir = await serverDirHandle.getDirectoryHandle(sharedBase).catch(()=>null);
+    if(!sharedDir) return [];
     const projects = [];
-    for await(const [name, handle] of serverDirHandle.entries()){
+    for await(const [name, handle] of sharedDir.entries()){
       if(handle.kind === 'directory') projects.push(name);
     }
     return projects;
