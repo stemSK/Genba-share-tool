@@ -378,7 +378,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </style>
 </head>
 <body>
-</div>
 
 <div id="auth-screen">
   <div class="auth-logo">
@@ -528,16 +527,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   </div>
   <!-- 設定（PC右ペイン） -->
   <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
+  <!-- 設定（PC右ペイン） -->
+  <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
     <div style="display:flex;flex-direction:column;gap:10px;padding:12px 12px 40px;">
-      </div>
-      <!-- PCモード専用：社内サーバー設定 -->
-          <span class="si-arrow">›</span>
-        </div>
-          <span class="si-arrow">›</span>
-        </div>
-      </div>
-      <!-- OneDrive / 同期設定（集約） -->
-      </div>
       <!-- OneDrive / 同期設定（集約） -->
       <div class="ss">
         <div class="ss-title">☁️ SharePoint / 同期設定</div>
@@ -625,8 +617,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <!-- 詳細設定（一番下） -->
       <div class="ss">
         <div class="ss-title">🔧 詳細設定</div>
-          <span class="si-arrow">›</span>
-        </div>
         <div class="si" onclick="changePinPrompt()"><span class="sii">🔐</span><div class="si-body"><strong>PIN変更</strong></div><span class="si-arrow">›</span></div>
         <div class="si" onclick="logout()"><span class="sii">🚪</span><div class="si-body"><strong>ログアウト</strong></div><span class="si-arrow">›</span></div>
       </div>
@@ -642,7 +632,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     <button class="icon-btn" onclick="closeSettings()">✕</button>
   </div>
   <div class="settings-scroll">
-    </div>
 
     <!-- OneDrive / 同期設定（集約） -->
     <div class="ss">
@@ -754,8 +743,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     <!-- 詳細設定（一番下） -->
     <div class="ss">
       <div class="ss-title">🔧 詳細設定</div>
-        <span class="si-arrow">›</span>
-      </div>
       <div class="si" onclick="changePinPrompt()">
         <span class="sii">🔐</span>
         <div class="si-body"><strong>PIN変更</strong></div>
