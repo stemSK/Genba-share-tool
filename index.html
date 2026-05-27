@@ -1226,16 +1226,38 @@ async function checkSharedFolder(){
   if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
   if(!getShareUrl()){ showToast('先に共有URLを設定してください','warn'); promptShareUrl(); return; }
   showToast('接続確認中...','warn');
-  const ok = await checkShortcut();
-  ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.textContent = ok ? '接続OK ✓' : '接続できません';
-  });
-  if(ok){
-    showToast('SharePoint接続OK ✓','ok');
-    if(!currentProjectId) setTimeout(openProjectScreen, 500);
-  } else {
-    showToast('接続できません。URLとサインインを確認してください','err');
+  spDriveCache = null; // キャッシュリセット
+  try{
+    const shareUrl = getShareUrl();
+    const token = encodeSharingUrl(shareUrl);
+    console.log('📡 共有URL:', shareUrl);
+    console.log('📡 トークン:', token);
+    const endpoint = `/shares/${token}/driveItem`;
+    console.log('📡 APIエンドポイント:', GRAPH_BASE + endpoint);
+    const item = await graphRequest('GET', endpoint);
+    console.log('📡 driveItem応答:', item);
+    const ok = !!(item?.id);
+    if(ok){
+      spDriveCache = { driveId: item.parentReference?.driveId||null, itemId: item.id };
+      console.log('📡 driveCache:', spDriveCache);
+    }
+    ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent = ok ? '接続OK ✓' : '接続できません';
+    });
+    if(ok){
+      showToast('SharePoint接続OK ✓','ok');
+      if(!currentProjectId) setTimeout(openProjectScreen, 500);
+    } else {
+      showToast('接続できません。F12コンソールでエラーを確認してください','err');
+    }
+  }catch(e){
+    console.error('📡 接続エラー詳細:', e);
+    ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent = 'エラー: '+e.message;
+    });
+    showToast('エラー: '+e.message, 'err');
   }
 }
 // ══════════════════════════════════════
@@ -1298,9 +1320,21 @@ function getSafeFolderName(name){
 
 // 共有リンクURLをGraph API用のsharing tokenに変換
 function encodeSharingUrl(url){
-  // base64url エンコード（パディング除去、+→-、/→_）
-  const b64 = btoa(url).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-  return 'u!' + b64;
+  // UTF-8バイト列でbase64urlエンコード（Microsoftの仕様通り）
+  // btoa()はマルチバイト文字で失敗するためTextEncoderを使用
+  try{
+    const bytes = new TextEncoder().encode(url);
+    let bin = '';
+    bytes.forEach(b => bin += String.fromCharCode(b));
+    const b64 = btoa(bin).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    return 'u!' + b64;
+  }catch(e){
+    // フォールバック
+    const b64 = btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g,
+      (_,p)=>String.fromCharCode(parseInt(p,16))))
+      .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    return 'u!' + b64;
+  }
 }
 
 // 共有リンクURLを取得（localStorageから）
