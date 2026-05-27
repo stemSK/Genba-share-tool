@@ -1047,8 +1047,7 @@ const DEFAULT_SERVER_PATH = '\\\\192.168.1.117\\設計工事課\\50_部署フォ
 const DEFAULT_OD_FOLDER   = '現場情報共有ツール';
 
 function getServerPath(){ return localStorage.getItem('server_path') || DEFAULT_SERVER_PATH; }
-function getOdPersonalFolder(){ return localStorage.getItem('od_personal_folder') || DEFAULT_OD_FOLDER; }
-function getOdSharedFolder(){ return getSharedBase(); }
+// PC/スマホモード統合済み: getOdPersonalFolder / getOdSharedFolder 削除
 
 function applyModeUI(){
   const mode = getAppMode();
@@ -1096,8 +1095,10 @@ function _applyServerStatusUI(statusText, statusColor, path){
 
 // ディレクトリラベル更新（設定画面の全ラベルを同期）
 function updateDirectoryLabels(){
-  document.querySelectorAll('.od-personal-folder-label').forEach(el=>{ el.textContent = getOdPersonalFolder(); });
-  document.querySelectorAll('.od-shared-folder-label').forEach(el=>{ el.textContent = getSharedBase(); });
+  document.querySelectorAll('.od-share-url-label').forEach(el=>{
+    const url = getShareUrl();
+    el.textContent = url ? (url.length > 50 ? url.slice(0,50)+'...' : url) : '未設定';
+  });
   document.querySelectorAll('.server-path-label').forEach(el=>{ el.textContent = getServerPath(); });
   updateFolderLabels();
 }
@@ -1140,9 +1141,8 @@ function showMobileModeNotice(thenSwitch){
   }
 }
 
-// PCモード起動時：社内サーバー接続チェック＋プロンプト
+// 社内サーバー接続チェック＋プロンプト
 async function checkAndPromptServerConnection(){
-  if(!isPCMode()) return;
   const modal = document.getElementById('server-connect-modal');
   modal.style.display = 'flex';
   // 既存ハンドルがあれば自動確認
@@ -1194,16 +1194,7 @@ function promptServerPath(){
   showToast('パスを更新しました', 'ok');
 }
 
-// OneDrive個人フォルダ名の設定
-function promptOdPersonalFolder(){
-  const cur = getOdPersonalFolder();
-  const v = prompt('個人OneDriveの保存フォルダ名を入力してください', cur);
-  if(v === null) return;
-  const folder = v.trim() || DEFAULT_OD_FOLDER;
-  localStorage.setItem('od_personal_folder', folder);
-  updateDirectoryLabels();
-  showToast(`個人OneDriveフォルダ: ${folder}`, 'ok');
-}
+// promptOdPersonalFolder 削除（SharePoint統合済み）
 
 // 接続チェックを設定から実行
 async function checkServerConnection(){
@@ -1275,10 +1266,8 @@ async function serverWriteFile(projectId, filename, data){
       ? currentProjectName
       : (localStorage.getItem('project_name_'+projectId) || projectId);
     const folderName = rawName.replace(/[\\/:*?"<>|]/g,'_').trim() || projectId;
-    // 共有フォルダ名サブフォルダを作成し、その中に現場名フォルダを作成
-    const sharedBase = getSharedBase().replace(/[\\/:*?"<>|]/g,'_').trim() || '現場情報共有ツール';
-    const sharedDir = await serverDirHandle.getDirectoryHandle(sharedBase, {create:true});
-    const projDir = await sharedDir.getDirectoryHandle(folderName, {create:true});
+    // ルート直下に現場名フォルダを作成（中間フォルダなし）
+    const projDir = await serverDirHandle.getDirectoryHandle(folderName, {create:true});
     const fileHandle = await projDir.getFileHandle(filename, {create:true});
     const writable = await fileHandle.createWritable();
     await writable.write(JSON.stringify(data, null, 2));
@@ -1297,10 +1286,8 @@ async function serverReadFile(projectId, filename){
       ? currentProjectName
       : (localStorage.getItem('project_name_'+projectId) || projectId);
     const folderName = rawName.replace(/[\\\/:*?"<>|]/g,'_').trim() || projectId;
-    const sharedBase = getSharedBase().replace(/[\\\/:*?"<>|]/g,'_').trim() || '現場情報共有ツール';
-    const sharedDir = await serverDirHandle.getDirectoryHandle(sharedBase).catch(()=>null);
-    if(!sharedDir) return null;
-    const projDir = await sharedDir.getDirectoryHandle(folderName).catch(()=>null);
+    // ルート直下の現場名フォルダを参照（中間フォルダなし）
+    const projDir = await serverDirHandle.getDirectoryHandle(folderName).catch(()=>null);
     if(!projDir) return null;
     const fileHandle = await projDir.getFileHandle(filename).catch(()=>null);
     if(!fileHandle) return null;
@@ -1316,11 +1303,9 @@ async function serverListProjects(){
   try{
     const perm = await serverDirHandle.queryPermission({mode:'read'});
     if(perm !== 'granted') return [];
-    const sharedBase = getSharedBase().replace(/[\\\/:*?"<>|]/g,'_').trim() || '現場情報共有ツール';
-    const sharedDir = await serverDirHandle.getDirectoryHandle(sharedBase).catch(()=>null);
-    if(!sharedDir) return [];
+    // ルート直下のフォルダ一覧を取得（現場フォルダが直接置かれている）
     const projects = [];
-    for await(const [name, handle] of sharedDir.entries()){
+    for await(const [name, handle] of serverDirHandle.entries()){
       if(handle.kind === 'directory') projects.push(name);
     }
     return projects;
@@ -1635,14 +1620,12 @@ function updateOdUI(){
     const el=document.getElementById(id);
     if(el) el.style.display=odEnabled?'none':'block';
   });
-  // 共有フォルダ状態の表示更新
-  if(sharedDriveId){
-    const isOwner = localStorage.getItem('od_is_owner') === '1';
-    const detail = isOwner ? 'オーナー接続中' : 'メンバー接続中';
-    ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-      const el=document.getElementById(id); if(el) el.textContent=`検出済み ✓（${detail}）`;
-    });
-  }
+  // 共有URL設定状態の表示更新
+  const shareConfigured = hasShareUrl();
+  ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent = shareConfigured ? 'URL設定済み ✓' : '未設定';
+  });
   updateFolderLabels();
 }
 
@@ -1657,238 +1640,31 @@ function getBaseFolder(){
   }
 }
 
-// 共有フォルダのdriveId/itemIdキャッシュ
-let sharedDriveId = null, sharedItemId = null;
-// sharedWithMe APIで共有フォルダを自動検出
-async function resolveSharedFolder(){
-  if(sharedDriveId && sharedItemId) return {driveId:sharedDriveId, itemId:sharedItemId};
-  try{
-    // まず自分のOneDriveに同名フォルダがあるか確認
-    const myFolder = await graphRequest('GET', `/me/drive/root:/${getSharedBase()}`);
-    if(myFolder?.id){
-      // オーナー自身の場合：自分のフォルダを使用
-      sharedDriveId = myFolder.parentReference?.driveId;
-      sharedItemId = myFolder.id;
-      localStorage.setItem('od_is_owner','1');
-      return {driveId:sharedDriveId, itemId:sharedItemId};
-    }
-  }catch(e){}
-
-  // 自分のOneDriveにない場合：共有アイテムを検索
-  try{
-    const res = await graphRequest('GET', '/me/drive/sharedWithMe');
-    if(res?.value){
-      const baseName = getSharedBase();
-      // name完全一致 → 部分一致 → remoteItemのname確認 の順で検索
-      const folder = res.value.find(item=>{
-        if(!item.folder && !item.remoteItem?.folder) return false;
-        const n = item.name || '';
-        const rn = item.remoteItem?.name || '';
-        return n === baseName || n.includes(baseName) ||
-               rn === baseName || rn.includes(baseName);
-      });
-      if(folder){
-        const remote = folder.remoteItem;
-        // driveIdはremoteItemのparentReference.driveIdから取得
-        sharedDriveId = remote?.parentReference?.driveId ||
-                        remote?.id?.split('!')[0] ||
-                        folder.parentReference?.driveId;
-        // itemIdはremoteItem.idがGenba-share-toolフォルダ自体のID
-        sharedItemId = remote?.id || folder.id;
-        localStorage.setItem('od_is_owner','0');
-        localStorage.setItem('od_shared_drive_id', sharedDriveId);
-        localStorage.setItem('od_shared_item_id', sharedItemId);
-        console.log('共有フォルダ検出:', {
-          name: folder.name,
-          remoteName: remote?.name,
-          driveId: sharedDriveId,
-          itemId: sharedItemId,
-          remote: JSON.stringify(remote)
-        });
-        return {driveId:sharedDriveId, itemId:sharedItemId};
-      }
-      // 見つからない場合はデバッグ用
-      console.log('sharedWithMe items:', res.value.map(i=>({
-        name:i.name,
-        rname:i.remoteItem?.name,
-        rid:i.remoteItem?.id,
-        rdriveId:i.remoteItem?.parentReference?.driveId,
-        isFolder:!!(i.folder||i.remoteItem?.folder)
-      })));
-    }
-  }catch(e){ console.warn('sharedWithMe:', e); }
-  return null;
-}
-
-// 共有フォルダかどうか（常にtrue: オーナーも共有先も同じAPIを使う）
-function isSharedMode(){
-  return !!(odEnabled && odAccessToken);
-}
-function showShortcutGuide(){
-  const el = document.getElementById('shortcut-guide');
-  if(!el) return;
-  // フォルダ名を動的に更新
-  const fn = document.getElementById('shortcutFolderName');
-  if(fn) fn.textContent = getSharedBase();
-  // 説明文のフォルダ名も更新
-  el.querySelectorAll('strong').forEach(s=>{
-    if(s.textContent.includes('Genba-share-tool') || s.id==='shortcutFolderName'){
-      s.textContent = getSharedBase();
-    }
-  });
-  el.style.display = 'flex';
-}
-
-async function recheckShortcut(){
-  const guide = document.getElementById('shortcut-guide');
-  if(guide) guide.style.display = 'none';
-  showToast('確認中...', 'warn');
-  // キャッシュをクリアして再確認
-  sharedDriveId = null; sharedItemId = null;
-  const ok = await checkShortcut();
-  // ラベル更新
-  const label = ok ? `検出済み✓（${localStorage.getItem('od_is_owner')==='1'?'オーナー':'メンバー'}として接続中）` : '未検出';
-  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=label;
-  });
-  if(ok){
-    showToast('フォルダを確認しました ✓', 'ok');
-    if(!currentProjectId) openProjectScreen();
-    else forcePullFromOd();
-  } else {
-    showToast(`「${getSharedBase()}」が見つかりません。OneDriveで「マイファイルに追加」してください`, 'warn');
-    showShortcutGuide();
-  }
-}
-
-function promptSharedBase(){
-  const cur = getSharedBase();
-  const v = prompt(
-    '共有フォルダ名を入力してください\n' +
-    '（現在: ' + cur + '）\n\n' +
-    '【オーナー】自分のOneDriveのフォルダ名\n' +
-    '【メンバー】オーナーから教えてもらったフォルダ名\n\n' +
-    '※ デフォルト: 現場情報共有ツール',
-    cur
-  );
-  if(v === null) return;
-  const folder = v.trim() || '現場情報共有ツール';
-  localStorage.setItem('shared_base_folder', folder);
-  // キャッシュをクリアして再検出
-  localStorage.removeItem('od_shared_drive_id');
-  localStorage.removeItem('od_shared_item_id');
-  updateSharedBaseLabel();
-  showToast(`共有フォルダ名を「${folder}」に変更しました`, 'ok');
-}
-
-function updateSharedBaseLabel(){
-  const name = getSharedBase();
-  ['sharedBaseLabel','sharedBaseLabel2'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.textContent = name;
-  });
-  // 検出済みラベルも更新
-  const cached = localStorage.getItem('od_shared_drive_id') || (localStorage.getItem('od_is_owner')==='1' ? 'owner' : '');
-  const detectLabel = cached ? `検出済み✓（${localStorage.getItem('od_is_owner')==='1'?'オーナー':'メンバー'}として接続中）` : '未確認';
-  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) el.textContent = detectLabel;
-  });
-}
-
-async function detectSharedFolder(){
-  if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
-  showToast('共有フォルダを検索中...','warn');
-  sharedDriveId = null; sharedItemId = null;
-  localStorage.removeItem('od_shared_drive_id');
-  localStorage.removeItem('od_shared_item_id');
-  const shared = await resolveSharedFolder();
-  const labels = shared ? '検出済み ✓' : '見つかりませんでした';
-  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=labels;
-  });
-  if(shared){
-    showToast('共有フォルダを検出しました ✓','ok');
-  } else {
-    showToast('共有フォルダが見つかりません。URLを手動入力してください','warn');
-  }
-}
-
-function promptShareUrl(){
-  const cur = localStorage.getItem('od_share_url') || '';
-  const v = prompt(
-    '共有フォルダのURLを入力してください\n\n' +
-    '【オーナーがやること】\n' +
-    'OneDriveでGenba-share-toolフォルダを右クリック\n' +
-    '→「共有」→「リンクのコピー」→ここに貼り付け\n\n' +
-    '【共有先メンバーがやること】\n' +
-    'オーナーから送られたリンクをここに貼り付け',
-    cur
-  );
-  if(v === null) return;
-  const url = v.trim();
-  localStorage.setItem('od_share_url', url);
-  sharedDriveId = null; sharedItemId = null; // キャッシュクリア
-  updateShareLabel();
-  if(url){
-    showToast('共有URLを設定しました ✓', 'ok');
-    // 設定後に現場選択を促す
-    setTimeout(()=>{
-      if(odEnabled && odAccessToken){
-        closeSettings();
-        openProjectScreen();
-      } else {
-        showToast('次にOneDrive同期をONにしてサインインしてください', 'warn');
-      }
-    }, 1200);
-  } else {
-    showToast('共有URLをクリアしました', 'warn');
-  }
-}
-
-// 共有フォルダを手動で検出・確認
-async function checkSharedFolder(){
-  if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
-  showToast('共有フォルダを検索中...','warn');
-  sharedDriveId = null; sharedItemId = null; // キャッシュクリア
-  const shared = await resolveSharedFolder();
-  const label = shared ? `検出済み ✓` : '見つかりません';
-  const isOwner = localStorage.getItem('od_is_owner') === '1';
-  const detail = shared
-    ? (isOwner ? 'オーナーとして接続中' : 'メンバーとして接続中')
-    : 'フォルダが共有されているか確認してください';
-  ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.textContent=shared ? `${label}（${detail}）` : label;
-  });
-  if(shared){
-    showToast(`共有フォルダを検出しました（${detail}）`,'ok');
-    if(!currentProjectId) setTimeout(openProjectScreen, 500);
-  } else {
-    showToast('共有フォルダが見つかりません。オーナーに共有を依頼してください','err');
-  }
-}
-
+// 共有URLラベルを更新（設定画面表示用）
 function updateShareLabel(){
-  const url = localStorage.getItem('od_share_url') || '';
-  const shareLabel = url ? (url.length > 40 ? url.slice(0,40)+'...' : url) : '未設定';
+  const url = getShareUrl();
+  const shareLabel = url ? (url.length > 50 ? url.slice(0,50)+'...' : url) : '未設定';
   ['odShareLabel','odShareLabel2'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.textContent=shareLabel;
   });
-  const detected = localStorage.getItem('od_shared_drive_id') ? '検出済み ✓' : '未検出';
-  ['odDetectLabel','odDetectLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=detected;
-  });
 }
 
-function promptOdFolder(){
-  const cur = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
-  const v = prompt('OneDriveの保存フォルダ名を入力してください', cur);
-  if(v === null) return;
-  const folder = v.trim() || '現場情報共有ツール';
-  localStorage.setItem('od_base_folder', folder);
-  updateFolderLabels();
-  showToast(`OneDriveフォルダ: ${folder}`, 'ok');
+// 共有フォルダの接続確認ボタン
+async function checkSharedFolder(){
+  if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
+  if(!getShareUrl()){ showToast('先に共有URLを設定してください','warn'); promptShareUrl(); return; }
+  showToast('接続確認中...','warn');
+  const ok = await checkShortcut();
+  ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent = ok ? '接続OK ✓' : '接続できません';
+  });
+  if(ok){
+    showToast('SharePoint接続OK ✓','ok');
+    if(!currentProjectId) setTimeout(openProjectScreen, 500);
+  } else {
+    showToast('接続できません。URLとサインインを確認してください','err');
+  }
 }
 // ════════════════════════════════════════
 //  ローカルフォルダ（File System Access API）
@@ -2043,52 +1819,64 @@ async function graphDownload(endpoint){
 }
 
 // OneDrive /me/drive アクセス
-// Files.ReadWrite + User.Read（管理者承認不要）
-// OneDrive個人フォルダ（/me/drive）を使用
-// ショートカット経由で全員が同じフォルダにアクセス
-// /me/drive/root:/Genba-share-tool: → ショートカットなら共有フォルダを参照
-// SHARED_BASEはlocalStorageから動的取得
-function getSharedBase(){ return localStorage.getItem('shared_base_folder') || '現場情報共有ツール'; }
+// ══════════════════════════════════════
+//  SharePoint 共有リンク経由アクセス
+//  Files.ReadWrite スコープのみで動作
+//  共有リンクURL → Base64エンコード → /shares/{id}/driveItem
+// ══════════════════════════════════════
 
-// モードに応じてOneDriveの保存先フォルダを返す
-function getOdBaseForMode(){
-  // PCモード: 共有フォルダ（getSharedBase）を使用
-  // スマホモード: 個人フォルダ（getOdPersonalFolder）を使用
-  return isPCMode() ? getSharedBase() : getOdPersonalFolder();
-}
-
-// 現場フォルダ名として現場名を使用（フォルダ名に使用できない文字を除去）
+// 現場フォルダ名に使えない文字を除去
 function getSafeFolderName(name){
-  // OneDriveで使用できない文字を除去: \ / : * ? " < > |
   return (name||currentProjectId).replace(/[\\/:*?"<>|]/g,'_').trim() || currentProjectId;
 }
 
-// 全員 /me/drive/root:/フォルダ名 で統一（PUT pathでフォルダ自動作成）
+// 共有リンクURLをGraph API用のsharing tokenに変換
+function encodeSharingUrl(url){
+  // base64url エンコード（パディング除去、+→-、/→_）
+  const b64 = btoa(url).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+  return 'u!' + b64;
+}
+
+// 共有リンクURLを取得（localStorageから）
+function getShareUrl(){
+  return localStorage.getItem('sp_share_url') || '';
+}
+
+// 共有リンクが設定されているか確認
+function hasShareUrl(){
+  return !!getShareUrl();
+}
+
+// SharePointの共有フォルダ内ファイルをアップロード
+// パス: /shares/{token}/driveItem:/現場名/ファイル名:/content
 async function spUpload(projectId, filename, data){
-  const base = getOdBaseForMode();
-  // 現場名を取得（currentProjectId と一致する場合は currentProjectName を使う）
+  const shareUrl = getShareUrl();
+  if(!shareUrl) throw new Error('SharePoint共有URLが設定されていません');
+  const token = encodeSharingUrl(shareUrl);
   const rawName = (projectId === currentProjectId && currentProjectName)
     ? currentProjectName
     : (localStorage.getItem('project_name_'+projectId) || projectId);
   const projName = getSafeFolderName(rawName);
-  // 各セグメントを個別にエンコードし、スラッシュは保持する
-  const url = `/me/drive/root:/${encodeURIComponent(base)}/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  const url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
   return graphRequest('PUT', url, data);
 }
 
+// SharePointの共有フォルダ内ファイルをダウンロード
 async function spDownload(projectId, filename){
-  const base = getOdBaseForMode();
+  const shareUrl = getShareUrl();
+  if(!shareUrl) return {data:null, etag:null};
+  const token = encodeSharingUrl(shareUrl);
   const rawName = (projectId === currentProjectId && currentProjectName)
     ? currentProjectName
     : (localStorage.getItem('project_name_'+projectId) || projectId);
   const projName = getSafeFolderName(rawName);
-  const url = `/me/drive/root:/${encodeURIComponent(base)}/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  const url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
   const {text, etag} = await graphDownload(url);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
 }
 
-
+// 共有フォルダ内の現場フォルダ一覧を取得
 async function spListProjects(){
   if(!odEnabled && localDirHandle){
     const ok = await verifyLocalDirHandle();
@@ -2096,44 +1884,56 @@ async function spListProjects(){
     return [];
   }
   if(!odEnabled) return [];
+  const shareUrl = getShareUrl();
+  if(!shareUrl) return [];
   try{
-    const base = encodeURIComponent(getSharedBase());
-    const res = await graphRequest('GET', `/me/drive/root:/${base}:/children`);
+    const token = encodeSharingUrl(shareUrl);
+    const res = await graphRequest('GET', `/shares/${token}/driveItem/children`);
     if(!res?.value) return [];
-    // フォルダ名(現場名)と対応するpinのprojectIdをマッピング
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
 }
 
-// Genba-share-toolフォルダ/ショートカットの存在確認
+// 共有URLの接続確認
 async function checkShortcut(){
+  const shareUrl = getShareUrl();
+  if(!shareUrl) return false;
   try{
-    // まずキャッシュされたdriveId/itemIdで確認
-    const sid = localStorage.getItem('od_shared_drive_id');
-    const iid = localStorage.getItem('od_shared_item_id');
-    if(sid && iid){
-      const res = await graphRequest('GET', `/drives/${sid}/items/${iid}`);
-      if(res?.id) return true;
-    }
-    // 自分のOneDriveにフォルダがあるか（オーナー）
-    const res = await graphRequest('GET', `/me/drive/root:/${encodeURIComponent(getSharedBase())}`);
-    if(res?.id){
-      localStorage.setItem('od_is_owner','1');
-      localStorage.setItem('od_shared_drive_id', res.parentReference?.driveId||'');
-      localStorage.setItem('od_shared_item_id', res.id);
-      return true;
-    }
-  }catch(e){}
-  // sharedWithMeで再検索
-  const shared = await resolveSharedFolder();
-  return !!(shared);
+    const token = encodeSharingUrl(shareUrl);
+    const res = await graphRequest('GET', `/shares/${token}/driveItem`);
+    return !!(res?.id);
+  }catch(e){ return false; }
 }
 
-// ショートカット作成をOneDriveで誘導
-function guideShortcut(){
-  // OneDriveを開いてユーザーにショートカット追加を促す
-  window.open('https://onedrive.live.com', '_blank');
-  showToast('OneDriveで「Genba-share-tool」を検索し「マイファイルに追加」してください', 'warn');
+// 共有URLの設定ダイアログ
+function promptShareUrl(){
+  const cur = getShareUrl();
+  const v = prompt(
+    'SharePoint共有フォルダのURLを入力してください\n\n' +
+    '【取得方法】\n' +
+    'SharePointで genba-share-tool フォルダを開く\n' +
+    '→「共有」または「リンクのコピー」→ここに貼り付け\n\n' +
+    '現在の設定: ' + (cur ? cur.slice(0,50)+'...' : '未設定'),
+    cur
+  );
+  if(v === null) return;
+  const url = v.trim();
+  localStorage.setItem('sp_share_url', url);
+  updateShareLabel();
+  if(url){
+    showToast('共有URLを設定しました ✓', 'ok');
+    setTimeout(async ()=>{
+      if(odEnabled && odAccessToken){
+        const ok = await checkShortcut();
+        if(ok){ showToast('接続確認OK ✓', 'ok'); closeSettings(); openProjectScreen(); }
+        else showToast('URLに接続できません。URLを確認してください', 'err');
+      } else {
+        showToast('次にサインインしてください', 'warn');
+      }
+    }, 500);
+  } else {
+    showToast('共有URLをクリアしました', 'warn');
+  }
 }
 
 
@@ -2308,13 +2108,15 @@ async function renameProject(){
 
   if(odEnabled && odAccessToken){
     try{
-      showToast('OneDriveのフォルダ名を変更中...','warn');
-      const base = getOdBaseForMode();
+      showToast('SharePointのフォルダ名を変更中...','warn');
+      const shareUrl = getShareUrl();
+      if(!shareUrl) throw new Error('共有URLが設定されていません');
+      const token = encodeSharingUrl(shareUrl);
 
       // 旧フォルダのitemIdを取得
       const oldItem = await graphRequest('GET',
-        `/me/drive/root:/${encodeURIComponent(base)}/${encodeURIComponent(oldSafeName)}`
-      );
+        `/shares/${token}/driveItem:/${encodeURIComponent(oldSafeName)}`
+      ).catch(()=>null);
 
       if(oldItem?.id){
         // PATCH でフォルダ名をリネーム（中身はそのまま）
@@ -2375,8 +2177,8 @@ function saveData(){
       }
     });
   }
-  // PCモード: 社内サーバーにも保存
-  if(isPCMode() && serverDirHandle){
+  // 社内サーバーにも保存（モード問わず、接続中の場合）
+  if(serverDirHandle){
     verifyServerDirHandle().then(ok=>{
       if(ok){
         serverWriteFile(currentProjectId,'pins.json',{
