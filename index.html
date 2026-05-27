@@ -20,24 +20,7 @@
 body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column;}
 
 
-/* ═══ MODE SELECT ═══ */
-#mode-screen{position:fixed;inset:0;z-index:9998;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:32px 24px;}
-#mode-screen.show{display:flex;}
-.mode-title{text-align:center;}
-.mode-title h2{font-size:20px;font-weight:700;color:var(--accent3);}
-.mode-title p{font-size:12px;color:var(--text2);margin-top:6px;}
-.mode-cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:400px;}
-.mode-card{background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:20px;cursor:pointer;transition:all 0.2s;display:flex;gap:16px;align-items:flex-start;}
-.mode-card:active,.mode-card:hover{border-color:var(--accent);background:var(--surface2);}
-.mode-card.pc{border-color:rgba(59,111,212,0.4);}
-.mode-card.mobile{border-color:rgba(46,168,126,0.4);}
-.mode-icon{font-size:32px;flex-shrink:0;}
-.mode-info h3{font-size:15px;font-weight:700;margin-bottom:4px;}
-.mode-info p{font-size:11px;color:var(--text2);line-height:1.6;}
-.mode-badge{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;margin-top:6px;font-weight:600;}
-.mode-badge.full{background:rgba(59,111,212,0.2);color:var(--accent3);}
-.mode-badge.lite{background:rgba(46,168,126,0.2);color:var(--success);}
-.mode-features{font-size:10px;color:var(--text3);margin-top:6px;line-height:1.8;}
+
 /* AUTH */
 #auth-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px 24px;overflow-y:auto;}
 .auth-logo h1{font-size:20px;font-weight:700;color:var(--accent3);text-align:center;}
@@ -395,43 +378,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </style>
 </head>
 <body>
-
-<!-- AUTH -->
-<!-- モード選択画面 -->
-<div id="mode-screen">
-  <div class="mode-title">
-    <h2>📍 現場情報共有ツール</h2>
-    <p>使用モードを選択してください</p>
-  </div>
-  <div class="mode-cards">
-    <div class="mode-card pc" onclick="selectMode('pc')">
-      <div class="mode-icon">🖥️</div>
-      <div class="mode-info">
-        <h3>PCモード</h3>
-        <p>完全版。チームでのデータ共有が可能です。</p>
-        <div class="mode-features">
-          ✅ OneDrive（共有フォルダ）に保存<br>
-          ✅ 社内サーバーにも自動保存<br>
-          ✅ 社内サーバー接続確認あり<br>
-          ✅ 最新データの自動読み込み
-        </div>
-        <span class="mode-badge full">完全版</span>
-      </div>
-    </div>
-    <div class="mode-card mobile" onclick="selectMode('mobile')">
-      <div class="mode-icon">📱</div>
-      <div class="mode-info">
-        <h3>スマホ・タブレットモード</h3>
-        <p>機能制限版。個人管理の範囲での使用。</p>
-        <div class="mode-features">
-          ✅ 個人のOneDriveに保存<br>
-          ⚠️ 社内サーバーへの保存なし<br>
-          ⚠️ データ共有はPC版が必要
-        </div>
-        <span class="mode-badge lite">機能制限版</span>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div id="auth-screen">
@@ -583,57 +529,21 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <!-- 設定（PC右ペイン） -->
   <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
     <div style="display:flex;flex-direction:column;gap:10px;padding:12px 12px 40px;">
-      <div class="ss">
-        <div class="ss-title">🔧 動作モード</div>
-        <div class="si">
-          <span class="sii">🖥️</span>
-          <div class="si-body"><strong>現在のモード</strong><span class="current-mode-label">-</span></div>
-        </div>
-        <div class="si" onclick="switchModePrompt()">
-          <span class="sii">🔄</span>
-          <div class="si-body"><strong>モードを切り替え</strong><span>PC版 ⇔ スマホ・タブレット版</span></div>
-          <span class="si-arrow">›</span>
-        </div>
       </div>
       <!-- PCモード専用：社内サーバー設定 -->
-      <div class="ss pc-only-section">
-        <div class="ss-title">🖥️ 社内サーバー設定（PCモード専用）</div>
-        <div class="si">
-          <span class="sii">📂</span>
-          <div class="si-body"><strong>サーバーパス</strong><span class="server-path-label" style="font-family:monospace;font-size:10px;word-break:break-all;"></span></div>
-        </div>
-        <div class="si">
-          <span class="sii">🔌</span>
-          <div class="si-body"><strong>接続状態</strong><span class="server-status-label">未確認</span></div>
-        </div>
-        <div class="si" onclick="selectServerFolder()">
-          <span class="sii">📁</span>
-          <div class="si-body"><strong>フォルダを選択／再接続</strong></div>
           <span class="si-arrow">›</span>
         </div>
-        <div class="si" onclick="checkServerConnection()">
-          <span class="sii">🔍</span>
-          <div class="si-body"><strong>接続確認</strong></div>
           <span class="si-arrow">›</span>
         </div>
       </div>
       <!-- OneDrive / 同期設定（集約） -->
-      <div class="ss pc-only-section">
-        <div class="ss-title">💾 保存（PCモード）</div>
-        <div class="si" style="cursor:default;">
-          <span class="sii">ℹ️</span>
-          <div class="si-body"><strong>保存先</strong><span>OneDrive（共有）＋ 社内サーバー 同時保存</span></div>
-        </div>
-        <div style="padding:8px 12px;">
-          <button class="btn btn-primary" style="width:100%;font-size:14px;" onclick="manualSaveAll()">💾 今すぐ保存（OneDrive＋サーバー）</button>
-        </div>
       </div>
       <!-- OneDrive / 同期設定（集約） -->
       <div class="ss">
-        <div class="ss-title">☁️ OneDrive / 同期設定</div>
+        <div class="ss-title">☁️ SharePoint / 同期設定</div>
         <div class="si">
           <span class="sii">🔗</span>
-          <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText2">OFF（ローカル）</span></div>
+          <div class="si-body"><strong>SharePoint同期モード</strong><span id="odModeText2">OFF（ローカル）</span></div>
           <div class="toggle" id="odModeToggle2" onclick="toggleOdMode()" style="flex-shrink:0"></div>
         </div>
         <div class="si" onclick="odLogin()">
@@ -660,12 +570,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           </div>
           <div class="si" onclick="manualSync()">
             <span class="sii">🔄</span>
-            <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
+            <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
             <span class="si-arrow">›</span>
           </div>
           <div class="si" onclick="pullFromOd(false)">
             <span class="sii">⬇️</span>
-            <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
+            <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
             <span class="si-arrow">›</span>
           </div>
         </div>
@@ -673,13 +583,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <span class="sii">🚪</span>
           <div class="si-body"><strong>サインアウト</strong></div>
           <span class="si-arrow">›</span>
-        </div>
-        <div id="local-settings-rows2">
-          <div class="si" onclick="promptLocalFolder()">
-            <span class="sii">📁</span>
-            <div class="si-body"><strong>ローカル保存フォルダ</strong><span id="localFolderLabel2">未選択</span></div>
-            <span class="si-arrow">›</span>
-          </div>
         </div>
       </div>
       <div class="ss">
@@ -717,14 +620,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
       <div class="ss">
         <div class="ss-title">アプリ情報</div>
-        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v6.1</strong><span>PC/スマホ デュアルモード対応</span></div></div>
+        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v7.0</strong><span>SharePoint 共有フォルダ連携</span></div></div>
       </div>
       <!-- 詳細設定（一番下） -->
       <div class="ss">
         <div class="ss-title">🔧 詳細設定</div>
-        <div class="si pc-only-section" onclick="promptServerPath()">
-          <span class="sii">✏️</span>
-          <div class="si-body"><strong>サーバーパス変更</strong><span>社内サーバーの参照パスを編集</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="changePinPrompt()"><span class="sii">🔐</span><div class="si-body"><strong>PIN変更</strong></div><span class="si-arrow">›</span></div>
@@ -742,49 +642,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     <button class="icon-btn" onclick="closeSettings()">✕</button>
   </div>
   <div class="settings-scroll">
-
-    <div class="ss">
-      <div class="ss-title">🔧 動作モード</div>
-      <div class="si">
-        <span class="sii">🖥️</span>
-        <div class="si-body"><strong>現在のモード</strong><span class="current-mode-label">-</span></div>
-      </div>
-      <div class="si" onclick="switchModePrompt()">
-        <span class="sii">🔄</span>
-        <div class="si-body"><strong>モードを切り替え</strong><span>PC版 ⇔ スマホ・タブレット版</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-    </div>
-
-    <!-- PCモード専用：保存先設定 -->
-    <div class="ss pc-only-section" id="server-settings-section-modal">
-      <div class="ss-title">🖥️ 社内サーバー設定（PCモード専用）</div>
-      <div class="si">
-        <span class="sii">📂</span>
-        <div class="si-body"><strong>サーバーパス</strong><span class="server-path-label" style="font-family:monospace;font-size:10px;word-break:break-all;"></span></div>
-      </div>
-      <div class="si">
-        <span class="sii">🔌</span>
-        <div class="si-body"><strong>接続状態</strong><span class="server-status-label">未確認</span></div>
-      </div>
-      <div class="si" onclick="selectServerFolder()">
-        <span class="sii">📁</span>
-        <div class="si-body"><strong>フォルダを選択／再接続</strong><span>File System Access APIで接続</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <div class="si" onclick="checkServerConnection()">
-        <span class="sii">🔍</span>
-        <div class="si-body"><strong>接続確認</strong><span>サーバーへの接続をチェック</span></div>
-        <span class="si-arrow">›</span>
-      </div>
     </div>
 
     <!-- OneDrive / 同期設定（集約） -->
     <div class="ss">
-      <div class="ss-title">☁️ OneDrive / 同期設定</div>
+      <div class="ss-title">☁️ SharePoint / 同期設定</div>
       <div class="si">
         <span class="sii">🔗</span>
-        <div class="si-body"><strong>OneDrive同期モード</strong><span id="odModeText">OFF（ローカル）</span></div>
+        <div class="si-body"><strong>SharePoint同期モード</strong><span id="odModeText">OFF（ローカル）</span></div>
         <div class="toggle" id="odModeToggle" onclick="toggleOdMode()" style="flex-shrink:0"></div>
       </div>
       <div class="si" onclick="odLogin()">
@@ -811,12 +676,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
         <div class="si" onclick="manualSync()">
           <span class="sii">🔄</span>
-          <div class="si-body"><strong>今すぐ同期</strong><span>OneDriveへアップロード</span></div>
+          <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="pullFromOd(false)">
           <span class="sii">⬇️</span>
-          <div class="si-body"><strong>最新データを取得</strong><span>OneDriveからダウンロード</span></div>
+          <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
           <span class="si-arrow">›</span>
         </div>
       </div>
@@ -824,13 +689,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <span class="sii">🚪</span>
         <div class="si-body"><strong>サインアウト</strong></div>
         <span class="si-arrow">›</span>
-      </div>
-      <div id="local-settings-rows">
-        <div class="si" onclick="promptLocalFolder()">
-          <span class="sii">📁</span>
-          <div class="si-body"><strong>ローカル保存フォルダ</strong><span id="localFolderLabel">未選択</span></div>
-          <span class="si-arrow">›</span>
-        </div>
       </div>
     </div>
 
@@ -889,16 +747,13 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="ss-title">アプリ情報</div>
       <div class="si">
         <span class="sii">ℹ️</span>
-        <div class="si-body"><strong>現場情報共有ツール v6.1</strong><span>PC/スマホ デュアルモード対応</span></div>
+        <div class="si-body"><strong>現場情報共有ツール v7.0</strong><span>SharePoint 共有フォルダ連携</span></div>
       </div>
     </div>
 
     <!-- 詳細設定（一番下） -->
     <div class="ss">
       <div class="ss-title">🔧 詳細設定</div>
-      <div class="si pc-only-section" onclick="promptServerPath()">
-        <span class="sii">✏️</span>
-        <div class="si-body"><strong>サーバーパス変更</strong><span>社内サーバーの参照パスを編集</span></div>
         <span class="si-arrow">›</span>
       </div>
       <div class="si" onclick="changePinPrompt()">
@@ -916,35 +771,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   </div>
 </div>
 
-<!-- モード切替注意モーダル -->
-<div id="mobile-mode-notice" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:400px;width:100%;display:flex;flex-direction:column;gap:16px;">
-    <h3 style="font-size:16px;font-weight:700;color:var(--warn)">⚠️ スマホ・タブレットモード</h3>
-    <div style="font-size:13px;color:var(--text2);line-height:1.8;">
-      <p>📱 このモードは<strong style="color:var(--text)">機能制限版</strong>です。</p>
-      <br>
-      <p>⚠️ <strong style="color:var(--warn)">データは個人のOneDriveにしか保存されません。</strong></p>
-      <br>
-      <p>🏢 データを他のメンバーと共有する場合は、<strong style="color:var(--text)">会社サーバーに接続してPC版で起動</strong>してください。</p>
-    </div>
-    <button class="btn btn-primary mobile-notice-ok-btn">理解しました</button>
-  </div>
-</div>
-
-<!-- PCモード：社内サーバー接続モーダル -->
-<div id="server-connect-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:14px;">
-    <h3 style="font-size:16px;font-weight:700;color:var(--accent3)">🖥️ PCモード - 社内サーバー接続</h3>
-    <div style="font-size:13px;color:var(--text2);line-height:1.7;">
-      <p>社内サーバーのフォルダを選択してください。</p>
-      <p style="margin-top:4px;font-size:11px;color:var(--text3);">デフォルトパス:</p>
-      <p style="margin-top:4px;font-size:11px;background:var(--surface2);padding:8px;border-radius:6px;font-family:monospace;word-break:break-all;" id="server-modal-path">\\192.168.1.117\設計工事課\50_部署フォルダ\34現場情報共有ツール</p>
-    </div>
-    <div id="server-status" style="font-size:12px;color:var(--text3);padding:8px;background:var(--surface2);border-radius:6px;">未接続</div>
-    <button class="btn btn-primary" onclick="selectServerFolder()">📁 フォルダを選択する</button>
-    <button class="btn btn-secondary" onclick="document.getElementById('server-connect-modal').style.display='none'">後で設定する（スキップ）</button>
-  </div>
-</div>
 
 <!-- ピン選択PDFモーダル -->
 <div id="pin-select-modal" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
@@ -964,22 +790,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   </div>
 </div>
 
-<!-- ショートカット誘導モーダル -->
-<div id="shortcut-guide" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,0.8);display:none;align-items:center;justify-content:center;padding:20px;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:380px;width:100%;display:flex;flex-direction:column;gap:16px;">
-    <h3 style="font-size:16px;font-weight:700;color:var(--accent3)">📂 フォルダの追加が必要です</h3>
-    <p style="font-size:13px;color:var(--text2);line-height:1.7">
-      共有フォルダ <strong style="color:var(--text)" id="shortcutFolderName">Genba-share-tool</strong> をあなたのOneDriveに追加してください。<br><br>
-      ① 下のボタンでOneDriveを開く<br>
-      ② 「共有」タブを開く<br>
-      ③ <strong style="color:var(--text)" id="shortcutFolderName2">Genba-share-tool</strong> を探す<br>
-      ④ 右クリック →「マイファイルに追加」<br>
-      ⑤ このページに戻って「確認する」をタップ
-    </p>
-    <button class="btn btn-primary" onclick="window.open('https://stem365-my.sharepoint.com','_blank')">OneDriveを開く</button>
-    <button class="btn btn-secondary" onclick="recheckShortcut()">✓ 追加した・確認する</button>
-    <button class="btn btn-secondary" onclick="document.getElementById('shortcut-guide').style.display='none'" style="font-size:12px;color:var(--text3)">スキップ（後で設定）</button>
-  </div>
 </div>
 
 <div class="overlay" id="overlay" onclick="closeSheet()"></div>
@@ -1055,282 +865,8 @@ const ITEMS_BY_DIV   = {
 };
 
 
-// ══════════════════════════════════════
-//  モード管理
-// ══════════════════════════════════════
-const MODE_PC     = 'pc';
-const MODE_MOBILE = 'mobile';
-function getAppMode(){ return localStorage.getItem('app_mode') || null; }
-function setAppMode(m){ localStorage.setItem('app_mode', m); applyModeUI(); }
-function isPCMode(){ return getAppMode() === MODE_PC; }
 
-// デフォルトパス定数
-const DEFAULT_SERVER_PATH = '\\\\192.168.1.117\\設計工事課\\50_部署フォルダ\\34現場情報共有ツール';
-const DEFAULT_OD_FOLDER   = '現場情報共有ツール';
-
-function getServerPath(){ return localStorage.getItem('server_path') || DEFAULT_SERVER_PATH; }
-// PC/スマホモード統合済み: getOdPersonalFolder / getOdSharedFolder 削除
-
-function applyModeUI(){
-  const mode = getAppMode();
-  const modeLabel = mode === MODE_PC ? 'PCモード（完全版）' : 'スマホ・タブレットモード（制限版）';
-  document.querySelectorAll('.current-mode-label').forEach(el=>{ el.textContent = modeLabel; });
-  // PCモード専用セクションの表示制御
-  document.querySelectorAll('.pc-only-section').forEach(el=>{
-    el.style.display = isPCMode() ? '' : 'none';
-  });
-  // サーバー接続状態の表示更新
-  updateServerStatusUI();
-  updateDirectoryLabels();
-}
-
-// サーバー接続状態UI更新（実際のパーミッション確認あり）
-async function updateServerStatusUI(){
-  const path = getServerPath();
-  // ハンドルがない場合は即座に未接続
-  if(!serverDirHandle){
-    _applyServerStatusUI('未接続', 'var(--text3)', path);
-    return;
-  }
-  // ハンドルがあっても実際にパーミッションが取れるか確認
-  try{
-    const perm = await serverDirHandle.queryPermission({mode:'readwrite'});
-    if(perm === 'granted'){
-      _applyServerStatusUI('接続中 ✓', 'var(--success)', path);
-    } else {
-      // パーミッション未付与（ブラウザ再起動後など）
-      _applyServerStatusUI('要再接続', 'var(--warn)', path);
-    }
-  }catch(e){
-    // ハンドルが無効（サーバー切断等）
-    serverDirHandle = null;
-    _applyServerStatusUI('未接続', 'var(--text3)', path);
-  }
-}
-function _applyServerStatusUI(statusText, statusColor, path){
-  document.querySelectorAll('.server-status-label').forEach(el=>{
-    el.textContent = statusText;
-    el.style.color = statusColor;
-  });
-  document.querySelectorAll('.server-path-label').forEach(el=>{ el.textContent = path; });
-}
-
-// ディレクトリラベル更新（設定画面の全ラベルを同期）
-function updateDirectoryLabels(){
-  document.querySelectorAll('.od-share-url-label').forEach(el=>{
-    const url = getShareUrl();
-    el.textContent = url ? (url.length > 50 ? url.slice(0,50)+'...' : url) : '未設定';
-  });
-  document.querySelectorAll('.server-path-label').forEach(el=>{ el.textContent = getServerPath(); });
-  updateFolderLabels();
-}
-
-// ═══ モード切替 ═══
-function switchModePrompt(){
-  document.getElementById('mode-screen').classList.add('show');
-}
-
-function selectMode(mode){
-  if(mode === MODE_MOBILE && getAppMode() === MODE_PC){
-    // PCモード→スマホモード切替警告
-    document.getElementById('mode-screen').classList.remove('show');
-    showMobileModeNotice(true);
-    return;
-  }
-  applySelectedMode(mode);
-}
-
-function applySelectedMode(mode){
-  setAppMode(mode);
-  document.getElementById('mode-screen').classList.remove('show');
-  if(mode === MODE_PC){
-    // PCモード: 社内サーバー接続チェックを実行
-    setTimeout(()=>checkAndPromptServerConnection(), 300);
-  }
-  renderAll && renderAll();
-}
-
-function showMobileModeNotice(thenSwitch){
-  const modal = document.getElementById('mobile-mode-notice');
-  modal.style.display = 'flex';
-  // 確認後のコールバックをセット
-  const btn = modal.querySelector('.mobile-notice-ok-btn');
-  if(btn){
-    btn.onclick = ()=>{
-      modal.style.display = 'none';
-      if(thenSwitch) applySelectedMode(MODE_MOBILE);
-    };
-  }
-}
-
-// 社内サーバー接続チェック＋プロンプト
-async function checkAndPromptServerConnection(){
-  const modal = document.getElementById('server-connect-modal');
-  modal.style.display = 'flex';
-  // 既存ハンドルがあれば自動確認
-  if(serverDirHandle){
-    const ok = await verifyServerDirHandle();
-    if(ok){
-      document.getElementById('server-status').textContent = '✅ 社内サーバーに接続済みです';
-      document.getElementById('server-status').style.color = 'var(--success)';
-      updateServerStatusUI();
-      return;
-    }
-  }
-  document.getElementById('server-status').textContent = '⚠️ 社内サーバーに未接続です。フォルダを選択してください。';
-  document.getElementById('server-status').style.color = 'var(--warn)';
-}
-
-// 社内サーバーフォルダ選択
-async function selectServerFolder(){
-  if(!window.showDirectoryPicker){
-    showToast('このブラウザはフォルダ選択に対応していません（Chrome推奨）','err');
-    return;
-  }
-  try{
-    const handle = await window.showDirectoryPicker({mode:'readwrite', id:'genba-server'});
-    serverDirHandle = handle;
-    localStorage.setItem('server_folder_name', handle.name);
-    await saveServerDirHandle(handle);
-    // モーダル内のステータスを更新
-    const statusEl = document.getElementById('server-status');
-    if(statusEl){ statusEl.textContent = `✅ 接続しました: ${handle.name}`; statusEl.style.color = 'var(--success)'; }
-    updateServerStatusUI();
-    showToast(`社内サーバーフォルダ設定: ${handle.name} ✓`, 'ok');
-    // 接続モーダルを閉じる
-    setTimeout(()=>{ document.getElementById('server-connect-modal').style.display='none'; }, 1200);
-  }catch(e){
-    if(e.name !== 'AbortError'){
-      showToast('フォルダ選択エラー: '+e.message, 'err');
-    }
-  }
-}
-
-// 社内サーバーパス（表示用）を設定
-function promptServerPath(){
-  const cur = getServerPath();
-  const v = prompt('社内サーバーのパスを入力してください\n（表示用・参考用）', cur);
-  if(v === null) return;
-  localStorage.setItem('server_path', v.trim() || DEFAULT_SERVER_PATH);
-  updateDirectoryLabels();
-  showToast('パスを更新しました', 'ok');
-}
-
-// promptOdPersonalFolder 削除（SharePoint統合済み）
-
-// 接続チェックを設定から実行
-async function checkServerConnection(){
-  if(!serverDirHandle){
-    showToast('先にフォルダを選択してください','warn');
-    checkAndPromptServerConnection();
-    return;
-  }
-  const ok = await verifyServerDirHandle();
-  if(ok){
-    showToast('社内サーバーに接続できます ✓','ok');
-  } else {
-    serverDirHandle = null;
-    showToast('社内サーバーに接続できません。再選択してください','err');
-    checkAndPromptServerConnection();
-  }
-  updateServerStatusUI();
-}
-
-// IndexedDBに社内サーバーハンドルを保存
-function saveServerDirHandle(handle){
-  return new Promise((res,rej)=>{
-    const req = indexedDB.open('genba-tool-db', 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
-    req.onsuccess = e => {
-      const db = e.target.result;
-      const tx = db.transaction('handles','readwrite');
-      tx.objectStore('handles').put(handle,'serverDir');
-      tx.oncomplete = ()=>{ db.close(); res(); };
-      tx.onerror = ()=>{ db.close(); rej(); };
-    };
-    req.onerror = ()=>rej();
-  });
-}
-
-// IndexedDBから社内サーバーハンドルを復元
-function loadServerDirHandle(){
-  return new Promise((res)=>{
-    const req = indexedDB.open('genba-tool-db', 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
-    req.onsuccess = e => {
-      const db = e.target.result;
-      const tx = db.transaction('handles','readonly');
-      const getReq = tx.objectStore('handles').get('serverDir');
-      getReq.onsuccess = ()=>{ db.close(); res(getReq.result||null); };
-      getReq.onerror = ()=>{ db.close(); res(null); };
-    };
-    req.onerror = ()=>res(null);
-  });
-}
-
-// 社内サーバーハンドルの有効性確認
-async function verifyServerDirHandle(){
-  if(!serverDirHandle) return false;
-  try{
-    const perm = await serverDirHandle.requestPermission({mode:'readwrite'});
-    return perm === 'granted';
-  }catch(e){ return false; }
-}
-
-// 社内サーバーにファイルを書き込む（フォルダ構造: 共有フォルダ名/現場名/ファイル）
-async function serverWriteFile(projectId, filename, data){
-  if(!serverDirHandle) return false;
-  try{
-    const perm = await serverDirHandle.requestPermission({mode:'readwrite'});
-    if(perm !== 'granted') return false;
-    // 現場名をフォルダ名として使用（ファイルシステム非許容文字を除去）
-    const rawName = (projectId === currentProjectId && currentProjectName)
-      ? currentProjectName
-      : (localStorage.getItem('project_name_'+projectId) || projectId);
-    const folderName = rawName.replace(/[\\/:*?"<>|]/g,'_').trim() || projectId;
-    // ルート直下に現場名フォルダを作成（中間フォルダなし）
-    const projDir = await serverDirHandle.getDirectoryHandle(folderName, {create:true});
-    const fileHandle = await projDir.getFileHandle(filename, {create:true});
-    const writable = await fileHandle.createWritable();
-    await writable.write(JSON.stringify(data, null, 2));
-    await writable.close();
-    return true;
-  }catch(e){ console.warn('serverWriteFile:', e); return false; }
-}
-
-// 社内サーバーからファイルを読み込む（共有フォルダ名/現場名/ファイル）
-async function serverReadFile(projectId, filename){
-  if(!serverDirHandle) return null;
-  try{
-    const perm = await serverDirHandle.queryPermission({mode:'read'});
-    if(perm !== 'granted') return null;
-    const rawName = (projectId === currentProjectId && currentProjectName)
-      ? currentProjectName
-      : (localStorage.getItem('project_name_'+projectId) || projectId);
-    const folderName = rawName.replace(/[\\\/:*?"<>|]/g,'_').trim() || projectId;
-    // ルート直下の現場名フォルダを参照（中間フォルダなし）
-    const projDir = await serverDirHandle.getDirectoryHandle(folderName).catch(()=>null);
-    if(!projDir) return null;
-    const fileHandle = await projDir.getFileHandle(filename).catch(()=>null);
-    if(!fileHandle) return null;
-    const file = await fileHandle.getFile();
-    const text = await file.text();
-    return JSON.parse(text);
-  }catch(e){ return null; }
-}
-
-// 社内サーバーのプロジェクト一覧取得（共有フォルダ名の中のフォルダ一覧）
-async function serverListProjects(){
-  if(!serverDirHandle) return [];
-  try{
-    const perm = await serverDirHandle.queryPermission({mode:'read'});
-    if(perm !== 'granted') return [];
-    // ルート直下のフォルダ一覧を取得（現場フォルダが直接置かれている）
-    const projects = [];
-    for await(const [name, handle] of serverDirHandle.entries()){
-      if(handle.kind === 'directory') projects.push(name);
-    }
-    return projects;
+return projects;
   }catch(e){ return []; }
 }
 
@@ -1401,11 +937,6 @@ async function init(){
   // MSALを初期化してサインイン状態を復元
   await initMsal();
 
-  // IndexedDBからハンドル復元
-  const [lh, sh] = await Promise.all([loadLocalDirHandle(), loadServerDirHandle()]);
-  if(lh){ localDirHandle = lh; }
-  if(sh){ serverDirHandle = sh; }
-
   // 前回のプロジェクトを復元
   const lastPj = localStorage.getItem('last_project_id');
   if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
@@ -1414,10 +945,6 @@ async function init(){
   renderPins();
   updateStorageDisplay();
   applyLayout();
-  applyModeUI();
-
-  // 毎回起動時にモード選択画面を表示
-  document.getElementById('mode-screen').classList.add('show');
 
   // サインイン済みなら同期開始
   if(odEnabled && odAccessToken){
@@ -1607,7 +1134,7 @@ function updateOdUI(){
   const accounts = msalInstance?.getAllAccounts() || [];
   const loggedIn = !!(odAccessToken);
   const username = accounts[0]?.username || localStorage.getItem('od_user_email') || 'サインイン済み';
-  const modeText = odEnabled ? 'ON（OneDrive同期）' : 'OFF（ローカルのみ）';
+  const modeText = odEnabled ? 'ON（SharePoint同期）' : 'OFF（未接続）';
   const loginText = loggedIn ? username : '未サインイン';
 
   // モバイル設定モーダル
@@ -1631,17 +1158,14 @@ function updateOdUI(){
   const lbl = document.getElementById('syncLabel');
   if(!dot) return;
   if(!odEnabled){ dot.className='sync-dot off'; lbl.textContent='ローカル'; }
-  else if(loggedIn){ dot.className='sync-dot'; lbl.textContent='OneDrive'; }
-  else{ dot.className='sync-dot error'; lbl.textContent='未接続'; }
+  else if(loggedIn){ dot.className='sync-dot'; lbl.textContent='SharePoint'; }
+  else{ dot.className='sync-dot error'; lbl.textContent='サインイン必要'; }
   // モード別の設定項目表示切替
   ['od-settings-rows','od-settings-rows2'].forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display=odEnabled?'block':'none';
   });
-  ['local-settings-rows','local-settings-rows2'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display=odEnabled?'none':'block';
-  });
+
   // 共有URL設定状態の表示更新
   const shareConfigured = hasShareUrl();
   ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
@@ -1655,11 +1179,7 @@ function updateOdUI(){
 //  フォルダパス管理
 // ══════════════════════════════════════
 function getBaseFolder(){
-  if(odEnabled && odAccessToken){
-    return localStorage.getItem('od_base_folder') || '現場情報共有ツール';
-  } else {
-    return localStorage.getItem('local_base_folder') || '現場情報共有ツール';
-  }
+  return localStorage.getItem('od_base_folder') || '現場情報共有ツール';
 }
 
 // 共有フォルダ名を変更するダイアログ
@@ -1707,129 +1227,6 @@ async function checkSharedFolder(){
     showToast('接続できません。URLとサインインを確認してください','err');
   }
 }
-// ════════════════════════════════════════
-//  ローカルフォルダ（File System Access API）
-// ════════════════════════════════════════
-let localDirHandle = null; // ローカルフォルダハンドル
-let serverDirHandle = null; // 社内サーバーフォルダハンドル
-
-async function promptLocalFolder(){
-  // File System Access API対応チェック
-  if(window.showDirectoryPicker){
-    try{
-      const handle = await window.showDirectoryPicker({mode:'readwrite', id:'genba-tool'});
-      localDirHandle = handle;
-      localStorage.setItem('local_folder_name', handle.name);
-      // IndexedDBにハンドルを保存（再起動後に復元するため）
-      await saveLocalDirHandle(handle);
-      updateFolderLabels();
-      showToast(`フォルダ設定: ${handle.name} ✓`, 'ok');
-    }catch(e){
-      if(e.name !== 'AbortError') showToast('フォルダ選択エラー: '+e.message, 'err');
-    }
-  } else {
-    // 非対応ブラウザ（Safari等）はフォルダ名のみ入力
-    const cur = localStorage.getItem('local_base_folder') || '現場情報共有ツール';
-    const v = prompt('ローカル保存フォルダ名を入力してください\n（このブラウザはフォルダ指定に非対応です）', cur);
-    if(v === null) return;
-    localStorage.setItem('local_base_folder', v.trim() || '現場情報共有ツール');
-    updateFolderLabels();
-    showToast(`フォルダ名設定: ${v.trim()}`, 'ok');
-  }
-}
-
-// IndexedDBにディレクトリハンドルを保存
-function saveLocalDirHandle(handle){
-  return new Promise((res,rej)=>{
-    const req = indexedDB.open('genba-tool-db', 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
-    req.onsuccess = e => {
-      const db = e.target.result;
-      const tx = db.transaction('handles','readwrite');
-      tx.objectStore('handles').put(handle,'localDir');
-      tx.oncomplete = ()=>{ db.close(); res(); };
-      tx.onerror = ()=>{ db.close(); rej(); };
-    };
-    req.onerror = ()=>rej();
-  });
-}
-
-// IndexedDBからディレクトリハンドルを復元
-function loadLocalDirHandle(){
-  return new Promise((res)=>{
-    const req = indexedDB.open('genba-tool-db', 1);
-    req.onupgradeneeded = e => e.target.result.createObjectStore('handles');
-    req.onsuccess = e => {
-      const db = e.target.result;
-      const tx = db.transaction('handles','readonly');
-      const getReq = tx.objectStore('handles').get('localDir');
-      getReq.onsuccess = ()=>{ db.close(); res(getReq.result||null); };
-      getReq.onerror = ()=>{ db.close(); res(null); };
-    };
-    req.onerror = ()=>res(null);
-  });
-}
-
-// ローカルフォルダにファイルを書き込む
-async function localWriteFile(projectId, filename, data){
-  if(!localDirHandle) return false;
-  try{
-    // パーミッション確認
-    const perm = await localDirHandle.requestPermission({mode:'readwrite'});
-    if(perm !== 'granted') return false;
-    // プロジェクトフォルダを取得/作成
-    const projDir = await localDirHandle.getDirectoryHandle(projectId, {create:true});
-    const fileHandle = await projDir.getFileHandle(filename, {create:true});
-    const writable = await fileHandle.createWritable();
-    await writable.write(JSON.stringify(data, null, 2));
-    await writable.close();
-    return true;
-  }catch(e){ console.warn('localWriteFile:', e); return false; }
-}
-
-// ローカルフォルダからファイルを読み込む
-async function localReadFile(projectId, filename){
-  if(!localDirHandle) return null;
-  try{
-    const perm = await localDirHandle.queryPermission({mode:'read'});
-    if(perm !== 'granted') return null;
-    const projDir = await localDirHandle.getDirectoryHandle(projectId, {create:false}).catch(()=>null);
-    if(!projDir) return null;
-    const fileHandle = await projDir.getFileHandle(filename).catch(()=>null);
-    if(!fileHandle) return null;
-    const file = await fileHandle.getFile();
-    const text = await file.text();
-    return JSON.parse(text);
-  }catch(e){ return null; }
-}
-
-// ローカルフォルダのプロジェクト一覧取得
-async function localListProjects(){
-  if(!localDirHandle) return [];
-  try{
-    const perm = await localDirHandle.queryPermission({mode:'read'});
-    if(perm !== 'granted') return [];
-    const projects = [];
-    for await(const [name, handle] of localDirHandle.entries()){
-      if(handle.kind === 'directory') projects.push(name);
-    }
-    return projects;
-  }catch(e){ return []; }
-}
-function updateFolderLabels(){
-  updateShareLabel();
-  updateSharedBaseLabel();
-  const odFolder = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
-  // ローカルはフォルダハンドルの名前を優先
-  const localFolder = localDirHandle?.name || localStorage.getItem('local_folder_name') || localStorage.getItem('local_base_folder') || '未設定（タップして選択）';
-  ['odFolderLabel','odFolderLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=odFolder;
-  });
-  ['localFolderLabel','localFolderLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=localFolder;
-  });
-}
-
 // ══════════════════════════════════════
 //  GRAPH API / OneDrive
 // ══════════════════════════════════════
@@ -1919,11 +1316,6 @@ async function spDownload(projectId, filename){
 
 // 共有フォルダ内の現場フォルダ一覧を取得
 async function spListProjects(){
-  if(!odEnabled && localDirHandle){
-    const ok = await verifyLocalDirHandle();
-    if(ok) return await localListProjects();
-    return [];
-  }
   if(!odEnabled) return [];
   const shareUrl = getShareUrl();
   if(!shareUrl) return [];
@@ -2019,9 +1411,7 @@ async function openProjectScreen(){
   const list=document.getElementById('projectList');
   list.innerHTML='<div class="empty"><div class="ei">⏳</div><p>読み込み中...</p></div>';
   if(!odEnabled||!odAccessToken){
-    // ローカルのプロジェクト一覧
-    const localProjects=getLocalProjects();
-    renderProjectList(localProjects,[]);
+    renderProjectList(getLocalProjects(),[]);
     return;
   }
   try{
@@ -2087,18 +1477,6 @@ async function selectProject(id,name){
   if(odEnabled&&odAccessToken){
     // 現場切替時は強制取得（確認なし）
     forcePullFromOd();
-  } else if(localDirHandle){
-    // ローカルフォルダから読み込み
-    verifyLocalDirHandle().then(async ok=>{
-      if(!ok) return;
-      const data = await localReadFile(id,'pins.json');
-      if(data?.pins && Array.isArray(data.pins)){
-        pins = data.pins;
-        localStorage.setItem('pins_'+id, JSON.stringify(pins));
-        renderPins(); renderAll();
-        showToast(`ローカルから${pins.length}件を読み込みました`,'ok');
-      }
-    });
   }
 }
 
@@ -2203,41 +1581,7 @@ function saveData(){
   if(odEnabled && odAccessToken){
     autoSyncToOd();
   }
-  // ローカルフォルダへの保存（スマホモード or PCモードのサブ保存）
-  if(localDirHandle){
-    verifyLocalDirHandle().then(ok=>{
-      if(ok){
-        localWriteFile(currentProjectId,'pins.json',{
-          pins,
-          saved_at:new Date().toISOString(),
-          project_name:currentProjectName
-        });
-      } else {
-        localDirHandle = null;
-        updateFolderLabels();
-      }
-    });
-  }
-  // 社内サーバーにも保存（モード問わず、接続中の場合）
-  if(serverDirHandle){
-    verifyServerDirHandle().then(ok=>{
-      if(ok){
-        serverWriteFile(currentProjectId,'pins.json',{
-          pins,
-          saved_at:new Date().toISOString(),
-          project_name:currentProjectName,
-          saved_by:'pc'
-        }).then(result=>{
-          if(result) updateServerStatusUI();
-          else showToast('社内サーバーへの保存に失敗しました','warn');
-        });
-      } else {
-        serverDirHandle = null;
-        updateServerStatusUI();
-        showToast('社内サーバーの接続が切れました。再接続してください','warn');
-      }
-    });
-  }
+
 }
 function updateStorageDisplay(){
   try{
@@ -2351,42 +1695,6 @@ async function pullFromOd(silent=false){
   }catch(e){setSyncState('error');if(!silent)showToast('取得エラー: '+e.message,'err');}
 }
 async function silentPullFromOd(){ await pullFromOd(true); }
-// PCモード：OneDrive＋社内サーバーに同時保存（1ボタン保存）
-async function manualSaveAll(){
-  if(!currentProjectId){showToast('現場を選択してください','warn');return;}
-  let results = [];
-  // OneDriveへ
-  if(odEnabled && odAccessToken){
-    try{
-      await pushToOd();
-      results.push('OneDrive ✓');
-    }catch(e){
-      results.push('OneDrive ✗: '+e.message);
-      setSyncState('error');
-    }
-  }
-  // 社内サーバーへ
-  if(serverDirHandle){
-    const ok = await verifyServerDirHandle();
-    if(ok){
-      const result = await serverWriteFile(currentProjectId,'pins.json',{
-        pins,
-        saved_at:new Date().toISOString(),
-        project_name:currentProjectName,
-        saved_by:'pc'
-      });
-      if(result){ updateServerStatusUI(); results.push('社内サーバー ✓'); }
-      else results.push('社内サーバー ✗');
-    } else {
-      serverDirHandle = null;
-      updateServerStatusUI();
-      results.push('社内サーバー（未接続）');
-    }
-  } else {
-    results.push('社内サーバー（未選択）');
-  }
-  showToast('保存完了: '+results.join(' / '), results.some(r=>r.includes('✗'))?'warn':'ok');
-}
 async function manualSync(){
   if(!currentProjectId){showToast('現場を選択してください','warn');return;}
   if(!odEnabled||!odAccessToken){showToast('OneDriveに接続してください','warn');return;}
@@ -2395,7 +1703,7 @@ async function manualSync(){
 }
 function setSyncState(s){
   const dot=document.getElementById('syncDot'),lbl=document.getElementById('syncLabel');
-  if(!odEnabled){dot.className='sync-dot off';lbl.textContent='ローカル';return;}
+  if(!odEnabled){dot.className='sync-dot off';lbl.textContent='未接続';return;}
   if(s==='syncing'){dot.className='sync-dot syncing';lbl.textContent='同期中...';}
   else if(s==='error'){dot.className='sync-dot error';lbl.textContent='エラー';}
   else{dot.className='sync-dot';lbl.textContent='OneDrive';}
@@ -2457,8 +1765,6 @@ new ResizeObserver(()=>{
 function openSettings(){
   updateStorageDisplay();
   updateFolderLabels();
-  applyModeUI();
-  updateDirectoryLabels();
   const modal = document.getElementById('settings-modal');
   modal.classList.add('open');
   // iOS Safari スクロール修正
