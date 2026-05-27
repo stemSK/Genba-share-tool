@@ -891,6 +891,7 @@ let filterIncomplete=false, filterIncomplPc=false;
 let odEnabled=false, msalInstance=null, odAccessToken=null;
 let pollTimer=null; 
 let lastSyncedEtag = {};  // リアルタイム競合検知用
+let spDriveCache = null; // SharePoint driveId/itemIdキャッシュ
 
 // ══════════════════════════════════════
 //  AUTH: PIN
@@ -988,7 +989,8 @@ async function initMsal(){
         navigateToLoginRequestUrl:false,
       },
       cache:{
-        cacheLocation:'localStorage',
+        // Tracking Prevention対策: sessionStorageを使用
+        cacheLocation:'sessionStorage',
         storeAuthStateInCookie:true,
       },
     });
@@ -1272,6 +1274,23 @@ async function graphDownload(endpoint){
 //  共有リンクURL → Base64エンコード → /shares/{id}/driveItem
 // ══════════════════════════════════════
 
+// SharePoint driveInfo をキャッシュ付きで取得
+async function spGetDriveInfo(){
+  if(spDriveCache) return spDriveCache;
+  const shareUrl = getShareUrl();
+  if(!shareUrl) return null;
+  const token = encodeSharingUrl(shareUrl);
+  try{
+    const item = await graphRequest('GET', `/shares/${token}/driveItem`);
+    if(!item?.id) return null;
+    spDriveCache = {
+      driveId: item.parentReference?.driveId || null,
+      itemId: item.id
+    };
+    return spDriveCache;
+  }catch(e){ return null; }
+}
+
 // 現場フォルダ名に使えない文字を除去
 function getSafeFolderName(name){
   return (name||currentProjectId).replace(/[\\/:*?"<>|]/g,'_').trim() || currentProjectId;
@@ -1299,12 +1318,18 @@ function hasShareUrl(){
 async function spUpload(projectId, filename, data){
   const shareUrl = getShareUrl();
   if(!shareUrl) throw new Error('SharePoint共有URLが設定されていません');
-  const token = encodeSharingUrl(shareUrl);
   const rawName = (projectId === currentProjectId && currentProjectName)
     ? currentProjectName
     : (localStorage.getItem('project_name_'+projectId) || projectId);
   const projName = getSafeFolderName(rawName);
-  const url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  const info = await spGetDriveInfo();
+  let url;
+  if(info?.driveId && info?.itemId){
+    url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  } else {
+    const token = encodeSharingUrl(shareUrl);
+    url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  }
   return graphRequest('PUT', url, data);
 }
 
@@ -1312,12 +1337,18 @@ async function spUpload(projectId, filename, data){
 async function spDownload(projectId, filename){
   const shareUrl = getShareUrl();
   if(!shareUrl) return {data:null, etag:null};
-  const token = encodeSharingUrl(shareUrl);
   const rawName = (projectId === currentProjectId && currentProjectName)
     ? currentProjectName
     : (localStorage.getItem('project_name_'+projectId) || projectId);
   const projName = getSafeFolderName(rawName);
-  const url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  const info = await spGetDriveInfo();
+  let url;
+  if(info?.driveId && info?.itemId){
+    url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  } else {
+    const token = encodeSharingUrl(shareUrl);
+    url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  }
   const {text, etag} = await graphDownload(url);
   if(!text) return {data:null, etag:null};
   try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
@@ -1330,7 +1361,17 @@ async function spListProjects(){
   if(!shareUrl) return [];
   try{
     const token = encodeSharingUrl(shareUrl);
-    const res = await graphRequest('GET', `/shares/${token}/driveItem/children`);
+    // まずdriveItemのID・siteId・driveIdを取得（:f:/g/形式URLへの対応）
+    const item = await graphRequest('GET', `/shares/${token}/driveItem`);
+    if(!item?.id) return [];
+    // driveId があればそちら経由でchildren取得（より確実）
+    let res;
+    if(item.parentReference?.driveId){
+      res = await graphRequest('GET',
+        `/drives/${item.parentReference.driveId}/items/${item.id}/children`);
+    } else {
+      res = await graphRequest('GET', `/shares/${token}/driveItem/children`);
+    }
     if(!res?.value) return [];
     return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
@@ -1338,12 +1379,12 @@ async function spListProjects(){
 
 // 共有URLの接続確認
 async function checkShortcut(){
+  spDriveCache = null; // 接続確認時はキャッシュをリセット
   const shareUrl = getShareUrl();
   if(!shareUrl) return false;
   try{
-    const token = encodeSharingUrl(shareUrl);
-    const res = await graphRequest('GET', `/shares/${token}/driveItem`);
-    return !!(res?.id);
+    const info = await spGetDriveInfo();
+    return !!(info?.itemId);
   }catch(e){ return false; }
 }
 
