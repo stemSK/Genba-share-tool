@@ -641,6 +641,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
           <span class="si-arrow">›</span>
         </div>
+        <!-- SharePoint URL は常時表示 -->
+        <div class="si" onclick="promptShareUrl()">
+          <span class="sii">🔗</span>
+          <div class="si-body"><strong>SharePoint 共有URL</strong><span id="odShareLabel2">未設定</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="checkSharedFolder()">
+          <span class="sii">✅</span>
+          <div class="si-body"><strong>接続確認</strong><span id="sharedFolderStatus2">未確認</span></div>
+          <span class="si-arrow">›</span>
+        </div>
         <div id="od-settings-rows2">
           <div class="si" onclick="promptSharedBase()">
             <span class="sii">📁</span>
@@ -706,7 +717,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
       <div class="ss">
         <div class="ss-title">アプリ情報</div>
-        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v6.0</strong><span>PC/スマホ デュアルモード対応</span></div></div>
+        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v6.1</strong><span>PC/スマホ デュアルモード対応</span></div></div>
       </div>
       <!-- 詳細設定（一番下） -->
       <div class="ss">
@@ -779,6 +790,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="si" onclick="odLogin()">
         <span class="sii">🔑</span>
         <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <!-- SharePoint URL は常時表示（サインイン前でも設定可能） -->
+      <div class="si" onclick="promptShareUrl()">
+        <span class="sii">🔗</span>
+        <div class="si-body"><strong>SharePoint 共有URL</strong><span id="odShareLabel">未設定</span></div>
+        <span class="si-arrow">›</span>
+      </div>
+      <div class="si" onclick="checkSharedFolder()">
+        <span class="sii">✅</span>
+        <div class="si-body"><strong>接続確認</strong><span id="sharedFolderStatus">未確認</span></div>
         <span class="si-arrow">›</span>
       </div>
       <div id="od-settings-rows">
@@ -867,7 +889,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="ss-title">アプリ情報</div>
       <div class="si">
         <span class="sii">ℹ️</span>
-        <div class="si-body"><strong>現場情報共有ツール v6.0</strong><span>PC/スマホ デュアルモード対応</span></div>
+        <div class="si-body"><strong>現場情報共有ツール v6.1</strong><span>PC/スマホ デュアルモード対応</span></div>
       </div>
     </div>
 
@@ -1638,6 +1660,25 @@ function getBaseFolder(){
   } else {
     return localStorage.getItem('local_base_folder') || '現場情報共有ツール';
   }
+}
+
+// 共有フォルダ名を変更するダイアログ
+function promptSharedBase(){
+  const cur = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
+  const v = prompt('SharePoint上の共有フォルダ名を入力してください', cur);
+  if(v === null) return;
+  const name = v.trim() || '現場情報共有ツール';
+  localStorage.setItem('od_base_folder', name);
+  updateSharedBaseLabel();
+  showToast('共有フォルダ名を設定しました ✓', 'ok');
+}
+
+// 共有フォルダ名ラベルを更新
+function updateSharedBaseLabel(){
+  const name = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
+  ['sharedBaseLabel','sharedBaseLabel2'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.textContent=name;
+  });
 }
 
 // 共有URLラベルを更新（設定画面表示用）
