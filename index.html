@@ -1204,6 +1204,12 @@ function promptSharedBase(){
   showToast('共有フォルダ名を設定しました ✓', 'ok');
 }
 
+// フォルダラベル全体更新（updateOdUIから呼ばれる）
+function updateFolderLabels(){
+  updateShareLabel();
+  updateSharedBaseLabel();
+}
+
 // 共有フォルダ名ラベルを更新
 function updateSharedBaseLabel(){
   const name = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
@@ -1253,11 +1259,14 @@ async function checkSharedFolder(){
     }
   }catch(e){
     console.error('📡 接続エラー詳細:', e);
+    const msg = e.message.includes('403') ? 
+      '権限エラー(403)。F12コンソールを確認してください' :
+      'エラー: '+e.message.slice(0,60);
     ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
       const el=document.getElementById(id);
-      if(el) el.textContent = 'エラー: '+e.message;
+      if(el) el.textContent = msg;
     });
-    showToast('エラー: '+e.message, 'err');
+    showToast(msg, 'err');
   }
 }
 // ══════════════════════════════════════
@@ -1297,20 +1306,61 @@ async function graphDownload(endpoint){
 // ══════════════════════════════════════
 
 // SharePoint driveInfo をキャッシュ付きで取得
+// Files.ReadWrite スコープで動作するサイト直接アクセス方式
 async function spGetDriveInfo(){
   if(spDriveCache) return spDriveCache;
   const shareUrl = getShareUrl();
   if(!shareUrl) return null;
-  const token = encodeSharingUrl(shareUrl);
   try{
-    const item = await graphRequest('GET', `/shares/${token}/driveItem`);
-    if(!item?.id) return null;
+    // 方式A: /shares/{token} 経由（管理者同意不要のケースもある）
+    const token = encodeSharingUrl(shareUrl);
+    try{
+      const item = await graphRequest('GET', `/shares/${token}/driveItem?$select=id,parentReference,webUrl`);
+      if(item?.id){
+        spDriveCache = {
+          driveId: item.parentReference?.driveId || null,
+          itemId: item.id,
+          siteId: item.parentReference?.siteId || null,
+        };
+        console.log('✅ spGetDriveInfo (shares):', spDriveCache);
+        return spDriveCache;
+      }
+    }catch(e){ console.warn('shares API failed:', e.message); }
+
+    // 方式B: SharePointサイトURL直接指定（Files.ReadWrite で動作）
+    // stem365.sharepoint.com/:f:/g/... → hostname=stem365.sharepoint.com
+    const u = new URL(shareUrl);
+    const hostname = u.hostname; // stem365.sharepoint.com
+
+    // /sites/{hostname} のルートサイトのドライブを取得
+    const siteRes = await graphRequest('GET',
+      `/sites/${hostname}?$select=id`);
+    if(!siteRes?.id){ console.error('Site not found'); return null; }
+    const siteId = siteRes.id;
+
+    // ドキュメントライブラリ（ドライブ）一覧からSharePoint Documentsを取得
+    const drivesRes = await graphRequest('GET', `/sites/${siteId}/drives?$select=id,name,driveType`);
+    console.log('drives:', drivesRes?.value);
+    if(!drivesRes?.value?.length) return null;
+
+    // 最初のドキュメントライブラリを使用（通常は"Documents"）
+    const drive = drivesRes.value.find(d=>d.driveType==='documentLibrary') || drivesRes.value[0];
+
+    // ルートフォルダのアイテムIDを取得
+    const rootRes = await graphRequest('GET', `/drives/${drive.id}/root?$select=id`);
+    if(!rootRes?.id) return null;
+
     spDriveCache = {
-      driveId: item.parentReference?.driveId || null,
-      itemId: item.id
+      driveId: drive.id,
+      itemId: rootRes.id,
+      siteId: siteId,
     };
+    console.log('✅ spGetDriveInfo (site):', spDriveCache);
     return spDriveCache;
-  }catch(e){ return null; }
+  }catch(e){
+    console.error('spGetDriveInfo error:', e);
+    return null;
+  }
 }
 
 // 現場フォルダ名に使えない文字を除去
