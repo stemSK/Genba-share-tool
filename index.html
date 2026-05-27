@@ -841,6 +841,37 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <div class="toast" id="toast"></div>
 <input type="file" id="json-import-input" accept=".json" style="display:none" onchange="doImportJSON(this)">
 
+<!-- 描画エディタ -->
+<div id="draw-editor">
+  <div class="draw-toolbar">
+    <span class="draw-toolbar-title">✏️ 描画</span>
+    <button class="pen-btn active" id="pen-black" style="background:#000000;border:2px solid #fff" onclick="setPenColor('#000000',this)" title="黒"></button>
+    <button class="pen-btn" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
+    <button class="pen-btn" id="pen-blue" style="background:#3b8fd4" onclick="setPenColor('#3b8fd4',this)" title="青"></button>
+    <button class="pen-btn" id="pen-green" style="background:#2ea87e" onclick="setPenColor('#2ea87e',this)" title="緑"></button>
+    <button class="pen-btn" id="pen-white" style="background:#ffffff" onclick="setPenColor('#ffffff',this)" title="白"></button>
+    <button class="pen-btn" id="pen-eraser" style="background:#555;border:2px solid #888;font-size:13px;border-radius:8px;width:36px;" onclick="setPenColor('eraser',this)" title="消しゴム">消</button>
+    <div class="pen-size">
+      <span>太さ</span>
+      <input type="range" id="pen-size" min="1" max="30" value="4" oninput="updatePenSize(this.value)">
+      <span id="pen-size-val">4</span>
+    </div>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:auto;" onclick="undoDraw()">↩ 元に戻す</button>
+    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;color:var(--danger);" onclick="clearDraw()">🗑 クリア</button>
+    <button class="icon-btn" onclick="closeDrawEditor(false)" title="キャンセル">✕</button>
+  </div>
+  <div class="draw-canvas-wrap" id="draw-canvas-wrap">
+    <canvas id="draw-canvas"></canvas>
+  </div>
+  <div class="draw-actions">
+    <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+    </div>
+    </div>
+    <button class="btn btn-primary" style="flex-shrink:0;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
+  </div>
+</div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 
@@ -2521,36 +2552,6 @@ if(!checkSession()){
 }
 window.addEventListener('load',async()=>{ await initMsal(); });
 </script>
-<!-- 描画エディタ -->
-<div id="draw-editor">
-  <div class="draw-toolbar">
-    <span class="draw-toolbar-title">✏️ 描画</span>
-    <button class="pen-btn active" id="pen-black" style="background:#000000;border:2px solid #fff" onclick="setPenColor('#000000',this)" title="黒"></button>
-    <button class="pen-btn" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
-    <button class="pen-btn" id="pen-blue" style="background:#3b8fd4" onclick="setPenColor('#3b8fd4',this)" title="青"></button>
-    <button class="pen-btn" id="pen-green" style="background:#2ea87e" onclick="setPenColor('#2ea87e',this)" title="緑"></button>
-    <button class="pen-btn" id="pen-white" style="background:#ffffff" onclick="setPenColor('#ffffff',this)" title="白"></button>
-    <button class="pen-btn" id="pen-eraser" style="background:#555;border:2px solid #888;font-size:13px;border-radius:8px;width:36px;" onclick="setPenColor('eraser',this)" title="消しゴム">消</button>
-    <div class="pen-size">
-      <span>太さ</span>
-      <input type="range" id="pen-size" min="1" max="30" value="4" oninput="updatePenSize(this.value)">
-      <span id="pen-size-val">4</span>
-    </div>
-    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:auto;" onclick="undoDraw()">↩ 元に戻す</button>
-    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;color:var(--danger);" onclick="clearDraw()">🗑 クリア</button>
-    <button class="icon-btn" onclick="closeDrawEditor(false)" title="キャンセル">✕</button>
-  </div>
-  <div class="draw-canvas-wrap" id="draw-canvas-wrap">
-    <canvas id="draw-canvas"></canvas>
-  </div>
-  <div class="draw-actions">
-    <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-    </div>
-    </div>
-    <button class="btn btn-primary" style="flex-shrink:0;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
-  </div>
-</div>
 
 </body>
 </html>
