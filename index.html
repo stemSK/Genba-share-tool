@@ -558,6 +558,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
             <div class="si-body"><strong>共有フォルダ名</strong><span id="sharedBaseLabel2">現場情報共有ツール</span></div>
             <span class="si-arrow">›</span>
           </div>
+          <div class="si" onclick="promptManualDriveId()">
+            <span class="sii">🔧</span>
+            <div class="si-body"><strong>ドライブID（手動設定）</strong><span id="manualDriveLabel2">未設定（自動）</span></div>
+            <span class="si-arrow">›</span>
+          </div>
           <div class="si" onclick="manualSync()">
             <span class="sii">🔄</span>
             <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
@@ -659,6 +664,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <div class="si" onclick="promptSharedBase()">
           <span class="sii">📁</span>
           <div class="si-body"><strong>共有フォルダ名</strong><span id="sharedBaseLabel">現場情報共有ツール</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="promptManualDriveId()">
+          <span class="sii">🔧</span>
+          <div class="si-body"><strong>ドライブID（手動設定）</strong><span id="manualDriveLabel">未設定（自動）</span></div>
           <span class="si-arrow">›</span>
         </div>
         <div class="si" onclick="manualSync()">
@@ -848,10 +858,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     <canvas id="draw-canvas"></canvas>
   </div>
   <div class="draw-actions">
-    <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
-    </div>
-    </div>
+    <textarea class="draw-memo" id="draw-memo-text" placeholder="メモを入力（任意）" rows="2"></textarea>
     <button class="btn btn-primary" style="flex-shrink:0;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
   </div>
 </div>
@@ -872,7 +879,7 @@ const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
 
 // SP_BASE_FOLDERはlocalStorageから動的に取得（下のgetBaseFolderを使用）
 const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
-const SCOPES         = ['Files.ReadWrite', 'Sites.Read.All', 'User.Read'];
+const SCOPES         = ['Files.ReadWrite', 'User.Read'];
 const DEFAULT_PIN    = '0611';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -1193,6 +1200,41 @@ function getBaseFolder(){
   return localStorage.getItem('od_base_folder') || '現場情報共有ツール';
 }
 
+// DriveID手動入力ダイアログ（接続確認でドライブが見つからない場合の回避策）
+function promptManualDriveId(){
+  const cur = localStorage.getItem('sp_manual_drive_id') || '';
+  const v = prompt(
+    'ドライブIDを直接入力します（接続確認でドライブが見つからない場合）\n\n' +
+    '【取得方法①】まず「接続確認」を実行 → 成功すれば自動保存されます\n\n' +
+    '【取得方法②】Graph Explorerで手動取得:\n' +
+    '  https://developer.microsoft.com/graph/graph-explorer\n' +
+    '  にサインインして以下をGET:\n' +
+    '  /v1.0/sites/stem365.sharepoint.com/drives\n' +
+    '  → 表示される value[n].id をコピー\n\n' +
+    '現在の設定: ' + (cur || '未設定（自動検索）'),
+    cur
+  );
+  if(v === null) return;
+  const id = v.trim();
+  if(id){
+    localStorage.setItem('sp_manual_drive_id', id);
+    spDriveCache = null;
+    showToast('ドライブIDを設定しました ✓ 接続確認してください', 'ok');
+  } else {
+    localStorage.removeItem('sp_manual_drive_id');
+    spDriveCache = null;
+    showToast('ドライブIDをクリアしました（自動検索に戻します）', 'warn');
+  }
+  updateManualDriveLabel();
+}
+function updateManualDriveLabel(){
+  const v = localStorage.getItem('sp_manual_drive_id') || '';
+  const label = v ? v.slice(0,24)+'...' : '未設定（自動）';
+  ['manualDriveLabel','manualDriveLabel2'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.textContent = label;
+  });
+}
+
 // 共有フォルダ名を変更するダイアログ
 function promptSharedBase(){
   const cur = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
@@ -1208,6 +1250,7 @@ function promptSharedBase(){
 function updateFolderLabels(){
   updateShareLabel();
   updateSharedBaseLabel();
+  updateManualDriveLabel();
 }
 
 // 共有フォルダ名ラベルを更新
@@ -1228,39 +1271,43 @@ function updateShareLabel(){
 }
 
 // 共有フォルダの接続確認ボタン
+// spGetDriveInfo() の多段フォールバックを使い、
+// 成功時に見つかったdriveIdをUIに表示する
 async function checkSharedFolder(){
   if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
   if(!getShareUrl()){ showToast('先に共有URLを設定してください','warn'); promptShareUrl(); return; }
-  showToast('接続確認中...','warn');
+  showToast('接続確認中（全方式で試します）...','warn');
   spDriveCache = null; // キャッシュリセット
   try{
-    const shareUrl = getShareUrl();
-    const token = encodeSharingUrl(shareUrl);
-    console.log('📡 共有URL:', shareUrl);
-    console.log('📡 トークン:', token);
-    const endpoint = `/shares/${token}/driveItem`;
-    console.log('📡 APIエンドポイント:', GRAPH_BASE + endpoint);
-    const item = await graphRequest('GET', endpoint);
-    console.log('📡 driveItem応答:', item);
-    const ok = !!(item?.id);
+    // spGetDriveInfo() に全フォールバックを委ねる
+    const info = await spGetDriveInfo();
+    const ok = !!(info?.itemId);
+
     if(ok){
-      spDriveCache = { driveId: item.parentReference?.driveId||null, itemId: item.id };
-      console.log('📡 driveCache:', spDriveCache);
-    }
-    ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) el.textContent = ok ? '接続OK ✓' : '接続できません';
-    });
-    if(ok){
+      const driveShort = info.driveId ? info.driveId.slice(0,20)+'...' : '(不明)';
+      ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.textContent = `接続OK ✓ driveId: ${driveShort}`;
+      });
       showToast('SharePoint接続OK ✓','ok');
+      // 見つかったdriveIdを自動でlocalStorageに保存して次回以降も使えるようにする
+      if(info.driveId){
+        localStorage.setItem('sp_manual_drive_id', info.driveId);
+        updateManualDriveLabel();
+        showToast(`driveIdを自動保存しました ✓`, 'ok');
+      }
       if(!currentProjectId) setTimeout(openProjectScreen, 500);
     } else {
-      showToast('接続できません。F12コンソールでエラーを確認してください','err');
+      ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el) el.textContent = '接続できません（ドライブID手動設定を試してください）';
+      });
+      showToast('ドライブが見つかりません。「ドライブID手動設定」から直接入力してください','err');
     }
   }catch(e){
     console.error('📡 接続エラー詳細:', e);
-    const msg = e.message.includes('403') ? 
-      '権限エラー(403)。サインアウト→再サインインしてください（Sites.Read.All同意が必要）' :
+    const msg = e.message.includes('403') ?
+      '権限エラー(403)。ドライブIDを手動設定するか、共有URLを確認してください' :
       'エラー: '+e.message.slice(0,60);
     ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
       const el=document.getElementById(id);
@@ -1311,8 +1358,22 @@ async function spGetDriveInfo(){
   if(spDriveCache) return spDriveCache;
   const shareUrl = getShareUrl();
   if(!shareUrl) return null;
+
+  // 方式0: 手動設定のドライブIDがあればそれを使う（最優先）
+  const manualDriveId = localStorage.getItem('sp_manual_drive_id');
+  if(manualDriveId){
+    try{
+      const rootRes = await graphRequest('GET', `/drives/${manualDriveId}/root?$select=id`);
+      if(rootRes?.id){
+        spDriveCache = { driveId: manualDriveId, itemId: rootRes.id, siteId: null };
+        console.log('✅ spGetDriveInfo (manual driveId):', spDriveCache);
+        return spDriveCache;
+      }
+    }catch(e){ console.warn('manual driveId failed:', e.message); }
+  }
+
   try{
-    // 方式A: /shares/{token} 経由（管理者同意不要のケースもある）
+    // 方式A: /shares/{token} 経由（Files.ReadWrite で動作するケース）
     const token = encodeSharingUrl(shareUrl);
     try{
       const item = await graphRequest('GET', `/shares/${token}/driveItem?$select=id,parentReference,webUrl`);
@@ -1327,45 +1388,74 @@ async function spGetDriveInfo(){
       }
     }catch(e){ console.warn('shares API failed:', e.message); }
 
-    // 方式B: SharePointサイトURL直接指定（Sites.Read.All スコープで動作）
-    // stem365.sharepoint.com/:f:/g/... → hostname=stem365.sharepoint.com
+    // 方式B: /sites/root → 全サイト検索 → ドライブ照合
+    // /:f:/g/ 形式はルートサイトのドキュメントライブラリを指すが、
+    // /sites/{hostname} だけではドライブが見つからない場合がある
     const u = new URL(shareUrl);
-    const hostname = u.hostname; // stem365.sharepoint.com
+    const hostname = u.hostname;
 
-    // /sites/{hostname} のルートサイトを取得
-    const siteRes = await graphRequest('GET',
-      `/sites/${hostname}?$select=id,displayName,webUrl`);
-    if(!siteRes?.id){ console.error('Site not found'); return null; }
-    const siteId = siteRes.id;
-    console.log('✅ siteId:', siteId, siteRes.displayName);
+    // まずルートサイトのドライブを試す
+    let foundDrive = null;
+    let foundSiteId = null;
+    try{
+      const rootSite = await graphRequest('GET', `/sites/${hostname}?$select=id`);
+      if(rootSite?.id){
+        foundSiteId = rootSite.id;
+        const drivesRes = await graphRequest('GET',
+          `/sites/${rootSite.id}/drives?$select=id,name,driveType,webUrl`);
+        console.log('root site drives:', drivesRes?.value);
+        if(drivesRes?.value?.length){
+          foundDrive =
+            drivesRes.value.find(d => d.name === 'Documents' && d.driveType === 'documentLibrary') ||
+            drivesRes.value.find(d => d.driveType === 'documentLibrary') ||
+            drivesRes.value[0];
+        }
+      }
+    }catch(e){ console.warn('root site failed:', e.message); }
 
-    // ドキュメントライブラリ（ドライブ）一覧を取得（webUrlも含めて照合）
-    const drivesRes = await graphRequest('GET',
-      `/sites/${siteId}/drives?$select=id,name,driveType,webUrl`);
-    console.log('drives:', drivesRes?.value);
-    if(!drivesRes?.value?.length) return null;
+    // ルートサイトにドライブが無い場合 → /sites?search= で全サイトを検索
+    if(!foundDrive){
+      console.log('root site had no drives, searching all sites...');
+      try{
+        const sitesRes = await graphRequest('GET',
+          `/sites?$search=*&$select=id,displayName,webUrl&$top=20`);
+        console.log('all sites:', sitesRes?.value?.map(s=>s.displayName));
+        if(sitesRes?.value?.length){
+          for(const site of sitesRes.value){
+            try{
+              const drivesRes = await graphRequest('GET',
+                `/sites/${site.id}/drives?$select=id,name,driveType,webUrl`);
+              if(drivesRes?.value?.length){
+                const d =
+                  drivesRes.value.find(d => d.name === 'Documents' && d.driveType === 'documentLibrary') ||
+                  drivesRes.value.find(d => d.driveType === 'documentLibrary');
+                if(d){
+                  foundDrive = d;
+                  foundSiteId = site.id;
+                  console.log('✅ found drive in site:', site.displayName, d.name);
+                  break;
+                }
+              }
+            }catch(_){}
+          }
+        }
+      }catch(e){ console.warn('sites search failed:', e.message); }
+    }
 
-    // 共有URLのパスからドライブを特定:
-    // /:f:/g/ はルートの "Documents"（既定のドキュメントライブラリ）を指すことが多い
-    // webUrlで部分一致するものを優先し、なければ "Documents" → 最初のdocumentLibraryの順で選択
-    const urlPath = u.pathname.toLowerCase();
-    let drive =
-      drivesRes.value.find(d => d.webUrl && urlPath.startsWith(new URL(d.webUrl).pathname.toLowerCase())) ||
-      drivesRes.value.find(d => d.name === 'Documents' && d.driveType === 'documentLibrary') ||
-      drivesRes.value.find(d => d.driveType === 'documentLibrary') ||
-      drivesRes.value[0];
-    console.log('✅ selected drive:', drive?.name, drive?.id);
+    if(!foundDrive){
+      console.error('No drive found. Set drive ID manually.');
+      return null;
+    }
 
-    // ルートフォルダのアイテムIDを取得
-    const rootRes = await graphRequest('GET', `/drives/${drive.id}/root?$select=id`);
+    const rootRes = await graphRequest('GET', `/drives/${foundDrive.id}/root?$select=id`);
     if(!rootRes?.id) return null;
 
     spDriveCache = {
-      driveId: drive.id,
+      driveId: foundDrive.id,
       itemId: rootRes.id,
-      siteId: siteId,
+      siteId: foundSiteId,
     };
-    console.log('✅ spGetDriveInfo (site):', spDriveCache);
+    console.log('✅ spGetDriveInfo (site search):', spDriveCache);
     return spDriveCache;
   }catch(e){
     console.error('spGetDriveInfo error:', e);
@@ -2602,7 +2692,7 @@ function updatePenSize(v){
 
 function saveDrawing(){
   // メモをcanvasに描画
-
+  const memo = (document.getElementById('draw-memo-text')?.value || '').trim();
   if(memo){
     drawCtx.globalCompositeOperation='source-over';
     const lines = memo.split('\n');
@@ -2632,6 +2722,8 @@ function saveDrawing(){
 
 function closeDrawEditor(saved){
   document.getElementById('draw-editor').classList.remove('open');
+  const memoEl = document.getElementById('draw-memo-text');
+  if(memoEl) memoEl.value = '';
   drawCanvas.onmousedown = null;
   drawCanvas.onmousemove = null;
   drawCanvas.onmouseup = null;
