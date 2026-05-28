@@ -895,7 +895,7 @@ let lastX=0, lastY=0, mapScale=1, mapOffX=0, mapOffY=0, pinchDist=0;
 let editingId=null, pendingX=0, pendingY=0;
 let currentPhotos=[], doneState=false, currentDiv='施工';
 let filterIncomplete=false, filterIncomplPc=false;
-let odEnabled=false, msalInstance=null, odAccessToken=null;
+let odEnabled=false, msalInstance=null, odAccessToken=null, spAccessToken=null;
 let pollTimer=null; 
 let lastSyncedEtag = {};  // リアルタイム競合検知用
 let spDriveCache = null; // SharePoint driveId/itemIdキャッシュ
@@ -1092,6 +1092,24 @@ async function silentAcquireToken(){
     updateOdUI();
   }
 }
+// SharePoint REST API用トークンを取得（audience: stem365.sharepoint.com）
+async function ensureSpToken(){
+  if(spAccessToken) return spAccessToken;
+  if(!msalInstance) return null;
+  try{
+    const accounts = msalInstance.getAllAccounts();
+    if(!accounts.length) return null;
+    const SP_SCOPES = ['https://stem365.sharepoint.com/.default'];
+    const resp = await msalInstance.acquireTokenSilent({scopes: SP_SCOPES, account: accounts[0]});
+    spAccessToken = resp.accessToken;
+    console.log('✅ SP token acquired');
+    return spAccessToken;
+  }catch(e){
+    console.warn('SP token failed:', e.message);
+    return null;
+  }
+}
+
 async function odLogin(){
   try{
     await waitForMsal();
@@ -1376,8 +1394,9 @@ async function spGetDriveInfo(){
     // Graph APIが失敗した場合 → SharePoint REST v2.0 で root itemId を取得
     try{
       const spBase = getShareUrl() ? new URL(getShareUrl()).origin : 'https://stem365.sharepoint.com';
+      const spTok = await ensureSpToken() || odAccessToken;
       const resp = await fetch(`${spBase}/_api/v2.0/drives/${encodeURIComponent(manualDriveId)}/root?$select=id`, {
-        headers: { 'Authorization': 'Bearer ' + odAccessToken, 'Accept': 'application/json' }
+        headers: { 'Authorization': 'Bearer ' + spTok, 'Accept': 'application/json' }
       });
       if(resp.ok){
         const data = await resp.json();
@@ -1533,12 +1552,13 @@ async function spUpload(projectId, filename, data){
   if(info?.driveId){
     try{
       const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
+      const spTok = await ensureSpToken() || odAccessToken;
       const resp = await fetch(
         `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
         {
           method: 'PUT',
           headers: {
-            'Authorization': 'Bearer ' + odAccessToken,
+            'Authorization': 'Bearer ' + spTok,
             'Content-Type': 'application/json',
           },
           body: typeof data === 'string' ? data : JSON.stringify(data),
@@ -1575,9 +1595,10 @@ async function spDownload(projectId, filename){
   if(info?.driveId){
     try{
       const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
+      const spTok = await ensureSpToken() || odAccessToken;
       const resp = await fetch(
         `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
-        { headers: { 'Authorization': 'Bearer ' + odAccessToken } }
+        { headers: { 'Authorization': 'Bearer ' + spTok } }
       );
       if(resp.ok){
         const text = await resp.text();
