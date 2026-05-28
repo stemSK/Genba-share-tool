@@ -849,13 +849,17 @@ async function init(){
   if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
   currentFileName = localStorage.getItem('current_file_name') || '';
   updateHeaderProject();
-  loadData();
+  // 図面を復元
+  const savedMap = currentProjectId ? localStorage.getItem('map_img_'+currentProjectId) : null;
+  if(savedMap) showMapImage(savedMap);
+  // ピンを復元
+  try{ pins = JSON.parse(localStorage.getItem('pins_'+currentProjectId)||'[]'); }catch{ pins=[]; }
   renderPins();
   updateStorageDisplay();
   applyLayout();
 
   // 起動時ポップアップを表示
-  showStartupModal();
+  setTimeout(showStartupModal, 300);
 
   document.addEventListener('keydown',e=>{ if(/^[0-9]$/.test(e.key)){}; });
 }
@@ -906,9 +910,12 @@ function doStartupLoad(input){
       if(d.map_image){
         localStorage.setItem('map_img_'+currentProjectId, d.map_image);
         if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
+        showMapImage(d.map_image);
+        const mn = document.getElementById('currentMapName');
+        if(mn) mn.textContent = d.map_name || currentProjectName;
       }
       updateHeaderProject();
-      loadData();
+      try{ pins = d.pins || []; localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins)); }catch{ pins=[]; }
       renderAll();
       updateStorageDisplay();
       document.getElementById('startup-modal').style.display = 'none';
@@ -2353,8 +2360,12 @@ function doImportJSON(input){
           localStorage.setItem('map_img_'+currentProjectId, d.map_image);
           if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
           showMapImage(d.map_image);
-          document.getElementById('currentMapName').textContent = d.map_name || currentProjectId;
+          const mn = document.getElementById('currentMapName');
+          if(mn) mn.textContent = d.map_name || currentProjectName;
         }
+        pins = d.pins || [];
+        localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
+        updateHeaderProject();
         renderAll(); updateStorageDisplay();
         currentFileName = file.name;
         localStorage.setItem('current_file_name', file.name);
