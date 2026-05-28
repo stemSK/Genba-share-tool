@@ -1360,16 +1360,36 @@ async function spGetDriveInfo(){
   if(!shareUrl) return null;
 
   // 方式0: 手動設定のドライブIDがあればそれを使う（最優先）
+  // b!xxx... 形式のSharePoint driveIdはGraph /drives/ でもSP REST v2.0でも使える
   const manualDriveId = localStorage.getItem('sp_manual_drive_id');
   if(manualDriveId){
+    // まずGraph API /drives/{id}/root を試す
     try{
       const rootRes = await graphRequest('GET', `/drives/${manualDriveId}/root?$select=id`);
       if(rootRes?.id){
         spDriveCache = { driveId: manualDriveId, itemId: rootRes.id, siteId: null };
-        console.log('✅ spGetDriveInfo (manual driveId):', spDriveCache);
+        console.log('✅ spGetDriveInfo (manual driveId via graph):', spDriveCache);
         return spDriveCache;
       }
-    }catch(e){ console.warn('manual driveId failed:', e.message); }
+    }catch(e){ console.warn('manual driveId graph failed:', e.message); }
+
+    // Graph APIが失敗した場合 → SharePoint REST v2.0 で root itemId を取得
+    try{
+      const spBase = getShareUrl() ? new URL(getShareUrl()).origin : 'https://stem365.sharepoint.com';
+      const resp = await fetch(`${spBase}/_api/v2.0/drives/${encodeURIComponent(manualDriveId)}/root?$select=id`, {
+        headers: { 'Authorization': 'Bearer ' + odAccessToken, 'Accept': 'application/json' }
+      });
+      if(resp.ok){
+        const data = await resp.json();
+        if(data?.id){
+          spDriveCache = { driveId: manualDriveId, itemId: data.id, siteId: null };
+          console.log('✅ spGetDriveInfo (manual driveId via SP REST v2.0):', spDriveCache);
+          return spDriveCache;
+        }
+      } else {
+        console.warn('SP REST v2.0 root failed:', resp.status, await resp.text());
+      }
+    }catch(e){ console.warn('manual driveId SP REST failed:', e.message); }
   }
 
   try{
@@ -1507,6 +1527,29 @@ async function spUpload(projectId, filename, data){
     : (localStorage.getItem('project_name_'+projectId) || projectId);
   const projName = getSafeFolderName(rawName);
   const info = await spGetDriveInfo();
+  const spBase = shareUrl ? new URL(shareUrl).origin : 'https://stem365.sharepoint.com';
+
+  // SP REST v2.0 でアップロード（b!形式driveIdはGraph /drives/ で403になる場合がある）
+  if(info?.driveId){
+    try{
+      const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
+      const resp = await fetch(
+        `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + odAccessToken,
+            'Content-Type': 'application/json',
+          },
+          body: typeof data === 'string' ? data : JSON.stringify(data),
+        }
+      );
+      if(resp.ok){ console.log('✅ spUpload (SP REST v2.0):', filename); return await resp.json(); }
+      console.warn('SP REST v2.0 upload failed:', resp.status, await resp.text());
+    }catch(e){ console.warn('SP REST v2.0 upload error:', e.message); }
+  }
+
+  // フォールバック: Graph API
   let url;
   if(info?.driveId && info?.itemId){
     url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
@@ -1526,6 +1569,27 @@ async function spDownload(projectId, filename){
     : (localStorage.getItem('project_name_'+projectId) || projectId);
   const projName = getSafeFolderName(rawName);
   const info = await spGetDriveInfo();
+  const spBase = shareUrl ? new URL(shareUrl).origin : 'https://stem365.sharepoint.com';
+
+  // SP REST v2.0 でダウンロード
+  if(info?.driveId){
+    try{
+      const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
+      const resp = await fetch(
+        `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
+        { headers: { 'Authorization': 'Bearer ' + odAccessToken } }
+      );
+      if(resp.ok){
+        const text = await resp.text();
+        const etag = resp.headers.get('ETag') || null;
+        try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
+      }
+      if(resp.status === 404) return {data:null, etag:null};
+      console.warn('SP REST v2.0 download failed:', resp.status);
+    }catch(e){ console.warn('SP REST v2.0 download error:', e.message); }
+  }
+
+  // フォールバック: Graph API
   let url;
   if(info?.driveId && info?.itemId){
     url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
