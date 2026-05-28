@@ -477,8 +477,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
-          <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>全データを保存</span></div></div>
-          <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONから復元</span></div></div>
+          <div class="export-item" onclick="exportJSON()"><span class="ei">📤</span><div><strong>データ出力</strong><span>現場名.json でダウンロード</span></div></div>
+          <div class="export-item" onclick="importJSON()"><span class="ei">📥</span><div><strong>データ読込</strong><span>別端末からのファイルを開く</span></div></div>
         </div>
       </div>
     </div>
@@ -519,8 +519,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
-          <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>全データを保存</span></div></div>
-          <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONから復元</span></div></div>
+          <div class="export-item" onclick="exportJSON()"><span class="ei">📤</span><div><strong>データ出力</strong><span>現場名.json でダウンロード</span></div></div>
+          <div class="export-item" onclick="importJSON()"><span class="ei">📥</span><div><strong>データ読込</strong><span>別端末からのファイルを開く</span></div></div>
         </div>
       </div>
     </div>
@@ -528,65 +528,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <!-- 設定（PC右ペイン） -->
   <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
     <div style="display:flex;flex-direction:column;gap:10px;padding:12px 12px 40px;">
-      <!-- OneDrive / 同期設定（集約） -->
       <div class="ss">
-        <div class="ss-title">☁️ SharePoint / 同期設定</div>
-        <div class="si">
-          <span class="sii">🔗</span>
-          <div class="si-body"><strong>SharePoint同期モード</strong><span id="odModeText2">OFF（ローカル）</span></div>
-          <div class="toggle" id="odModeToggle2" onclick="toggleOdMode()" style="flex-shrink:0"></div>
-        </div>
-        <div class="si" onclick="odLogin()">
-          <span class="sii">🔑</span>
-          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <!-- SharePoint URL は常時表示 -->
-        <div class="si" onclick="promptShareUrl()">
-          <span class="sii">🔗</span>
-          <div class="si-body"><strong>SharePoint 共有URL</strong><span id="odShareLabel2">未設定</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <div class="si" onclick="checkSharedFolder()">
-          <span class="sii">✅</span>
-          <div class="si-body"><strong>接続確認</strong><span id="sharedFolderStatus2">未確認</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <div id="od-settings-rows2">
-          <div class="si" onclick="promptSharedBase()">
-            <span class="sii">📁</span>
-            <div class="si-body"><strong>共有フォルダ名</strong><span id="sharedBaseLabel2">現場情報共有ツール</span></div>
-            <span class="si-arrow">›</span>
-          </div>
-          <div class="si" onclick="promptManualDriveId()">
-            <span class="sii">🔧</span>
-            <div class="si-body"><strong>ドライブID（手動設定）</strong><span id="manualDriveLabel2">未設定（自動）</span></div>
-            <span class="si-arrow">›</span>
-          </div>
-          <div class="si" onclick="manualSync()">
-            <span class="sii">🔄</span>
-            <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
-            <span class="si-arrow">›</span>
-          </div>
-          <div class="si" onclick="pullFromOd(false)">
-            <span class="sii">⬇️</span>
-            <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
-            <span class="si-arrow">›</span>
-          </div>
-        </div>
-        <div class="si" onclick="odLogout()">
-          <span class="sii">🚪</span>
-          <div class="si-body"><strong>サインアウト</strong></div>
-          <span class="si-arrow">›</span>
-        </div>
-      </div>
-      <div class="ss">
-        <div class="ss-title">📁 現在の現場</div>
-        <div class="si" onclick="openProjectScreen()">
-          <span class="sii">🔄</span>
-          <div class="si-body"><strong>現場切替</strong><span id="settingsProjectLabel2">未選択</span></div>
-          <span class="si-arrow">›</span>
-        </div>
+        <div class="ss-title">📁 現場</div>
         <div class="si" onclick="renameProject()">
           <span class="sii">✏️</span>
           <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName2">-</span></div>
@@ -607,15 +550,17 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
       </div>
       <div class="ss">
-        <div class="ss-title">ピンデータ管理</div>
+        <div class="ss-title">データ管理</div>
         <div class="si"><span class="sii">📦</span><div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt2">計算中...</span></div></div>
-        <div class="si" onclick="exportJSON()"><span class="sii">💾</span><div class="si-body"><strong>JSONバックアップ</strong></div><span class="si-arrow">›</span></div>
-        <div class="si" onclick="importJSON()"><span class="sii">📂</span><div class="si-body"><strong>データ読み込み</strong></div><span class="si-arrow">›</span></div>
+        <div style="display:flex;gap:8px;padding:4px 12px 8px;">
+          <button class="btn btn-primary" style="flex:1;padding:14px 8px;font-size:14px;border-radius:10px;" onclick="exportJSON()">📤 データ出力</button>
+          <button class="btn btn-secondary" style="flex:1;padding:14px 8px;font-size:14px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
+        </div>
         <div class="si" onclick="clearPins()"><span class="sii">🗑️</span><div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div><span class="si-arrow">›</span></div>
       </div>
       <div class="ss">
         <div class="ss-title">アプリ情報</div>
-        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v7.0</strong><span>SharePoint 共有フォルダ連携</span></div></div>
+        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v7.0</strong></div></div>
       </div>
       <!-- 詳細設定（一番下） -->
       <div class="ss">
@@ -636,66 +581,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   </div>
   <div class="settings-scroll">
 
-    <!-- OneDrive / 同期設定（集約） -->
     <div class="ss">
-      <div class="ss-title">☁️ SharePoint / 同期設定</div>
-      <div class="si">
-        <span class="sii">🔗</span>
-        <div class="si-body"><strong>SharePoint同期モード</strong><span id="odModeText">OFF（ローカル）</span></div>
-        <div class="toggle" id="odModeToggle" onclick="toggleOdMode()" style="flex-shrink:0"></div>
-      </div>
-      <div class="si" onclick="odLogin()">
-        <span class="sii">🔑</span>
-        <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus">未サインイン</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <!-- SharePoint URL は常時表示（サインイン前でも設定可能） -->
-      <div class="si" onclick="promptShareUrl()">
-        <span class="sii">🔗</span>
-        <div class="si-body"><strong>SharePoint 共有URL</strong><span id="odShareLabel">未設定</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <div class="si" onclick="checkSharedFolder()">
-        <span class="sii">✅</span>
-        <div class="si-body"><strong>接続確認</strong><span id="sharedFolderStatus">未確認</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <div id="od-settings-rows">
-        <div class="si" onclick="promptSharedBase()">
-          <span class="sii">📁</span>
-          <div class="si-body"><strong>共有フォルダ名</strong><span id="sharedBaseLabel">現場情報共有ツール</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <div class="si" onclick="promptManualDriveId()">
-          <span class="sii">🔧</span>
-          <div class="si-body"><strong>ドライブID（手動設定）</strong><span id="manualDriveLabel">未設定（自動）</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <div class="si" onclick="manualSync()">
-          <span class="sii">🔄</span>
-          <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-        <div class="si" onclick="pullFromOd(false)">
-          <span class="sii">⬇️</span>
-          <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
-          <span class="si-arrow">›</span>
-        </div>
-      </div>
-      <div class="si" onclick="odLogout()">
-        <span class="sii">🚪</span>
-        <div class="si-body"><strong>サインアウト</strong></div>
-        <span class="si-arrow">›</span>
-      </div>
-    </div>
-
-    <div class="ss">
-      <div class="ss-title">📁 現在の現場</div>
-      <div class="si" onclick="openProjectScreen();closeSettings();">
-        <span class="sii">🔄</span>
-        <div class="si-body"><strong>現場切替</strong><span id="settingsProjectLabel">未選択</span></div>
-        <span class="si-arrow">›</span>
-      </div>
+      <div class="ss-title">📁 現場</div>
       <div class="si" onclick="renameProject()">
         <span class="sii">✏️</span>
         <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName">-</span></div>
@@ -718,20 +605,14 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     </div>
 
     <div class="ss">
-      <div class="ss-title">ピンデータ管理</div>
+      <div class="ss-title">データ管理</div>
       <div class="si">
         <span class="sii">📦</span>
         <div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt">計算中...</span></div>
       </div>
-      <div class="si" onclick="exportJSON()">
-        <span class="sii">💾</span>
-        <div class="si-body"><strong>📤 現場データを書き出す</strong><span>現場名.json でダウンロード</span></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <div class="si" onclick="importJSON()">
-        <span class="sii">📂</span>
-        <div class="si-body"><strong>📥 現場データを読み込む</strong><span>別端末からのファイルを開く</span></div>
-        <span class="si-arrow">›</span>
+      <div style="display:flex;gap:8px;padding:4px 12px 8px;">
+        <button class="btn btn-primary" style="flex:1;padding:14px 8px;font-size:15px;border-radius:10px;" onclick="exportJSON()">📤 データ出力</button>
+        <button class="btn btn-secondary" style="flex:1;padding:14px 8px;font-size:15px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
       </div>
       <div class="si" onclick="clearPins()">
         <span class="sii">🗑️</span>
@@ -1704,90 +1585,14 @@ async function renameProject(){
   if(!currentProjectId){showToast('現場を選択してください','warn');return;}
   const newName=prompt('新しい現場名を入力',currentProjectName);
   if(!newName?.trim()||newName===currentProjectName)return;
-  const oldName = currentProjectName;
-  const oldSafeName = getSafeFolderName(oldName);
-  const newSafeName = getSafeFolderName(newName.trim());
-
-  // ローカルを先に更新
   currentProjectName = newName.trim();
   localStorage.setItem('last_project_name', currentProjectName);
   localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
   updateHeaderProject();
-
-  if(odEnabled && odAccessToken){
-    try{
-      showToast('SharePointのフォルダ名を変更中...','warn');
-      const shareUrl = getShareUrl();
-      if(!shareUrl) throw new Error('共有URLが設定されていません');
-      const token = encodeSharingUrl(shareUrl);
-
-      // 旧フォルダのitemIdを取得
-      const oldItem = await graphRequest('GET',
-        `/shares/${token}/driveItem:/${encodeURIComponent(oldSafeName)}`
-      ).catch(()=>null);
-
-      if(oldItem?.id){
-        // PATCH でフォルダ名をリネーム（中身はそのまま）
-        await graphRequest('PATCH', `/me/drive/items/${oldItem.id}`, { name: newSafeName });
-        // config.jsonのnameフィールドも更新
-        const cfg = await spGetProjectConfig(currentProjectId) || {};
-        await spSaveProjectConfig(currentProjectId, {...cfg, name: currentProjectName, updated: new Date().toISOString()});
-        showToast('現場名を変更しました ✓','ok');
-      } else {
-        // フォルダがまだ存在しない場合は新規作成扱い（初回アップロード）
-        await spSaveProjectConfig(currentProjectId, {name: currentProjectName, updated: new Date().toISOString()});
-        showToast('現場名を変更しました ✓','ok');
-      }
-    }catch(e){
-      showToast('OneDrive更新エラー: '+e.message,'err');
-    }
-  } else {
-    showToast('現場名を変更しました ✓','ok');
-  }
-
-  document.getElementById('settingsProjectName').textContent = currentProjectName;
-  document.getElementById('settingsProjectLabel').textContent = currentProjectName||currentProjectId||'未選択';
-  const n2=document.getElementById('settingsProjectName2'); if(n2) n2.textContent = currentProjectName;
-  const l2=document.getElementById('settingsProjectLabel2'); if(l2) l2.textContent = currentProjectName||currentProjectId||'未選択';
+  updateFolderLabels();
+  showToast(`現場名を「${currentProjectName}」に変更しました`,'ok');
 }
 
-// ══════════════════════════════════════
-//  STORAGE (localStorage)
-// ══════════════════════════════════════
-function loadData(){
-  if(!currentProjectId){pins=[];return;}
-  try{ pins=JSON.parse(localStorage.getItem('pins_'+currentProjectId)||'[]'); }catch{pins=[];}
-  const img=localStorage.getItem('map_img_'+currentProjectId);
-  if(img) showMapImage(img);
-  else { document.getElementById('mapImg').style.display='none'; document.getElementById('mapPlaceholder').style.display='flex'; }
-  const mapName=localStorage.getItem('map_name_'+currentProjectId);
-  document.getElementById('currentMapName').textContent=mapName||'PNG・JPG・PDF・HEIC対応';
-}
-function saveData(){
-  if(!currentProjectId) return;
-  localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
-  updateStorageDisplay();
-  if(odEnabled && odAccessToken){
-    autoSyncToOd();
-  }
-
-}
-function updateStorageDisplay(){
-  try{
-    let total=0;
-    for(let i=0;i<localStorage.length;i++) total+=(localStorage.key(i).length+(localStorage.getItem(localStorage.key(i))||'').length)*2;
-    const kb=Math.round(total/1024);
-    const txt=kb>=1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
-    ['storageDetailTxt','storageDetailTxt2'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) el.textContent=`ローカル使用量: ${txt}`;
-    });
-  }catch(e){}
-}
-
-// ══════════════════════════════════════
-//  同期 (OneDrive)
-// ══════════════════════════════════════
 async function autoSyncToOd(){
   if(!odEnabled||!odAccessToken||!currentProjectId)return;
   try{ await pushToOd(); }catch(e){console.warn('AutoSync:',e);}
