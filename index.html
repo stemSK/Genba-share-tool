@@ -552,9 +552,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="ss">
         <div class="ss-title">データ管理</div>
         <div class="si"><span class="sii">📦</span><div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt2">計算中...</span></div></div>
-        <div style="display:flex;gap:8px;padding:4px 12px 8px;">
-          <button class="btn btn-primary" style="flex:1;padding:14px 8px;font-size:14px;border-radius:10px;" onclick="exportJSON()">📤 データ出力</button>
-          <button class="btn btn-secondary" style="flex:1;padding:14px 8px;font-size:14px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
+        <div style="display:flex;flex-direction:column;gap:8px;padding:4px 12px 8px;">
+          <button class="btn btn-secondary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
+          <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;" onclick="saveOverwrite()">💾 データ保存</button>
+          <button class="btn" style="width:100%;padding:12px;font-size:14px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 データをファイルに出力</button>
         </div>
         <div class="si" onclick="clearPins()"><span class="sii">🗑️</span><div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div><span class="si-arrow">›</span></div>
       </div>
@@ -610,9 +611,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <span class="sii">📦</span>
         <div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt">計算中...</span></div>
       </div>
-      <div style="display:flex;gap:8px;padding:4px 12px 8px;">
-        <button class="btn btn-primary" style="flex:1;padding:14px 8px;font-size:15px;border-radius:10px;" onclick="exportJSON()">📤 データ出力</button>
-        <button class="btn btn-secondary" style="flex:1;padding:14px 8px;font-size:15px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:4px 12px 8px;">
+        <button class="btn btn-secondary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
+        <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="saveOverwrite()">💾 データ保存</button>
+        <button class="btn" style="width:100%;padding:14px;font-size:15px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 データをファイルに出力</button>
       </div>
       <div class="si" onclick="clearPins()">
         <span class="sii">🗑️</span>
@@ -778,6 +780,7 @@ const ITEMS_BY_DIV   = {
 //  STATE
 // ══════════════════════════════════════
 let pins = [], currentProjectId = '', currentProjectName = '';
+let currentFileName = ''; // 読み込んだファイル名（上書き保存用）
 let addMode=false, moveMode=false, isDragging=false;
 let lastX=0, lastY=0, mapScale=1, mapOffX=0, mapOffY=0, pinchDist=0;
 let editingId=null, pendingX=0, pendingY=0;
@@ -839,28 +842,83 @@ function changePinPrompt(){
 //  INIT
 // ══════════════════════════════════════
 async function init(){
-  // MSALを初期化してサインイン状態を復元
   await initMsal();
 
   // 前回のプロジェクトを復元
   const lastPj = localStorage.getItem('last_project_id');
   if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
+  currentFileName = localStorage.getItem('current_file_name') || '';
   updateHeaderProject();
   loadData();
   renderPins();
   updateStorageDisplay();
   applyLayout();
 
-  // サインイン済みなら同期開始
-  if(odEnabled && odAccessToken){
-    if(currentProjectId) silentPullFromOd();
-    startPolling();
-  }
-  // プロジェクト未選択なら選択画面へ
-  if(!currentProjectId && odEnabled && odAccessToken){
-    setTimeout(openProjectScreen, 800);
-  }
+  // 起動時ポップアップを表示
+  showStartupModal();
+
   document.addEventListener('keydown',e=>{ if(/^[0-9]$/.test(e.key)){}; });
+}
+
+function showStartupModal(){
+  const modal = document.getElementById('startup-modal');
+  const info = document.getElementById('startup-prev-info');
+  const continueBtn = document.getElementById('startup-continue-btn');
+  const hasPrev = !!(currentProjectName || pins.length);
+
+  if(hasPrev){
+    const fname = currentFileName || (currentProjectName + '.json');
+    info.textContent = `「${currentProjectName || '無題'}」(${pins.length}件) が保存されています`;
+    continueBtn.style.display = '';
+  } else {
+    info.textContent = '保存されたデータがありません';
+    continueBtn.style.display = 'none';
+  }
+  modal.style.display = 'flex';
+}
+
+function startupContinue(){
+  document.getElementById('startup-modal').style.display = 'none';
+}
+
+function startupLoad(){
+  document.getElementById('startup-file-input').click();
+}
+
+function doStartupLoad(input){
+  const file = input.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try{
+      const d = JSON.parse(e.target.result);
+      // 現場データを読み込む
+      currentProjectName = d.project_name || d.project_id || file.name.replace('.json','');
+      currentProjectId = d.project_id || ('proj_' + Date.now());
+      currentFileName = file.name;
+      localStorage.setItem('last_project_id', currentProjectId);
+      localStorage.setItem('last_project_name', currentProjectName);
+      localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
+      localStorage.setItem('current_file_name', currentFileName);
+      if(d.pins){
+        pins = d.pins;
+        localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
+      }
+      if(d.map_image){
+        localStorage.setItem('map_img_'+currentProjectId, d.map_image);
+        if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
+      }
+      updateHeaderProject();
+      loadData();
+      renderAll();
+      updateStorageDisplay();
+      document.getElementById('startup-modal').style.display = 'none';
+      showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`, 'ok');
+    }catch(err){
+      showToast('読み込みエラー: ファイルが壊れています','err');
+    }
+    input.value = '';
+  };
+  r.readAsText(file);
 }
 
 // ══════════════════════════════════════
@@ -2221,6 +2279,24 @@ function exportCSV(){
   dl(`pins_${currentProjectId}_${now()}.csv`,csv,'text/csv');
   showToast('CSV出力しました','ok');
 }
+function saveOverwrite(){
+  if(!currentProjectId){ showToast('データがありません','warn'); return; }
+  const safeName = (currentProjectName||currentProjectId).replace(/[\\/:*?"<>|]/g,'_');
+  const fname = currentFileName || (safeName + '.json');
+  const data = {
+    project_id: currentProjectId,
+    project_name: currentProjectName,
+    exported: new Date().toISOString(),
+    map_name: localStorage.getItem('map_name_'+currentProjectId),
+    map_image: localStorage.getItem('map_img_'+currentProjectId),
+    pins,
+  };
+  dl(fname, JSON.stringify(data, null, 2), 'application/json');
+  localStorage.setItem('current_file_name', fname);
+  currentFileName = fname;
+  showToast(`「${fname}」に保存しました`, 'ok');
+}
+
 function exportJSON(){
   if(!currentProjectId){ showToast('現場を選択してください','warn'); return; }
   const safeName = (currentProjectName||currentProjectId).replace(/[\\/:*?"<>|]/g,'_');
@@ -2280,6 +2356,8 @@ function doImportJSON(input){
           document.getElementById('currentMapName').textContent = d.map_name || currentProjectId;
         }
         renderAll(); updateStorageDisplay();
+        currentFileName = file.name;
+        localStorage.setItem('current_file_name', file.name);
         showToast(`${pinCount}件を読み込みました`, 'ok');
       }
     }catch(err){ console.error(err); showToast('読み込みエラー: ファイルが壊れています','err'); }
