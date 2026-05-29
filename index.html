@@ -853,15 +853,11 @@ async function init(){
     currentProjectName = localStorage.getItem('last_project_name') || lastPj;
   }
   currentFileName = localStorage.getItem('current_file_name') || '';
-  try{ pins = JSON.parse(localStorage.getItem('pins_'+currentProjectId)||'[]'); }catch{ pins=[]; }
   updateHeaderProject();
+  loadData();
   renderPins();
   updateStorageDisplay();
   applyLayout();
-
-  // 図面を復元
-  const savedMap = currentProjectId ? localStorage.getItem('map_img_'+currentProjectId) : null;
-  if(savedMap) showMapImage(savedMap);
 
   // 起動時ポップアップ
   showStartupModal();
@@ -884,6 +880,14 @@ function showStartupModal(){
 }
 
 function startupContinue(){
+  // currentProjectIdが未設定の場合はデフォルトを設定
+  if(!currentProjectId){
+    currentProjectId = 'default';
+    currentProjectName = '現場';
+    localStorage.setItem('last_project_id', currentProjectId);
+    localStorage.setItem('last_project_name', currentProjectName);
+    updateHeaderProject();
+  }
   const modal = document.getElementById('startup-modal');
   if(modal) modal.style.display = 'none';
 }
@@ -1919,6 +1923,22 @@ function renderPcSettings(){
 }
 function isPC(){return window.innerWidth>=900;}
 function applyLayout(){ if(isPC()){switchPcTab('report');} }
+function loadData(){
+  if(!currentProjectId){pins=[];return;}
+  try{ pins=JSON.parse(localStorage.getItem('pins_'+currentProjectId)||'[]'); }catch{pins=[];}
+  const img=localStorage.getItem('map_img_'+currentProjectId);
+  if(img) showMapImage(img);
+  else { document.getElementById('mapImg').style.display='none'; document.getElementById('mapPlaceholder').style.display='flex'; }
+  const mapName=localStorage.getItem('map_name_'+currentProjectId);
+  const mn=document.getElementById('currentMapName');
+  if(mn) mn.textContent=mapName||'PNG・JPG・PDF・HEIC対応';
+}
+function saveData(){
+  if(!currentProjectId) return;
+  localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
+  updateStorageDisplay();
+}
+
 function updateStorageDisplay(){
   try{
     let total=0;
@@ -1985,7 +2005,7 @@ async function uploadMap(input){
   updateStorageDisplay();
   showToast(`図面設定完了`,'ok');
   input.value='';
-  if(odEnabled&&odAccessToken) autoSyncToOd();
+  if(odEnabled&&odAccessToken) 
 }
 async function pdfToJpeg(file,maxPx=1920,quality=0.85){
   try{
@@ -2029,7 +2049,13 @@ mc.addEventListener('pointerdown',e=>{
   if(addMode){
     const rect=mc.getBoundingClientRect(),img=document.getElementById('mapImg');
     if(!img.naturalWidth)return showToast('先に図面をアップロードしてください','err');
-    if(!currentProjectId)return showToast('先に現場を選択してください','warn');
+    if(!currentProjectId){
+      currentProjectId='default';
+      currentProjectName=localStorage.getItem('project_name_default')||'現場';
+      localStorage.setItem('last_project_id',currentProjectId);
+      localStorage.setItem('last_project_name',currentProjectName);
+      updateHeaderProject();
+    }
     const cx=(e.clientX-rect.left-mapOffX)/mapScale/img.naturalWidth;
     const cy=(e.clientY-rect.top-mapOffY)/mapScale/img.naturalHeight;
     if(cx<0||cx>1||cy<0||cy>1)return;
