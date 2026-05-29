@@ -842,8 +842,6 @@ function changePinPrompt(){
 //  INIT
 // ══════════════════════════════════════
 async function init(){
-  await initMsal();
-
   // 前回のプロジェクトを復元
   const lastPj = localStorage.getItem('last_project_id');
   if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
@@ -855,13 +853,12 @@ async function init(){
   updateStorageDisplay();
   applyLayout();
 
-  // 起動時ポップアップを表示してから図面復元
-  setTimeout(()=>{
-    showStartupModal();
-    // 図面を復元（ポップアップ表示後）
-    const savedMap = currentProjectId ? localStorage.getItem('map_img_'+currentProjectId) : null;
-    if(savedMap) showMapImage(savedMap);
-  }, 100);
+  // 図面を復元
+  const savedMap = currentProjectId ? localStorage.getItem('map_img_'+currentProjectId) : null;
+  if(savedMap) showMapImage(savedMap);
+
+  // 起動時ポップアップ
+  showStartupModal();
 
   document.addEventListener('keydown',e=>{ if(/^[0-9]$/.test(e.key)){}; });
 }
@@ -2649,10 +2646,13 @@ function fixIOSScroll(el){
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-document.addEventListener('DOMContentLoaded', ()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
+  await initMsal(); // MSAL初期化（サインイン状態復元）
   if(!checkSession()){
+    // PINが必要な場合はキー入力を受け付ける
     document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
   }
+  // checkSession内でunlockApp→initが呼ばれるのでここでは不要
 });
 </script>
 
