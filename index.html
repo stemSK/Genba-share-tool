@@ -849,17 +849,19 @@ async function init(){
   if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
   currentFileName = localStorage.getItem('current_file_name') || '';
   updateHeaderProject();
-  // 図面を復元
-  const savedMap = currentProjectId ? localStorage.getItem('map_img_'+currentProjectId) : null;
-  if(savedMap) showMapImage(savedMap);
   // ピンを復元
   try{ pins = JSON.parse(localStorage.getItem('pins_'+currentProjectId)||'[]'); }catch{ pins=[]; }
   renderPins();
   updateStorageDisplay();
   applyLayout();
 
-  // 起動時ポップアップを表示
-  setTimeout(showStartupModal, 300);
+  // 起動時ポップアップを表示してから図面復元
+  setTimeout(()=>{
+    showStartupModal();
+    // 図面を復元（ポップアップ表示後）
+    const savedMap = currentProjectId ? localStorage.getItem('map_img_'+currentProjectId) : null;
+    if(savedMap) showMapImage(savedMap);
+  }, 100);
 
   document.addEventListener('keydown',e=>{ if(/^[0-9]$/.test(e.key)){}; });
 }
@@ -920,6 +922,9 @@ function doStartupLoad(input){
       updateStorageDisplay();
       document.getElementById('startup-modal').style.display = 'none';
       showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`, 'ok');
+      // 図面が読み込まれた後に再フィット
+      const mi = document.getElementById('mapImg');
+      if(mi && mi.src && mi.naturalWidth) { fitMap(); renderPinPositions(); }
     }catch(err){
       showToast('読み込みエラー: ファイルが壊れています','err');
     }
@@ -2644,10 +2649,11 @@ function fixIOSScroll(el){
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-if(!checkSession()){
-  document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
-}
-window.addEventListener('load',async()=>{ await initMsal(); });
+document.addEventListener('DOMContentLoaded', ()=>{
+  if(!checkSession()){
+    document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
+  }
+});
 </script>
 
 </body>
