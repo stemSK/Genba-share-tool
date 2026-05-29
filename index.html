@@ -2430,7 +2430,7 @@ function doImportJSON(input){
   r.onload=e=>{
     let d;
     try{ d=JSON.parse(e.target.result); }
-    catch(){ showToast('ファイル形式が正しくありません','err'); input.value=''; return; }
+    catch(e){ showToast('ファイル形式が正しくありません','err'); input.value=''; return; }
     currentProjectName=d.project_name||d.project_id||file.name.replace(/\.json$/i,'');
     currentProjectId=d.project_id||('proj_'+Date.now());
     currentFileName=file.name;
@@ -2758,7 +2758,7 @@ function doStartupLoad(input){
   r.onload=e=>{
     let d;
     try{d=JSON.parse(e.target.result);}
-    catch(){showToast('ファイル形式が正しくありません','err');input.value='';return;}
+    catch(e){showToast('ファイル形式が正しくありません','err');input.value='';return;}
     currentProjectName=d.project_name||d.project_id||file.name.replace(/\.json$/i,'');
     currentProjectId=d.project_id||('proj_'+Date.now());
     currentFileName=file.name;
