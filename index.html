@@ -575,6 +575,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </div><!-- /main-wrapper -->
 
 <!-- 設定モーダル -->
+<div id="startup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;padding:32px 28px;max-width:340px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.6);">
+    <div style="font-size:22px;font-weight:700;margin-bottom:8px;text-align:center;">📋 現場データ</div>
+    <div id="startup-prev-info" style="text-align:center;color:var(--text-sub);font-size:13px;margin-bottom:24px;"></div>
+    <button id="startup-continue-btn" class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;margin-bottom:10px;border-radius:10px;" onclick="startupContinue()">▶ 前回のデータを続ける</button>
+    <button class="btn btn-secondary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="startupLoad()">📥 ファイルから読み込む</button>
+    <input type="file" id="startup-file-input" accept=".json" style="display:none" onchange="doStartupLoad(this)">
+  </div>
+</div>
+
 <div id="settings-modal">
   <div class="settings-modal-header">
     <h2>⚙️ 設定</h2>
@@ -865,12 +875,12 @@ async function init(){
 
 function showStartupModal(){
   const modal = document.getElementById('startup-modal');
+  if(!modal){ console.warn('startup-modal not found'); return; }
   const info = document.getElementById('startup-prev-info');
   const continueBtn = document.getElementById('startup-continue-btn');
   const hasPrev = !!(currentProjectName || pins.length);
 
   if(hasPrev){
-    const fname = currentFileName || (currentProjectName + '.json');
     info.textContent = `「${currentProjectName || '無題'}」(${pins.length}件) が保存されています`;
     continueBtn.style.display = '';
   } else {
@@ -917,13 +927,14 @@ function doStartupLoad(input){
       try{ pins = d.pins || []; localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins)); }catch{ pins=[]; }
       renderAll();
       updateStorageDisplay();
-      document.getElementById('startup-modal').style.display = 'none';
+      const sm=document.getElementById('startup-modal'); if(sm) sm.style.display='none';
       showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`, 'ok');
       // 図面が読み込まれた後に再フィット
       const mi = document.getElementById('mapImg');
       if(mi && mi.src && mi.naturalWidth) { fitMap(); renderPinPositions(); }
     }catch(err){
-      showToast('読み込みエラー: ファイルが壊れています','err');
+      console.error('doStartupLoad error:', err);
+      showToast('読み込みエラー: ' + err.message, 'err');
     }
     input.value = '';
   };
