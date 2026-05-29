@@ -477,8 +477,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
-          <div class="export-item" onclick="exportJSON()"><span class="ei">📤</span><div><strong>データ出力</strong><span>現場名.json でダウンロード</span></div></div>
-          <div class="export-item" onclick="importJSON()"><span class="ei">📥</span><div><strong>データ読込</strong><span>別端末からのファイルを開く</span></div></div>
+          <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>全データを保存</span></div></div>
+          <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONから復元</span></div></div>
         </div>
       </div>
     </div>
@@ -519,8 +519,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
-          <div class="export-item" onclick="exportJSON()"><span class="ei">📤</span><div><strong>データ出力</strong><span>現場名.json でダウンロード</span></div></div>
-          <div class="export-item" onclick="importJSON()"><span class="ei">📥</span><div><strong>データ読込</strong><span>別端末からのファイルを開く</span></div></div>
+          <div class="export-item" onclick="exportJSON()"><span class="ei">💾</span><div><strong>JSONバックアップ</strong><span>全データを保存</span></div></div>
+          <div class="export-item" onclick="importJSON()"><span class="ei">📂</span><div><strong>データ読み込み</strong><span>JSONから復元</span></div></div>
         </div>
       </div>
     </div>
@@ -529,7 +529,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
     <div style="display:flex;flex-direction:column;gap:10px;padding:12px 12px 40px;">
       <div class="ss">
-        <div class="ss-title">📁 現場</div>
+        <div class="ss-title">📁 現在の現場</div>
+
         <div class="si" onclick="renameProject()">
           <span class="sii">✏️</span>
           <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName2">-</span></div>
@@ -550,18 +551,18 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         </div>
       </div>
       <div class="ss">
-        <div class="ss-title">データ管理</div>
+        <div class="ss-title">ピンデータ管理</div>
         <div class="si"><span class="sii">📦</span><div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt2">計算中...</span></div></div>
-        <div style="display:flex;flex-direction:column;gap:8px;padding:4px 12px 8px;">
+        <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0 8px;">
           <button class="btn btn-secondary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
           <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;" onclick="saveOverwrite()">💾 データ保存</button>
-          <button class="btn" style="width:100%;padding:12px;font-size:14px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 データをファイルに出力</button>
+          <button class="btn" style="width:100%;padding:12px;font-size:14px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 ファイルに出力</button>
         </div>
         <div class="si" onclick="clearPins()"><span class="sii">🗑️</span><div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div><span class="si-arrow">›</span></div>
       </div>
       <div class="ss">
         <div class="ss-title">アプリ情報</div>
-        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v7.0</strong></div></div>
+        <div class="si"><span class="sii">ℹ️</span><div class="si-body"><strong>現場情報共有ツール v7.0</strong><span>SharePoint 共有フォルダ連携</span></div></div>
       </div>
       <!-- 詳細設定（一番下） -->
       <div class="ss">
@@ -593,7 +594,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div class="settings-scroll">
 
     <div class="ss">
-      <div class="ss-title">📁 現場</div>
+      <div class="ss-title">📁 現在の現場</div>
+
       <div class="si" onclick="renameProject()">
         <span class="sii">✏️</span>
         <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName">-</span></div>
@@ -616,15 +618,15 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
     </div>
 
     <div class="ss">
-      <div class="ss-title">データ管理</div>
+      <div class="ss-title">ピンデータ管理</div>
       <div class="si">
         <span class="sii">📦</span>
         <div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt">計算中...</span></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;padding:4px 12px 8px;">
+      <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0 8px;">
         <button class="btn btn-secondary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
         <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="saveOverwrite()">💾 データ保存</button>
-        <button class="btn" style="width:100%;padding:14px;font-size:15px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 データをファイルに出力</button>
+        <button class="btn" style="width:100%;padding:14px;font-size:15px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 ファイルに出力</button>
       </div>
       <div class="si" onclick="clearPins()">
         <span class="sii">🗑️</span>
@@ -766,13 +768,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 //  設定定数（管理者設定済み）
 // ══════════════════════════════════════
 const APP_CLIENT_ID  = 'c3791faa-e116-4a99-a93e-c8670ced32b1';
-// SharePoint同一オリジン設定
-// index.htmlをSharePointに置いた場合はwindow.location.originを使う
-const SP_ORIGIN      = (location.hostname.includes('sharepoint.com'))
-                         ? location.origin
-                         : 'https://stem365.sharepoint.com';
-const SP_BASE_PATH   = '/DocLib1';          // ドキュメントライブラリのサーバー相対パス
-const SP_TOOL_FOLDER = '/genba-share-tool'; // ツールフォルダ
 const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
 // OneDrive設定
 // OneDrive個人フォルダ（共有して使用）
@@ -789,14 +784,13 @@ const ITEMS_BY_DIV   = {
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-let pins = [], currentProjectId = '', currentProjectName = '';
-let currentFileName = ''; // 読み込んだファイル名（上書き保存用）
+let pins = [], currentProjectId = '', currentProjectName = '', currentFileName = '';
 let addMode=false, moveMode=false, isDragging=false;
 let lastX=0, lastY=0, mapScale=1, mapOffX=0, mapOffY=0, pinchDist=0;
 let editingId=null, pendingX=0, pendingY=0;
 let currentPhotos=[], doneState=false, currentDiv='施工';
 let filterIncomplete=false, filterIncomplPc=false;
-let odEnabled=false, msalInstance=null, odAccessToken=null, spAccessToken=null;
+let odEnabled=false, msalInstance=null, odAccessToken=null;
 let pollTimer=null; 
 let lastSyncedEtag = {};  // リアルタイム競合検知用
 let spDriveCache = null; // SharePoint driveId/itemIdキャッシュ
@@ -852,13 +846,15 @@ function changePinPrompt(){
 //  INIT
 // ══════════════════════════════════════
 async function init(){
-  // 前回のプロジェクトを復元
+  // 前回データを復元
   const lastPj = localStorage.getItem('last_project_id');
-  if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
+  if(lastPj){
+    currentProjectId = lastPj;
+    currentProjectName = localStorage.getItem('last_project_name') || lastPj;
+  }
   currentFileName = localStorage.getItem('current_file_name') || '';
-  updateHeaderProject();
-  // ピンを復元
   try{ pins = JSON.parse(localStorage.getItem('pins_'+currentProjectId)||'[]'); }catch{ pins=[]; }
+  updateHeaderProject();
   renderPins();
   updateStorageDisplay();
   applyLayout();
@@ -869,29 +865,27 @@ async function init(){
 
   // 起動時ポップアップ
   showStartupModal();
-
-  document.addEventListener('keydown',e=>{ if(/^[0-9]$/.test(e.key)){}; });
 }
 
 function showStartupModal(){
   const modal = document.getElementById('startup-modal');
-  if(!modal){ console.warn('startup-modal not found'); return; }
-  const info = document.getElementById('startup-prev-info');
-  const continueBtn = document.getElementById('startup-continue-btn');
+  if(!modal) return;
   const hasPrev = !!(currentProjectName || pins.length);
-
+  const info = document.getElementById('startup-prev-info');
+  const btn = document.getElementById('startup-continue-btn');
   if(hasPrev){
-    info.textContent = `「${currentProjectName || '無題'}」(${pins.length}件) が保存されています`;
-    continueBtn.style.display = '';
+    info.textContent = `「${currentProjectName||'無題'}」(${pins.length}件) が保存されています`;
+    btn.style.display = '';
   } else {
     info.textContent = '保存されたデータがありません';
-    continueBtn.style.display = 'none';
+    btn.style.display = 'none';
   }
   modal.style.display = 'flex';
 }
 
 function startupContinue(){
-  document.getElementById('startup-modal').style.display = 'none';
+  const modal = document.getElementById('startup-modal');
+  if(modal) modal.style.display = 'none';
 }
 
 function startupLoad(){
@@ -904,43 +898,37 @@ function doStartupLoad(input){
   r.onload = e => {
     let d;
     try{ d = JSON.parse(e.target.result); }
-    catch(err){ showToast('JSONパースエラー: ファイル形式が正しくありません', 'err'); input.value=''; return; }
+    catch(){ showToast('ファイル形式が正しくありません','err'); input.value=''; return; }
 
-    // 現場情報を設定
     currentProjectName = d.project_name || d.project_id || file.name.replace(/\.json$/i,'');
-    currentProjectId   = d.project_id   || ('proj_' + Date.now());
+    currentProjectId   = d.project_id   || ('proj_'+Date.now());
     currentFileName    = file.name;
     pins               = Array.isArray(d.pins) ? d.pins : [];
 
-    // localStorageに保存
-    localStorage.setItem('last_project_id',                    currentProjectId);
-    localStorage.setItem('last_project_name',                  currentProjectName);
-    localStorage.setItem('project_name_'+currentProjectId,     currentProjectName);
-    localStorage.setItem('current_file_name',                  currentFileName);
-    localStorage.setItem('pins_'+currentProjectId,             JSON.stringify(pins));
+    localStorage.setItem('last_project_id',                currentProjectId);
+    localStorage.setItem('last_project_name',              currentProjectName);
+    localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
+    localStorage.setItem('current_file_name',              currentFileName);
+    localStorage.setItem('pins_'+currentProjectId,         JSON.stringify(pins));
     if(d.map_image){
-      localStorage.setItem('map_img_'+currentProjectId,  d.map_image);
+      localStorage.setItem('map_img_'+currentProjectId, d.map_image);
       if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
     }
 
-    // UIを更新
     updateHeaderProject();
     renderPins();
     renderList();
     updateStorageDisplay();
 
-    // 図面を表示
     if(d.map_image){
       showMapImage(d.map_image);
       const mn = document.getElementById('currentMapName');
       if(mn) mn.textContent = d.map_name || currentProjectName;
     }
 
-    // ポップアップを閉じる
-    const sm = document.getElementById('startup-modal');
-    if(sm) sm.style.display = 'none';
-
-    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`, 'ok');
+    const modal = document.getElementById('startup-modal');
+    if(modal) modal.style.display = 'none';
+    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
     input.value = '';
   };
   r.readAsText(file);
@@ -955,16 +943,6 @@ async function waitForMsal(timeout=12000){
   if(!window.msal) throw new Error('MSALライブラリの読み込みに失敗しました');
 }
 async function initMsal(){
-  // SharePoint上で動作している場合はMSAL不要・自動的に同期ON
-  if(location.hostname.includes('sharepoint.com')){
-    odEnabled = true;
-    localStorage.setItem('od_enabled','1');
-    updateOdUI();
-    startPolling();
-    console.log('✅ SharePoint同一オリジンモードで起動');
-    if(currentProjectId) setTimeout(()=>silentPullFromOd(), 1000);
-    return;
-  }
   try{
     await waitForMsal();
     // Safari対応: cookieベースのキャッシュを使用
@@ -1073,24 +1051,6 @@ async function silentAcquireToken(){
     updateOdUI();
   }
 }
-// SharePoint REST API用トークンを取得（audience: stem365.sharepoint.com）
-async function ensureSpToken(){
-  if(spAccessToken) return spAccessToken;
-  if(!msalInstance) return null;
-  try{
-    const accounts = msalInstance.getAllAccounts();
-    if(!accounts.length) return null;
-    const SP_SCOPES = ['https://stem365.sharepoint.com/.default'];
-    const resp = await msalInstance.acquireTokenSilent({scopes: SP_SCOPES, account: accounts[0]});
-    spAccessToken = resp.accessToken;
-    console.log('✅ SP token acquired');
-    return spAccessToken;
-  }catch(e){
-    console.warn('SP token failed:', e.message);
-    return null;
-  }
-}
-
 async function odLogin(){
   try{
     await waitForMsal();
@@ -1147,11 +1107,10 @@ function toggleOdMode(){
   updateOdUI();
 }
 function updateOdUI(){
-  const isSPOrigin = location.hostname.includes('sharepoint.com');
+  // ログイン状態: odAccessTokenがあればログイン済みとみなす
   const accounts = msalInstance?.getAllAccounts() || [];
-  const loggedIn = isSPOrigin || !!(odAccessToken);
-  const username = isSPOrigin ? 'SharePoint（同一オリジン）'
-    : (accounts[0]?.username || localStorage.getItem('od_user_email') || 'サインイン済み');
+  const loggedIn = !!(odAccessToken);
+  const username = accounts[0]?.username || localStorage.getItem('od_user_email') || 'サインイン済み';
   const modeText = odEnabled ? 'ON（SharePoint同期）' : 'OFF（未接続）';
   const loginText = loggedIn ? username : '未サインイン';
 
@@ -1193,8 +1152,6 @@ function updateOdUI(){
 function getBaseFolder(){
   return localStorage.getItem('od_base_folder') || '現場情報共有ツール';
 }
-function hasShareUrl(){ return false; } // SharePoint削除済み
-function getShareUrl(){ return null; }  // SharePoint削除済み
 
 // DriveID手動入力ダイアログ（接続確認でドライブが見つからない場合の回避策）
 function promptManualDriveId(){
@@ -1348,131 +1305,276 @@ async function graphDownload(endpoint){
 //  共有リンクURL → Base64エンコード → /shares/{id}/driveItem
 // ══════════════════════════════════════
 
-// ══════════════════════════════════════
-//  SharePoint 同一オリジン REST API
-//  index.htmlをSharePointに置いた場合に使用
-//  認証不要（ブラウザのセッションCookieを使用）
-// ══════════════════════════════════════
+// SharePoint driveInfo をキャッシュ付きで取得
+// Files.ReadWrite スコープで動作するサイト直接アクセス方式
+async function spGetDriveInfo(){
+  if(spDriveCache) return spDriveCache;
+  const shareUrl = getShareUrl();
+  if(!shareUrl) return null;
 
-// Request Digestトークンを取得（SharePoint書き込み時に必要）
-let _spDigest = null, _spDigestExpiry = 0;
-async function getSpDigest(){
-  if(_spDigest && Date.now() < _spDigestExpiry) return _spDigest;
-  const resp = await fetch(`${SP_ORIGIN}/_api/contextinfo`, {
-    method: 'POST',
-    headers: { 'Accept': 'application/json;odata=verbose' },
-    credentials: 'include',
-  });
-  if(!resp.ok) throw new Error('contextinfo failed: ' + resp.status);
-  const data = await resp.json();
-  _spDigest = data.d.GetContextWebInformation.FormDigestValue;
-  _spDigestExpiry = Date.now() + (data.d.GetContextWebInformation.FormDigestTimeoutSeconds - 30) * 1000;
-  return _spDigest;
-}
+  // 方式0: 手動設定のドライブIDがあればそれを使う（最優先）
+  // b!xxx... 形式のSharePoint driveIdはGraph /drives/ でもSP REST v2.0でも使える
+  const manualDriveId = localStorage.getItem('sp_manual_drive_id');
+  if(manualDriveId){
+    // まずGraph API /drives/{id}/root を試す
+    try{
+      const rootRes = await graphRequest('GET', `/drives/${manualDriveId}/root?$select=id`);
+      if(rootRes?.id){
+        spDriveCache = { driveId: manualDriveId, itemId: rootRes.id, siteId: null };
+        console.log('✅ spGetDriveInfo (manual driveId via graph):', spDriveCache);
+        return spDriveCache;
+      }
+    }catch(e){ console.warn('manual driveId graph failed:', e.message); }
 
-// SP REST API GET
-async function spRestGet(url){
-  const resp = await fetch(url, {
-    headers: { 'Accept': 'application/json;odata=verbose' },
-    credentials: 'include',
-  });
-  if(!resp.ok) return null;
-  return resp.json();
-}
+    // Graph APIが失敗した場合 → SharePoint REST v2.0 で root itemId を取得
+    try{
+      const spBase = getShareUrl() ? new URL(getShareUrl()).origin : 'https://stem365.sharepoint.com';
+      const resp = await fetch(`${spBase}/_api/v2.0/drives/${encodeURIComponent(manualDriveId)}/root?$select=id`, {
+        headers: { 'Authorization': 'Bearer ' + odAccessToken, 'Accept': 'application/json' }
+      });
+      if(resp.ok){
+        const data = await resp.json();
+        if(data?.id){
+          spDriveCache = { driveId: manualDriveId, itemId: data.id, siteId: null };
+          console.log('✅ spGetDriveInfo (manual driveId via SP REST v2.0):', spDriveCache);
+          return spDriveCache;
+        }
+      } else {
+        console.warn('SP REST v2.0 root failed:', resp.status, await resp.text());
+      }
+    }catch(e){ console.warn('manual driveId SP REST failed:', e.message); }
+  }
 
-// SP REST API でファイルをアップロード
-async function spRestUpload(serverRelPath, content){
-  const digest = await getSpDigest();
-  // フォルダを事前に作成
-  const folderPath = serverRelPath.split('/').slice(0,-1).join('/');
-  await spEnsureFolder(folderPath);
-  const filename = serverRelPath.split('/').pop();
-  const body = typeof content === 'string' ? content : JSON.stringify(content);
-  const resp = await fetch(
-    `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${encodeURIComponent(folderPath)}')/Files/add(url='${encodeURIComponent(filename)}',overwrite=true)`,
-    {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json;odata=verbose',
-        'X-RequestDigest': digest,
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-      body,
+  try{
+    // 方式A: /shares/{token} 経由（Files.ReadWrite で動作するケース）
+    const token = encodeSharingUrl(shareUrl);
+    try{
+      const item = await graphRequest('GET', `/shares/${token}/driveItem?$select=id,parentReference,webUrl`);
+      if(item?.id){
+        spDriveCache = {
+          driveId: item.parentReference?.driveId || null,
+          itemId: item.id,
+          siteId: item.parentReference?.siteId || null,
+        };
+        console.log('✅ spGetDriveInfo (shares):', spDriveCache);
+        return spDriveCache;
+      }
+    }catch(e){ console.warn('shares API failed:', e.message); }
+
+    // 方式B: /sites/root → 全サイト検索 → ドライブ照合
+    // /:f:/g/ 形式はルートサイトのドキュメントライブラリを指すが、
+    // /sites/{hostname} だけではドライブが見つからない場合がある
+    const u = new URL(shareUrl);
+    const hostname = u.hostname;
+
+    // まずルートサイトのドライブを試す
+    let foundDrive = null;
+    let foundSiteId = null;
+    try{
+      const rootSite = await graphRequest('GET', `/sites/${hostname}?$select=id`);
+      if(rootSite?.id){
+        foundSiteId = rootSite.id;
+        const drivesRes = await graphRequest('GET',
+          `/sites/${rootSite.id}/drives?$select=id,name,driveType,webUrl`);
+        console.log('root site drives:', drivesRes?.value);
+        if(drivesRes?.value?.length){
+          foundDrive =
+            drivesRes.value.find(d => d.name === 'Documents' && d.driveType === 'documentLibrary') ||
+            drivesRes.value.find(d => d.driveType === 'documentLibrary') ||
+            drivesRes.value[0];
+        }
+      }
+    }catch(e){ console.warn('root site failed:', e.message); }
+
+    // ルートサイトにドライブが無い場合 → /sites?search= で全サイトを検索
+    if(!foundDrive){
+      console.log('root site had no drives, searching all sites...');
+      try{
+        const sitesRes = await graphRequest('GET',
+          `/sites?$search=*&$select=id,displayName,webUrl&$top=20`);
+        console.log('all sites:', sitesRes?.value?.map(s=>s.displayName));
+        if(sitesRes?.value?.length){
+          for(const site of sitesRes.value){
+            try{
+              const drivesRes = await graphRequest('GET',
+                `/sites/${site.id}/drives?$select=id,name,driveType,webUrl`);
+              if(drivesRes?.value?.length){
+                const d =
+                  drivesRes.value.find(d => d.name === 'Documents' && d.driveType === 'documentLibrary') ||
+                  drivesRes.value.find(d => d.driveType === 'documentLibrary');
+                if(d){
+                  foundDrive = d;
+                  foundSiteId = site.id;
+                  console.log('✅ found drive in site:', site.displayName, d.name);
+                  break;
+                }
+              }
+            }catch(_){}
+          }
+        }
+      }catch(e){ console.warn('sites search failed:', e.message); }
     }
-  );
-  if(!resp.ok) throw new Error('spRestUpload failed: ' + resp.status + ' ' + await resp.text());
-  return resp.json();
+
+    if(!foundDrive){
+      console.error('No drive found. Set drive ID manually.');
+      return null;
+    }
+
+    const rootRes = await graphRequest('GET', `/drives/${foundDrive.id}/root?$select=id`);
+    if(!rootRes?.id) return null;
+
+    spDriveCache = {
+      driveId: foundDrive.id,
+      itemId: rootRes.id,
+      siteId: foundSiteId,
+    };
+    console.log('✅ spGetDriveInfo (site search):', spDriveCache);
+    return spDriveCache;
+  }catch(e){
+    console.error('spGetDriveInfo error:', e);
+    return null;
+  }
 }
 
-// SP REST API でファイルをダウンロード
-async function spRestDownload(serverRelPath){
-  const resp = await fetch(
-    `${SP_ORIGIN}/_api/web/GetFileByServerRelativeUrl('${encodeURIComponent(serverRelPath)}')/$value`,
-    { credentials: 'include' }
-  );
-  if(resp.status === 404) return null;
-  if(!resp.ok) return null;
-  const text = await resp.text();
-  try{ return JSON.parse(text); }catch{ return null; }
+// 現場フォルダ名に使えない文字を除去
+function getSafeFolderName(name){
+  return (name||currentProjectId).replace(/[\\/:*?"<>|]/g,'_').trim() || currentProjectId;
 }
 
-// フォルダが存在しない場合は作成（再帰）
-async function spEnsureFolder(serverRelPath){
-  // 既存チェック
-  const check = await fetch(
-    `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${encodeURIComponent(serverRelPath)}')`,
-    { headers:{'Accept':'application/json;odata=verbose'}, credentials:'include' }
-  );
-  if(check.ok) return; // 既に存在
-  // 親フォルダを先に作成
-  const parent = serverRelPath.split('/').slice(0,-1).join('/');
-  if(parent && parent !== SP_BASE_PATH) await spEnsureFolder(parent);
-  // フォルダ作成
-  const digest = await getSpDigest();
-  await fetch(`${SP_ORIGIN}/_api/web/folders`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json;odata=verbose',
-      'Content-Type': 'application/json;odata=verbose',
-      'X-RequestDigest': digest,
-    },
-    credentials: 'include',
-    body: JSON.stringify({ '__metadata':{'type':'SP.Folder'}, 'ServerRelativeUrl': serverRelPath }),
-  });
+// 共有リンクURLをGraph API用のsharing tokenに変換
+function encodeSharingUrl(url){
+  // UTF-8バイト列でbase64urlエンコード（Microsoftの仕様通り）
+  // btoa()はマルチバイト文字で失敗するためTextEncoderを使用
+  try{
+    const bytes = new TextEncoder().encode(url);
+    let bin = '';
+    bytes.forEach(b => bin += String.fromCharCode(b));
+    const b64 = btoa(bin).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    return 'u!' + b64;
+  }catch(e){
+    // フォールバック
+    const b64 = btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g,
+      (_,p)=>String.fromCharCode(parseInt(p,16))))
+      .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
+    return 'u!' + b64;
+  }
 }
 
-// プロジェクトフォルダのサーバー相対パスを取得
-function spProjectPath(projectId){
+// 共有リンクURLを取得（localStorageから）
+function getShareUrl(){
+  return localStorage.getItem('sp_share_url') || '';
+}
+
+// 共有リンクが設定されているか確認
+function hasShareUrl(){
+  return !!getShareUrl();
+}
+
+// SharePointの共有フォルダ内ファイルをアップロード
+// パス: /shares/{token}/driveItem:/現場名/ファイル名:/content
+async function spUpload(projectId, filename, data){
+  const shareUrl = getShareUrl();
+  if(!shareUrl) throw new Error('SharePoint共有URLが設定されていません');
   const rawName = (projectId === currentProjectId && currentProjectName)
     ? currentProjectName
     : (localStorage.getItem('project_name_'+projectId) || projectId);
   const projName = getSafeFolderName(rawName);
-  return `${SP_BASE_PATH}${SP_TOOL_FOLDER}/${projName}`;
+  const info = await spGetDriveInfo();
+  const spBase = shareUrl ? new URL(shareUrl).origin : 'https://stem365.sharepoint.com';
+
+  // SP REST v2.0 でアップロード（b!形式driveIdはGraph /drives/ で403になる場合がある）
+  if(info?.driveId){
+    try{
+      const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
+      const resp = await fetch(
+        `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
+        {
+          method: 'PUT',
+          headers: {
+            'Authorization': 'Bearer ' + odAccessToken,
+            'Content-Type': 'application/json',
+          },
+          body: typeof data === 'string' ? data : JSON.stringify(data),
+        }
+      );
+      if(resp.ok){ console.log('✅ spUpload (SP REST v2.0):', filename); return await resp.json(); }
+      console.warn('SP REST v2.0 upload failed:', resp.status, await resp.text());
+    }catch(e){ console.warn('SP REST v2.0 upload error:', e.message); }
+  }
+
+  // フォールバック: Graph API
+  let url;
+  if(info?.driveId && info?.itemId){
+    url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  } else {
+    const token = encodeSharingUrl(shareUrl);
+    url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  }
+  return graphRequest('PUT', url, data);
 }
 
-
-async function spUpload(projectId, filename, data){
-  const path = spProjectPath(projectId) + '/' + filename;
-  return spRestUpload(path, data);
-}
-
+// SharePointの共有フォルダ内ファイルをダウンロード
 async function spDownload(projectId, filename){
-  const path = spProjectPath(projectId) + '/' + filename;
-  const data = await spRestDownload(path);
-  return { data, etag: null };
+  const shareUrl = getShareUrl();
+  if(!shareUrl) return {data:null, etag:null};
+  const rawName = (projectId === currentProjectId && currentProjectName)
+    ? currentProjectName
+    : (localStorage.getItem('project_name_'+projectId) || projectId);
+  const projName = getSafeFolderName(rawName);
+  const info = await spGetDriveInfo();
+  const spBase = shareUrl ? new URL(shareUrl).origin : 'https://stem365.sharepoint.com';
+
+  // SP REST v2.0 でダウンロード
+  if(info?.driveId){
+    try{
+      const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
+      const resp = await fetch(
+        `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
+        { headers: { 'Authorization': 'Bearer ' + odAccessToken } }
+      );
+      if(resp.ok){
+        const text = await resp.text();
+        const etag = resp.headers.get('ETag') || null;
+        try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
+      }
+      if(resp.status === 404) return {data:null, etag:null};
+      console.warn('SP REST v2.0 download failed:', resp.status);
+    }catch(e){ console.warn('SP REST v2.0 download error:', e.message); }
+  }
+
+  // フォールバック: Graph API
+  let url;
+  if(info?.driveId && info?.itemId){
+    url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  } else {
+    const token = encodeSharingUrl(shareUrl);
+    url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
+  }
+  const {text, etag} = await graphDownload(url);
+  if(!text) return {data:null, etag:null};
+  try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
 }
 
 // 共有フォルダ内の現場フォルダ一覧を取得
 async function spListProjects(){
   if(!odEnabled) return [];
+  const shareUrl = getShareUrl();
+  if(!shareUrl) return [];
   try{
-    const folderPath = `${SP_BASE_PATH}${SP_TOOL_FOLDER}`;
-    const res = await spRestGet(
-      `${SP_ORIGIN}/_api/web/GetFolderByServerRelativeUrl('${encodeURIComponent(folderPath)}')/Folders?$select=Name`
-    );
-    if(!res?.d?.results) return [];
-    return res.d.results.map(f=>f.Name).filter(n=>!n.startsWith('_'));
+    const token = encodeSharingUrl(shareUrl);
+    // まずdriveItemのID・siteId・driveIdを取得（:f:/g/形式URLへの対応）
+    const item = await graphRequest('GET', `/shares/${token}/driveItem`);
+    if(!item?.id) return [];
+    // driveId があればそちら経由でchildren取得（より確実）
+    let res;
+    if(item.parentReference?.driveId){
+      res = await graphRequest('GET',
+        `/drives/${item.parentReference.driveId}/items/${item.id}/children`);
+    } else {
+      res = await graphRequest('GET', `/shares/${token}/driveItem/children`);
+    }
+    if(!res?.value) return [];
+    return res.value.filter(i=>i.folder).map(i=>i.name);
   }catch(e){ console.warn('spListProjects:',e); return []; }
 }
 
@@ -1544,10 +1646,8 @@ function updateHeaderProject(){
     nameEl.classList.add('placeholder');
   }
   const lbl=currentProjectName||currentProjectId;
-  const spl=document.getElementById('settingsProjectLabel');
-  if(spl) spl.textContent=lbl||'未選択';
-  const spn=document.getElementById('settingsProjectName');
-  if(spn) spn.textContent=currentProjectName||'-';
+  document.getElementById('settingsProjectLabel').textContent=lbl||'未選択';
+  document.getElementById('settingsProjectName').textContent=currentProjectName||'-';
   const l2=document.getElementById('settingsProjectLabel2');
   if(l2) l2.textContent=lbl||'未選択';
   const n2=document.getElementById('settingsProjectName2');
@@ -1662,15 +1762,14 @@ async function createProject(){
   updateStorageDisplay();
 }
 
-async function renameProject(){
-  if(!currentProjectId){showToast('現場を選択してください','warn');return;}
-  const newName=prompt('新しい現場名を入力',currentProjectName);
-  if(!newName?.trim()||newName===currentProjectName)return;
+function renameProject(){
+  if(!currentProjectId){showToast('データがありません','warn');return;}
+  const newName = prompt('新しい現場名を入力', currentProjectName);
+  if(!newName?.trim() || newName===currentProjectName) return;
   currentProjectName = newName.trim();
   localStorage.setItem('last_project_name', currentProjectName);
   localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
   updateHeaderProject();
-  updateFolderLabels();
   showToast(`現場名を「${currentProjectName}」に変更しました`,'ok');
 }
 
@@ -1702,7 +1801,7 @@ async function pushToOd(){
 
 // 現場切替時の強制取得（確認ダイアログなし）
 async function forcePullFromOd(){
-  if(!odEnabled||!currentProjectId) return;
+  if(!odEnabled||!odAccessToken||!currentProjectId) return;
   setSyncState('syncing');
   try{
     const {data,etag}=await spDownload(currentProjectId,'pins.json');
@@ -1728,7 +1827,7 @@ async function forcePullFromOd(){
 }
 
 async function pullFromOd(silent=false){
-  if(!odEnabled){if(!silent)showToast('SharePoint未接続','warn');return;}
+  if(!odEnabled||!odAccessToken){if(!silent)showToast('OneDrive未接続','warn');return;}
   if(!currentProjectId){if(!silent)showToast('現場を選択してください','warn');return;}
   setSyncState('syncing');
   try{
@@ -1772,7 +1871,7 @@ async function pullFromOd(silent=false){
 async function silentPullFromOd(){ await pullFromOd(true); }
 async function manualSync(){
   if(!currentProjectId){showToast('現場を選択してください','warn');return;}
-  if(!odEnabled){showToast('SharePointに接続してください','warn');return;}
+  if(!odEnabled||!odAccessToken){showToast('OneDriveに接続してください','warn');return;}
   try{ await pushToOd(); showToast('OneDriveに同期しました ✓','ok'); }
   catch(e){setSyncState('error');showToast('同期失敗: '+e.message,'err');}
 }
@@ -1820,6 +1919,19 @@ function renderPcSettings(){
 }
 function isPC(){return window.innerWidth>=900;}
 function applyLayout(){ if(isPC()){switchPcTab('report');} }
+function updateStorageDisplay(){
+  try{
+    let total=0;
+    for(let i=0;i<localStorage.length;i++) total+=(localStorage.key(i).length+(localStorage.getItem(localStorage.key(i))||'').length)*2;
+    const kb=Math.round(total/1024);
+    const txt=kb>=1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
+    ['storageDetailTxt','storageDetailTxt2'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent='ローカル使用量: '+txt;
+    });
+  }catch(e){}
+}
+
 function renderAll(){
   renderPins();renderList();renderReport();
   if(isPC()){
@@ -2302,10 +2414,9 @@ function exportCSV(){
   dl(`pins_${currentProjectId}_${now()}.csv`,csv,'text/csv');
   showToast('CSV出力しました','ok');
 }
+// 上書き保存（localStorageに保存 + ファイル名記憶）
 function saveOverwrite(){
   if(!currentProjectId){ showToast('データがありません','warn'); return; }
-  const safeName = (currentProjectName||currentProjectId).replace(/[\\/:*?"<>|]/g,'_');
-  const fname = currentFileName || (safeName + '.json');
   const data = {
     project_id: currentProjectId,
     project_name: currentProjectName,
@@ -2314,15 +2425,19 @@ function saveOverwrite(){
     map_image: localStorage.getItem('map_img_'+currentProjectId),
     pins,
   };
-  dl(fname, JSON.stringify(data, null, 2), 'application/json');
+  // localStorageに保存（永続化）
+  localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
+  const fname = currentFileName || ((currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_')+'.json');
   localStorage.setItem('current_file_name', fname);
   currentFileName = fname;
-  showToast(`「${fname}」に保存しました`, 'ok');
+  showToast('保存しました ✓','ok');
 }
 
+// ファイルに出力（ダウンロード）
 function exportJSON(){
-  if(!currentProjectId){ showToast('現場を選択してください','warn'); return; }
-  const safeName = (currentProjectName||currentProjectId).replace(/[\\/:*?"<>|]/g,'_');
+  if(!currentProjectId){ showToast('データがありません','warn'); return; }
+  const safeName = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
+  const fname = currentFileName || (safeName+'.json');
   const data = {
     project_id: currentProjectId,
     project_name: currentProjectName,
@@ -2331,65 +2446,43 @@ function exportJSON(){
     map_image: localStorage.getItem('map_img_'+currentProjectId),
     pins,
   };
-  dl(`${safeName}.json`, JSON.stringify(data, null, 2), 'application/json');
-  showToast(`「${safeName}.json」を保存しました`, 'ok');
+  dl(fname, JSON.stringify(data,null,2), 'application/json');
+  showToast(`「${fname}」をダウンロードしました`,'ok');
 }
+
 function importJSON(){ document.getElementById('json-import-input').click(); }
 function doImportJSON(input){
   const file = input.files[0]; if(!file) return;
   const r = new FileReader();
   r.onload = e => {
-    try{
-      const d = JSON.parse(e.target.result);
-      const name = d.project_name || d.project_id || 'インポートデータ';
-      const pinCount = d.pins?.length || 0;
-      const hasMap = !!(d.map_image);
+    let d;
+    try{ d = JSON.parse(e.target.result); }
+    catch(){ showToast('ファイル形式が正しくありません','err'); input.value=''; return; }
 
-      // 現場が未選択 or 別の現場データ → 新規現場として作成するか確認
-      if(!currentProjectId || (d.project_id && d.project_id !== currentProjectId)){
-        const msg = `「${name}」のデータを読み込みます
-・ピン: ${pinCount}件
-・図面: ${hasMap?'あり':'なし'}
+    currentProjectName = d.project_name || d.project_id || file.name.replace(/\.json$/i,'');
+    currentProjectId   = d.project_id   || ('proj_'+Date.now());
+    currentFileName    = file.name;
+    pins               = Array.isArray(d.pins) ? d.pins : [];
 
-新しい現場として追加しますか？
-（現在の現場「${currentProjectName||'なし'}」は変更されません）`;
-        if(!confirm(msg)) return;
-        // 新規現場IDを生成して復元
-        const newId = d.project_id || ('proj_' + Date.now());
-        localStorage.setItem('project_name_'+newId, d.project_name || newId);
-        if(d.pins) localStorage.setItem('pins_'+newId, JSON.stringify(d.pins));
-        if(d.map_image){
-          localStorage.setItem('map_img_'+newId, d.map_image);
-          if(d.map_name) localStorage.setItem('map_name_'+newId, d.map_name);
-        }
-        // 現場リストに追加
-        const list = JSON.parse(localStorage.getItem('project_list')||'[]');
-        if(!list.includes(newId)){ list.push(newId); localStorage.setItem('project_list', JSON.stringify(list)); }
-        showToast(`「${name}」を追加しました。現場切替から選択してください`, 'ok');
-      } else {
-        // 現在の現場に上書き
-        if(!confirm(`「${name}」のデータで現在の現場を上書きします
-・ピン: ${pinCount}件
-・図面: ${hasMap?'あり':'なし'}`)) return;
-        if(d.pins){ pins = d.pins; localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins)); }
-        if(d.map_image){
-          localStorage.setItem('map_img_'+currentProjectId, d.map_image);
-          if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
-          showMapImage(d.map_image);
-          const mn = document.getElementById('currentMapName');
-          if(mn) mn.textContent = d.map_name || currentProjectName;
-        }
-        pins = d.pins || [];
-        localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
-        updateHeaderProject();
-        renderAll(); updateStorageDisplay();
-        currentFileName = file.name;
-        localStorage.setItem('current_file_name', file.name);
-        showToast(`${pinCount}件を読み込みました`, 'ok');
-      }
-    }catch(err){ console.error(err); showToast('読み込みエラー: ファイルが壊れています','err'); }
+    localStorage.setItem('last_project_id',                currentProjectId);
+    localStorage.setItem('last_project_name',              currentProjectName);
+    localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
+    localStorage.setItem('current_file_name',              currentFileName);
+    localStorage.setItem('pins_'+currentProjectId,         JSON.stringify(pins));
+    if(d.map_image){
+      localStorage.setItem('map_img_'+currentProjectId, d.map_image);
+      if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
+      showMapImage(d.map_image);
+      const mn = document.getElementById('currentMapName');
+      if(mn) mn.textContent = d.map_name || currentProjectName;
+    }
+    updateHeaderProject();
+    renderAll();
+    updateStorageDisplay();
+    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
+    input.value = '';
   };
-  r.readAsText(file); input.value = '';
+  r.readAsText(file);
 }
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
 function now(){return new Date().toISOString().slice(0,10);}
@@ -2661,12 +2754,10 @@ function fixIOSScroll(el){
 //  BOOT
 // ══════════════════════════════════════
 document.addEventListener('DOMContentLoaded', async ()=>{
-  await initMsal(); // MSAL初期化（サインイン状態復元）
+  await initMsal();
   if(!checkSession()){
-    // PINが必要な場合はキー入力を受け付ける
     document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
   }
-  // checkSession内でunlockApp→initが呼ばれるのでここでは不要
 });
 </script>
 
