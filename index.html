@@ -2828,22 +2828,10 @@ function fixIOSScroll(el){
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-document.addEventListener('DOMContentLoaded', ()=>{
-  // PINボタンのイベント登録
-  document.querySelectorAll('.pin-key[data-key]').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const k = el.dataset.key;
-      if(k === 'del') pinBack();
-      else pinKey(k);
-    });
-  });
-  // キーボード入力
+if(!checkSession()){
   document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
-  // セッションチェック
-  checkSession();
-  // MSALはバックグラウンドで初期化
-  initMsal().catch(e=>console.warn('MSAL init error:', e));
-});
+}
+window.addEventListener('load', async()=>{ await initMsal(); });
 </script>
 
 </body>
