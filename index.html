@@ -376,53 +376,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   .pc-tabs{display:none!important;}
 }
 </style>
-<script>
-// PIN関数（HTMLのonclickより前に定義する必要がある）
-var pinBuffer = '';
-function getStoredPin(){ return localStorage.getItem('app_pin') || '0611'; }
-function pinKey(k){
-  if(pinBuffer.length >= 4) return;
-  pinBuffer += k;
-  updatePinDots();
-  if(pinBuffer.length === 4) setTimeout(submitPin, 120);
-}
-function pinBack(){
-  pinBuffer = pinBuffer.slice(0, -1);
-  updatePinDots();
-}
-function updatePinDots(){
-  for(var i = 0; i < 4; i++){
-    var el = document.getElementById('pd' + i);
-    if(el) el.classList.toggle('filled', i < pinBuffer.length);
-  }
-}
-function submitPin(){
-  if(pinBuffer === getStoredPin()){
-    localStorage.setItem('auth_session', JSON.stringify({expires: Date.now() + 30*24*3600*1000}));
-    unlockApp();
-  } else {
-    showPinError();
-  }
-}
-function showPinError(){
-  var err = document.getElementById('pinError');
-  var dots = document.getElementById('pinDots');
-  if(err) err.classList.add('show');
-  if(dots){
-    dots.style.transform = 'translateX(8px)';
-    setTimeout(function(){ dots.style.transform = 'translateX(-8px)'; }, 80);
-    setTimeout(function(){ dots.style.transform = 'translateX(4px)'; }, 160);
-    setTimeout(function(){ dots.style.transform = ''; if(err) err.classList.remove('show'); }, 300);
-  }
-  pinBuffer = '';
-  updatePinDots();
-}
-function unlockApp(){
-  var a = document.getElementById('auth-screen');
-  if(a) a.style.display = 'none';
-  if(typeof init === 'function') init();
-}
-</script>
 </head>
 <body>
 
@@ -575,9 +528,60 @@ function unlockApp(){
   <!-- 設定（PC右ペイン） -->
   <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
     <div style="display:flex;flex-direction:column;gap:10px;padding:12px 12px 40px;">
+      <!-- OneDrive / 同期設定（集約） -->
+      <div class="ss">
+        <div class="ss-title">☁️ SharePoint / 同期設定</div>
+        <div class="si">
+          <span class="sii">🔗</span>
+          <div class="si-body"><strong>SharePoint同期モード</strong><span id="odModeText2">OFF（ローカル）</span></div>
+          <div class="toggle" id="odModeToggle2" onclick="toggleOdMode()" style="flex-shrink:0"></div>
+        </div>
+        <div class="si" onclick="odLogin()">
+          <span class="sii">🔑</span>
+          <div class="si-body"><strong>Microsoftアカウントでサインイン</strong><span id="odLoginStatus2">未サインイン</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <!-- SharePoint URL は常時表示 -->
+        <div class="si" onclick="promptShareUrl()">
+          <span class="sii">🔗</span>
+          <div class="si-body"><strong>SharePoint 共有URL</strong><span id="odShareLabel2">未設定</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div class="si" onclick="checkSharedFolder()">
+          <span class="sii">✅</span>
+          <div class="si-body"><strong>接続確認</strong><span id="sharedFolderStatus2">未確認</span></div>
+          <span class="si-arrow">›</span>
+        </div>
+        <div id="od-settings-rows2">
+          <div class="si" onclick="promptSharedBase()">
+            <span class="sii">📁</span>
+            <div class="si-body"><strong>共有フォルダ名</strong><span id="sharedBaseLabel2">現場情報共有ツール</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="promptManualDriveId()">
+            <span class="sii">🔧</span>
+            <div class="si-body"><strong>ドライブID（手動設定）</strong><span id="manualDriveLabel2">未設定（自動）</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="manualSync()">
+            <span class="sii">🔄</span>
+            <div class="si-body"><strong>今すぐ同期</strong><span>SharePointへアップロード</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+          <div class="si" onclick="pullFromOd(false)">
+            <span class="sii">⬇️</span>
+            <div class="si-body"><strong>最新データを取得</strong><span>SharePointからダウンロード</span></div>
+            <span class="si-arrow">›</span>
+          </div>
+        </div>
+        <div class="si" onclick="odLogout()">
+          <span class="sii">🚪</span>
+          <div class="si-body"><strong>サインアウト</strong></div>
+          <span class="si-arrow">›</span>
+        </div>
+      </div>
       <div class="ss">
         <div class="ss-title">📁 現在の現場</div>
-
         <div class="si" onclick="renameProject()">
           <span class="sii">✏️</span>
           <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName2">-</span></div>
@@ -641,8 +645,7 @@ function unlockApp(){
   <div class="settings-scroll">
 
     <div class="ss">
-      <div class="ss-title">📁 現在の現場</div>
-
+      <div class="ss-title">📁 現場</div>
       <div class="si" onclick="renameProject()">
         <span class="sii">✏️</span>
         <div class="si-body"><strong>現場名を変更</strong><span id="settingsProjectName">-</span></div>
@@ -809,7 +812,6 @@ function unlockApp(){
 <script src="https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 
 <script>
-
 'use strict';
 
 // ══════════════════════════════════════
@@ -896,95 +898,15 @@ function changePinPrompt(){
 async function init(){
   // 前回データを復元
   const lastPj = localStorage.getItem('last_project_id');
-  if(lastPj){
-    currentProjectId = lastPj;
-    currentProjectName = localStorage.getItem('last_project_name') || lastPj;
-  }
+  if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
   currentFileName = localStorage.getItem('current_file_name') || '';
   updateHeaderProject();
   loadData();
   renderPins();
   updateStorageDisplay();
   applyLayout();
-
   // 起動時ポップアップ
   showStartupModal();
-}
-
-function showStartupModal(){
-  const modal = document.getElementById('startup-modal');
-  if(!modal) return;
-  const hasPrev = !!(currentProjectName || pins.length);
-  const info = document.getElementById('startup-prev-info');
-  const btn = document.getElementById('startup-continue-btn');
-  if(hasPrev){
-    info.textContent = `「${currentProjectName||'無題'}」(${pins.length}件) が保存されています`;
-    btn.style.display = '';
-  } else {
-    info.textContent = '保存されたデータがありません';
-    btn.style.display = 'none';
-  }
-  modal.style.display = 'flex';
-  modal.style.pointerEvents = 'auto';
-}
-
-function startupContinue(){
-  // currentProjectIdが未設定の場合はデフォルトを設定
-  if(!currentProjectId){
-    currentProjectId = 'default';
-    currentProjectName = '現場';
-    localStorage.setItem('last_project_id', currentProjectId);
-    localStorage.setItem('last_project_name', currentProjectName);
-    updateHeaderProject();
-  }
-  const modal = document.getElementById('startup-modal');
-  if(modal){ modal.style.display = 'none'; modal.style.pointerEvents = 'none'; }
-}
-
-function startupLoad(){
-  document.getElementById('startup-file-input').click();
-}
-
-function doStartupLoad(input){
-  const file = input.files[0]; if(!file) return;
-  const r = new FileReader();
-  r.onload = e => {
-    let d;
-    try{ d = JSON.parse(e.target.result); }
-    catch(){ showToast('ファイル形式が正しくありません','err'); input.value=''; return; }
-
-    currentProjectName = d.project_name || d.project_id || file.name.replace(/\.json$/i,'');
-    currentProjectId   = d.project_id   || ('proj_'+Date.now());
-    currentFileName    = file.name;
-    pins               = Array.isArray(d.pins) ? d.pins : [];
-
-    localStorage.setItem('last_project_id',                currentProjectId);
-    localStorage.setItem('last_project_name',              currentProjectName);
-    localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
-    localStorage.setItem('current_file_name',              currentFileName);
-    localStorage.setItem('pins_'+currentProjectId,         JSON.stringify(pins));
-    if(d.map_image){
-      localStorage.setItem('map_img_'+currentProjectId, d.map_image);
-      if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
-    }
-
-    updateHeaderProject();
-    renderPins();
-    renderList();
-    updateStorageDisplay();
-
-    if(d.map_image){
-      showMapImage(d.map_image);
-      const mn = document.getElementById('currentMapName');
-      if(mn) mn.textContent = d.map_name || currentProjectName;
-    }
-
-    const modal = document.getElementById('startup-modal');
-    if(modal) modal.style.display = 'none';
-    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
-    input.value = '';
-  };
-  r.readAsText(file);
 }
 
 // ══════════════════════════════════════
@@ -1196,6 +1118,12 @@ function updateOdUI(){
     if(el) el.style.display=odEnabled?'block':'none';
   });
 
+  // 共有URL設定状態の表示更新
+  const shareConfigured = hasShareUrl();
+  ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent = shareConfigured ? 'URL設定済み ✓' : '未設定';
+  });
   updateFolderLabels();
 }
 
@@ -1817,11 +1745,11 @@ async function createProject(){
 
 function renameProject(){
   if(!currentProjectId){showToast('データがありません','warn');return;}
-  const newName = prompt('新しい現場名を入力', currentProjectName);
-  if(!newName?.trim() || newName===currentProjectName) return;
-  currentProjectName = newName.trim();
-  localStorage.setItem('last_project_name', currentProjectName);
-  localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
+  const n=prompt('新しい現場名を入力',currentProjectName);
+  if(!n?.trim()||n===currentProjectName)return;
+  currentProjectName=n.trim();
+  localStorage.setItem('last_project_name',currentProjectName);
+  localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
   updateHeaderProject();
   showToast(`現場名を「${currentProjectName}」に変更しました`,'ok');
 }
@@ -1979,15 +1907,13 @@ function loadData(){
   if(img) showMapImage(img);
   else { document.getElementById('mapImg').style.display='none'; document.getElementById('mapPlaceholder').style.display='flex'; }
   const mapName=localStorage.getItem('map_name_'+currentProjectId);
-  const mn=document.getElementById('currentMapName');
-  if(mn) mn.textContent=mapName||'PNG・JPG・PDF・HEIC対応';
+  document.getElementById('currentMapName').textContent=mapName||'PNG・JPG・PDF・HEIC対応';
 }
 function saveData(){
   if(!currentProjectId) return;
   localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
   updateStorageDisplay();
 }
-
 function updateStorageDisplay(){
   try{
     let total=0;
@@ -1996,7 +1922,7 @@ function updateStorageDisplay(){
     const txt=kb>=1024?(kb/1024).toFixed(1)+'MB':kb+'KB';
     ['storageDetailTxt','storageDetailTxt2'].forEach(id=>{
       const el=document.getElementById(id);
-      if(el) el.textContent='ローカル使用量: '+txt;
+      if(el) el.textContent=`ローカル使用量: ${txt}`;
     });
   }catch(e){}
 }
@@ -2054,7 +1980,7 @@ async function uploadMap(input){
   updateStorageDisplay();
   showToast(`図面設定完了`,'ok');
   input.value='';
-  if(odEnabled&&odAccessToken) 
+  if(odEnabled&&odAccessToken) autoSyncToOd();
 }
 async function pdfToJpeg(file,maxPx=1920,quality=0.85){
   try{
@@ -2098,13 +2024,7 @@ mc.addEventListener('pointerdown',e=>{
   if(addMode){
     const rect=mc.getBoundingClientRect(),img=document.getElementById('mapImg');
     if(!img.naturalWidth)return showToast('先に図面をアップロードしてください','err');
-    if(!currentProjectId){
-      currentProjectId='default';
-      currentProjectName=localStorage.getItem('project_name_default')||'現場';
-      localStorage.setItem('last_project_id',currentProjectId);
-      localStorage.setItem('last_project_name',currentProjectName);
-      updateHeaderProject();
-    }
+    if(!currentProjectId)return showToast('先に現場を選択してください','warn');
     const cx=(e.clientX-rect.left-mapOffX)/mapScale/img.naturalWidth;
     const cy=(e.clientY-rect.top-mapOffY)/mapScale/img.naturalHeight;
     if(cx<0||cx>1||cy<0||cy>1)return;
@@ -2489,73 +2409,48 @@ function exportCSV(){
   dl(`pins_${currentProjectId}_${now()}.csv`,csv,'text/csv');
   showToast('CSV出力しました','ok');
 }
-// 上書き保存（localStorageに保存 + ファイル名記憶）
 function saveOverwrite(){
   if(!currentProjectId){ showToast('データがありません','warn'); return; }
-  const data = {
-    project_id: currentProjectId,
-    project_name: currentProjectName,
-    exported: new Date().toISOString(),
-    map_name: localStorage.getItem('map_name_'+currentProjectId),
-    map_image: localStorage.getItem('map_img_'+currentProjectId),
-    pins,
-  };
-  // localStorageに保存（永続化）
   localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
-  const fname = currentFileName || ((currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_')+'.json');
-  localStorage.setItem('current_file_name', fname);
-  currentFileName = fname;
+  updateStorageDisplay();
   showToast('保存しました ✓','ok');
 }
-
-// ファイルに出力（ダウンロード）
 function exportJSON(){
   if(!currentProjectId){ showToast('データがありません','warn'); return; }
-  const safeName = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
-  const fname = currentFileName || (safeName+'.json');
-  const data = {
-    project_id: currentProjectId,
-    project_name: currentProjectName,
-    exported: new Date().toISOString(),
-    map_name: localStorage.getItem('map_name_'+currentProjectId),
-    map_image: localStorage.getItem('map_img_'+currentProjectId),
-    pins,
-  };
-  dl(fname, JSON.stringify(data,null,2), 'application/json');
-  showToast(`「${fname}」をダウンロードしました`,'ok');
+  const safeName=(currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
+  const fname=currentFileName||(safeName+'.json');
+  const data={project_id:currentProjectId,project_name:currentProjectName,exported:new Date().toISOString(),map_name:localStorage.getItem('map_name_'+currentProjectId),map_image:localStorage.getItem('map_img_'+currentProjectId),pins};
+  dl(fname,JSON.stringify(data,null,2),'application/json');
+  showToast(`「${fname}」を出力しました`,'ok');
 }
-
-function importJSON(){ document.getElementById('json-import-input').click(); }
+function importJSON(){document.getElementById('json-import-input').click();}
 function doImportJSON(input){
-  const file = input.files[0]; if(!file) return;
-  const r = new FileReader();
-  r.onload = e => {
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
     let d;
-    try{ d = JSON.parse(e.target.result); }
+    try{ d=JSON.parse(e.target.result); }
     catch(){ showToast('ファイル形式が正しくありません','err'); input.value=''; return; }
-
-    currentProjectName = d.project_name || d.project_id || file.name.replace(/\.json$/i,'');
-    currentProjectId   = d.project_id   || ('proj_'+Date.now());
-    currentFileName    = file.name;
-    pins               = Array.isArray(d.pins) ? d.pins : [];
-
-    localStorage.setItem('last_project_id',                currentProjectId);
-    localStorage.setItem('last_project_name',              currentProjectName);
-    localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
-    localStorage.setItem('current_file_name',              currentFileName);
-    localStorage.setItem('pins_'+currentProjectId,         JSON.stringify(pins));
+    currentProjectName=d.project_name||d.project_id||file.name.replace(/\.json$/i,'');
+    currentProjectId=d.project_id||('proj_'+Date.now());
+    currentFileName=file.name;
+    pins=Array.isArray(d.pins)?d.pins:[];
+    localStorage.setItem('last_project_id',currentProjectId);
+    localStorage.setItem('last_project_name',currentProjectName);
+    localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
+    localStorage.setItem('current_file_name',currentFileName);
+    localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
     if(d.map_image){
-      localStorage.setItem('map_img_'+currentProjectId, d.map_image);
-      if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
+      localStorage.setItem('map_img_'+currentProjectId,d.map_image);
+      if(d.map_name)localStorage.setItem('map_name_'+currentProjectId,d.map_name);
       showMapImage(d.map_image);
-      const mn = document.getElementById('currentMapName');
-      if(mn) mn.textContent = d.map_name || currentProjectName;
+      document.getElementById('currentMapName').textContent=d.map_name||currentProjectName;
     }
     updateHeaderProject();
     renderAll();
     updateStorageDisplay();
     showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
-    input.value = '';
+    input.value='';
   };
   r.readAsText(file);
 }
@@ -2828,10 +2723,75 @@ function fixIOSScroll(el){
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
+
+function showStartupModal(){
+  const modal=document.getElementById('startup-modal');
+  if(!modal)return;
+  const hasPrev=!!(currentProjectName||pins.length);
+  const info=document.getElementById('startup-prev-info');
+  const btn=document.getElementById('startup-continue-btn');
+  if(hasPrev){
+    info.textContent=`「${currentProjectName||'無題'}」(${pins.length}件) が保存されています`;
+    btn.style.display='';
+  }else{
+    info.textContent='保存されたデータがありません';
+    btn.style.display='none';
+  }
+  modal.style.display='flex';
+  modal.style.pointerEvents='auto';
+}
+function startupContinue(){
+  if(!currentProjectId){
+    currentProjectId='default';
+    currentProjectName=localStorage.getItem('project_name_default')||'現場';
+    localStorage.setItem('last_project_id',currentProjectId);
+    localStorage.setItem('last_project_name',currentProjectName);
+    updateHeaderProject();
+  }
+  const modal=document.getElementById('startup-modal');
+  if(modal){modal.style.display='none';modal.style.pointerEvents='none';}
+}
+function startupLoad(){document.getElementById('startup-file-input').click();}
+function doStartupLoad(input){
+  const file=input.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    let d;
+    try{d=JSON.parse(e.target.result);}
+    catch(){showToast('ファイル形式が正しくありません','err');input.value='';return;}
+    currentProjectName=d.project_name||d.project_id||file.name.replace(/\.json$/i,'');
+    currentProjectId=d.project_id||('proj_'+Date.now());
+    currentFileName=file.name;
+    pins=Array.isArray(d.pins)?d.pins:[];
+    localStorage.setItem('last_project_id',currentProjectId);
+    localStorage.setItem('last_project_name',currentProjectName);
+    localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
+    localStorage.setItem('current_file_name',currentFileName);
+    localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
+    if(d.map_image){
+      localStorage.setItem('map_img_'+currentProjectId,d.map_image);
+      if(d.map_name)localStorage.setItem('map_name_'+currentProjectId,d.map_name);
+      showMapImage(d.map_image);
+      const mn=document.getElementById('currentMapName');
+      if(mn)mn.textContent=d.map_name||currentProjectName;
+    }
+    updateHeaderProject();
+    renderPins();
+    renderList();
+    updateStorageDisplay();
+    const modal=document.getElementById('startup-modal');
+    if(modal){modal.style.display='none';modal.style.pointerEvents='none';}
+    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
+    input.value='';
+  };
+  r.readAsText(file);
+}
+
+
 if(!checkSession()){
   document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
 }
-window.addEventListener('load', async()=>{ await initMsal(); });
+window.addEventListener('load',async()=>{ await initMsal(); });
 </script>
 
 </body>
