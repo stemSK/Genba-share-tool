@@ -576,7 +576,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </div><!-- /main-wrapper -->
 
 <!-- 設定モーダル -->
-<div id="startup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;">
+<div id="startup-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:8500;align-items:center;justify-content:center;pointer-events:none;">
   <div style="background:var(--surface);border-radius:16px;padding:32px 28px;max-width:340px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,0.6);">
     <div style="font-size:22px;font-weight:700;margin-bottom:8px;text-align:center;">📋 現場データ</div>
     <div id="startup-prev-info" style="text-align:center;color:var(--text-sub);font-size:13px;margin-bottom:24px;"></div>
@@ -762,6 +762,43 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <script src="https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 
 <script>
+
+// ══════════════════════════════════════
+//  AUTH: PIN（HTML onclickより先に定義）
+// ══════════════════════════════════════
+function getStoredPin(){ return localStorage.getItem('app_pin')||DEFAULT_PIN; }
+let pinBuffer='';
+function pinKey(k){
+  if(pinBuffer.length>=4)return;
+  pinBuffer+=k; updatePinDots();
+  if(pinBuffer.length===4)setTimeout(submitPin,120);
+}
+function pinBack(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
+function updatePinDots(){ for(let i=0;i<4;i++){const el=document.getElementById('pd'+i);if(el)el.classList.toggle('filled',i<pinBuffer.length);} }
+function submitPin(){
+  if(pinBuffer===getStoredPin()){
+    localStorage.setItem('auth_session',JSON.stringify({expires:Date.now()+30*24*3600*1000}));
+    unlockApp();
+  } else { showPinError(); }
+}
+function showPinError(){
+  const err=document.getElementById('pinError');
+  if(err) err.classList.add('show');
+  const dots=document.getElementById('pinDots');
+  if(dots){
+    dots.style.transform='translateX(8px)';
+    setTimeout(()=>dots.style.transform='translateX(-8px)',80);
+    setTimeout(()=>dots.style.transform='translateX(4px)',160);
+    setTimeout(()=>{dots.style.transform='';if(err)err.classList.remove('show');},300);
+  }
+  pinBuffer=''; updatePinDots();
+}
+function unlockApp(){ 
+  const a=document.getElementById('auth-screen');
+  if(a) a.style.display='none'; 
+  init(); 
+}
+
 'use strict';
 
 // ══════════════════════════════════════
@@ -877,6 +914,7 @@ function showStartupModal(){
     btn.style.display = 'none';
   }
   modal.style.display = 'flex';
+  modal.style.pointerEvents = 'auto';
 }
 
 function startupContinue(){
@@ -889,7 +927,7 @@ function startupContinue(){
     updateHeaderProject();
   }
   const modal = document.getElementById('startup-modal');
-  if(modal) modal.style.display = 'none';
+  if(modal){ modal.style.display = 'none'; modal.style.pointerEvents = 'none'; }
 }
 
 function startupLoad(){
