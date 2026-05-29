@@ -376,6 +376,53 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   .pc-tabs{display:none!important;}
 }
 </style>
+<script>
+// PIN関数（HTMLのonclickより前に定義する必要がある）
+var pinBuffer = '';
+function getStoredPin(){ return localStorage.getItem('app_pin') || '0611'; }
+function pinKey(k){
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  updatePinDots();
+  if(pinBuffer.length === 4) setTimeout(submitPin, 120);
+}
+function pinBack(){
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+}
+function updatePinDots(){
+  for(var i = 0; i < 4; i++){
+    var el = document.getElementById('pd' + i);
+    if(el) el.classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+function submitPin(){
+  if(pinBuffer === getStoredPin()){
+    localStorage.setItem('auth_session', JSON.stringify({expires: Date.now() + 30*24*3600*1000}));
+    unlockApp();
+  } else {
+    showPinError();
+  }
+}
+function showPinError(){
+  var err = document.getElementById('pinError');
+  var dots = document.getElementById('pinDots');
+  if(err) err.classList.add('show');
+  if(dots){
+    dots.style.transform = 'translateX(8px)';
+    setTimeout(function(){ dots.style.transform = 'translateX(-8px)'; }, 80);
+    setTimeout(function(){ dots.style.transform = 'translateX(4px)'; }, 160);
+    setTimeout(function(){ dots.style.transform = ''; if(err) err.classList.remove('show'); }, 300);
+  }
+  pinBuffer = '';
+  updatePinDots();
+}
+function unlockApp(){
+  var a = document.getElementById('auth-screen');
+  if(a) a.style.display = 'none';
+  if(typeof init === 'function') init();
+}
+</script>
 </head>
 <body>
 
@@ -390,10 +437,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
     </div>
     <div class="pin-pad">
-      <div class="pin-key" data-key="1">1</div><div class="pin-key" data-key="2">2</div><div class="pin-key" data-key="3">3</div>
-      <div class="pin-key" data-key="4">4</div><div class="pin-key" data-key="5">5</div><div class="pin-key" data-key="6">6</div>
-      <div class="pin-key" data-key="7">7</div><div class="pin-key" data-key="8">8</div><div class="pin-key" data-key="9">9</div>
-      <div class="pin-key pin-key-empty"></div><div class="pin-key" data-key="0">0</div><div class="pin-key pin-key-del" data-key="del">⌫</div>
+      <div class="pin-key" onclick="pinKey('1')">1</div><div class="pin-key" onclick="pinKey('2')">2</div><div class="pin-key" onclick="pinKey('3')">3</div>
+      <div class="pin-key" onclick="pinKey('4')">4</div><div class="pin-key" onclick="pinKey('5')">5</div><div class="pin-key" onclick="pinKey('6')">6</div>
+      <div class="pin-key" onclick="pinKey('7')">7</div><div class="pin-key" onclick="pinKey('8')">8</div><div class="pin-key" onclick="pinKey('9')">9</div>
+      <div class="pin-key pin-key-empty"></div><div class="pin-key" onclick="pinKey('0')">0</div><div class="pin-key pin-key-del" onclick="pinBack()">⌫</div>
     </div>
     <div class="auth-error" id="pinError">PINコードが違います</div>
     <div class="auth-hint">管理者から共有されたPINを入力してください</div>
@@ -762,42 +809,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <script src="https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
 
 <script>
-
-// ══════════════════════════════════════
-//  AUTH: PIN（HTML onclickより先に定義）
-// ══════════════════════════════════════
-function getStoredPin(){ return localStorage.getItem('app_pin')||DEFAULT_PIN; }
-let pinBuffer='';
-function pinKey(k){
-  if(pinBuffer.length>=4)return;
-  pinBuffer+=k; updatePinDots();
-  if(pinBuffer.length===4)setTimeout(submitPin,120);
-}
-function pinBack(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
-function updatePinDots(){ for(let i=0;i<4;i++){const el=document.getElementById('pd'+i);if(el)el.classList.toggle('filled',i<pinBuffer.length);} }
-function submitPin(){
-  if(pinBuffer===getStoredPin()){
-    localStorage.setItem('auth_session',JSON.stringify({expires:Date.now()+30*24*3600*1000}));
-    unlockApp();
-  } else { showPinError(); }
-}
-function showPinError(){
-  const err=document.getElementById('pinError');
-  if(err) err.classList.add('show');
-  const dots=document.getElementById('pinDots');
-  if(dots){
-    dots.style.transform='translateX(8px)';
-    setTimeout(()=>dots.style.transform='translateX(-8px)',80);
-    setTimeout(()=>dots.style.transform='translateX(4px)',160);
-    setTimeout(()=>{dots.style.transform='';if(err)err.classList.remove('show');},300);
-  }
-  pinBuffer=''; updatePinDots();
-}
-function unlockApp(){ 
-  const a=document.getElementById('auth-screen');
-  if(a) a.style.display='none'; 
-  init(); 
-}
 
 'use strict';
 
