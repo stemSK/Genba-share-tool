@@ -1184,12 +1184,6 @@ function updateOdUI(){
     if(el) el.style.display=odEnabled?'block':'none';
   });
 
-  // 共有URL設定状態の表示更新
-  const shareConfigured = hasShareUrl();
-  ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.textContent = shareConfigured ? 'URL設定済み ✓' : '未設定';
-  });
   updateFolderLabels();
 }
 
@@ -1199,6 +1193,8 @@ function updateOdUI(){
 function getBaseFolder(){
   return localStorage.getItem('od_base_folder') || '現場情報共有ツール';
 }
+function hasShareUrl(){ return false; } // SharePoint削除済み
+function getShareUrl(){ return null; }  // SharePoint削除済み
 
 // DriveID手動入力ダイアログ（接続確認でドライブが見つからない場合の回避策）
 function promptManualDriveId(){
@@ -1548,8 +1544,10 @@ function updateHeaderProject(){
     nameEl.classList.add('placeholder');
   }
   const lbl=currentProjectName||currentProjectId;
-  document.getElementById('settingsProjectLabel').textContent=lbl||'未選択';
-  document.getElementById('settingsProjectName').textContent=currentProjectName||'-';
+  const spl=document.getElementById('settingsProjectLabel');
+  if(spl) spl.textContent=lbl||'未選択';
+  const spn=document.getElementById('settingsProjectName');
+  if(spn) spn.textContent=currentProjectName||'-';
   const l2=document.getElementById('settingsProjectLabel2');
   if(l2) l2.textContent=lbl||'未選択';
   const n2=document.getElementById('settingsProjectName2');
