@@ -902,40 +902,45 @@ function doStartupLoad(input){
   const file = input.files[0]; if(!file) return;
   const r = new FileReader();
   r.onload = e => {
-    try{
-      const d = JSON.parse(e.target.result);
-      // 現場データを読み込む
-      currentProjectName = d.project_name || d.project_id || file.name.replace('.json','');
-      currentProjectId = d.project_id || ('proj_' + Date.now());
-      currentFileName = file.name;
-      localStorage.setItem('last_project_id', currentProjectId);
-      localStorage.setItem('last_project_name', currentProjectName);
-      localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
-      localStorage.setItem('current_file_name', currentFileName);
-      if(d.pins){
-        pins = d.pins;
-        localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
-      }
-      if(d.map_image){
-        localStorage.setItem('map_img_'+currentProjectId, d.map_image);
-        if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
-        showMapImage(d.map_image);
-        const mn = document.getElementById('currentMapName');
-        if(mn) mn.textContent = d.map_name || currentProjectName;
-      }
-      updateHeaderProject();
-      try{ pins = d.pins || []; localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins)); }catch{ pins=[]; }
-      renderAll();
-      updateStorageDisplay();
-      const sm=document.getElementById('startup-modal'); if(sm) sm.style.display='none';
-      showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`, 'ok');
-      // 図面が読み込まれた後に再フィット
-      const mi = document.getElementById('mapImg');
-      if(mi && mi.src && mi.naturalWidth) { fitMap(); renderPinPositions(); }
-    }catch(err){
-      console.error('doStartupLoad error:', err);
-      showToast('読み込みエラー: ' + err.message, 'err');
+    let d;
+    try{ d = JSON.parse(e.target.result); }
+    catch(err){ showToast('JSONパースエラー: ファイル形式が正しくありません', 'err'); input.value=''; return; }
+
+    // 現場情報を設定
+    currentProjectName = d.project_name || d.project_id || file.name.replace(/\.json$/i,'');
+    currentProjectId   = d.project_id   || ('proj_' + Date.now());
+    currentFileName    = file.name;
+    pins               = Array.isArray(d.pins) ? d.pins : [];
+
+    // localStorageに保存
+    localStorage.setItem('last_project_id',                    currentProjectId);
+    localStorage.setItem('last_project_name',                  currentProjectName);
+    localStorage.setItem('project_name_'+currentProjectId,     currentProjectName);
+    localStorage.setItem('current_file_name',                  currentFileName);
+    localStorage.setItem('pins_'+currentProjectId,             JSON.stringify(pins));
+    if(d.map_image){
+      localStorage.setItem('map_img_'+currentProjectId,  d.map_image);
+      if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
     }
+
+    // UIを更新
+    updateHeaderProject();
+    renderPins();
+    renderList();
+    updateStorageDisplay();
+
+    // 図面を表示
+    if(d.map_image){
+      showMapImage(d.map_image);
+      const mn = document.getElementById('currentMapName');
+      if(mn) mn.textContent = d.map_name || currentProjectName;
+    }
+
+    // ポップアップを閉じる
+    const sm = document.getElementById('startup-modal');
+    if(sm) sm.style.display = 'none';
+
+    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`, 'ok');
     input.value = '';
   };
   r.readAsText(file);
