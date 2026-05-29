@@ -2779,11 +2779,13 @@ function fixIOSScroll(el){
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-document.addEventListener('DOMContentLoaded', async ()=>{
-  await initMsal();
+document.addEventListener('DOMContentLoaded', ()=>{
+  // PIN操作をすぐ有効化（MSALより先に）
   if(!checkSession()){
     document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
   }
+  // MSALはバックグラウンドで初期化
+  initMsal().catch(e=>console.warn('MSAL init error:', e));
 });
 </script>
 
