@@ -21,6 +21,42 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dv
 
 
 
+/* ═══ STARTUP FILE SELECT ═══ */
+#startup-screen{
+  position:fixed;inset:0;z-index:9998;background:var(--bg);
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:24px;padding:32px 24px;overflow-y:auto;
+}
+#startup-screen.show{display:flex;}
+.startup-title{text-align:center;}
+.startup-title h2{font-size:20px;font-weight:700;color:var(--accent3);}
+.startup-title p{font-size:12px;color:var(--text2);margin-top:6px;}
+.startup-prev-info{
+  background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;width:100%;max-width:400px;
+  text-align:center;line-height:1.7;
+}
+.startup-prev-info strong{color:var(--text);font-size:14px;display:block;margin-bottom:2px;}
+.startup-prev-info .prev-meta{font-size:11px;color:var(--text3);}
+.startup-cards{display:flex;flex-direction:column;gap:14px;width:100%;max-width:400px;}
+.startup-card{
+  background:var(--surface);border:2px solid var(--border);border-radius:14px;
+  padding:20px;cursor:pointer;transition:all 0.2s;
+  display:flex;gap:16px;align-items:center;
+}
+.startup-card:active,.startup-card:hover{border-color:var(--accent);background:var(--surface2);transform:scale(0.99);}
+.startup-card.s-continue{border-color:rgba(46,168,126,0.5);}
+.startup-card.s-continue:hover{border-color:var(--success);}
+.startup-card.s-open{border-color:rgba(59,111,212,0.4);}
+.startup-card.s-open:hover{border-color:var(--accent);}
+.startup-card.s-new{border-color:rgba(160,100,220,0.4);}
+.startup-card.s-new:hover{border-color:#a064dc;}
+.startup-card-icon{font-size:34px;flex-shrink:0;width:42px;text-align:center;}
+.startup-card-body{flex:1;}
+.startup-card-body h3{font-size:15px;font-weight:700;margin-bottom:4px;color:var(--text);}
+.startup-card-body p{font-size:11px;color:var(--text2);line-height:1.6;}
+.startup-card-arrow{font-size:20px;color:var(--text3);margin-left:auto;flex-shrink:0;}
+
 /* AUTH */
 #auth-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px 24px;overflow-y:auto;}
 .auth-logo h1{font-size:20px;font-weight:700;color:var(--accent3);text-align:center;}
@@ -256,6 +292,16 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .toast.ok{border-color:var(--success);color:#5ec8a0;}
 .toast.err{border-color:var(--danger);color:#f08080;}
 .toast.warn{border-color:var(--warn);color:#f0b060;}
+/* 上書き保存バナー */
+#save-banner{
+  position:fixed;top:0;left:0;right:0;z-index:10000;
+  background:var(--success);color:#fff;
+  text-align:center;font-size:14px;font-weight:700;
+  padding:10px;letter-spacing:0.03em;
+  transform:translateY(-100%);transition:transform 0.3s ease;
+  pointer-events:none;
+}
+#save-banner.show{transform:translateY(0);}
 .empty{text-align:center;padding:48px 24px;color:var(--text2);}
 .empty .ei{font-size:46px;margin-bottom:12px;opacity:0.3;}
 .empty p{font-size:13px;line-height:1.6;}
@@ -390,13 +436,73 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
     </div>
     <div class="pin-pad">
-      <div class="pin-key" onclick="pinKey('1')">1</div><div class="pin-key" onclick="pinKey('2')">2</div><div class="pin-key" onclick="pinKey('3')">3</div>
-      <div class="pin-key" onclick="pinKey('4')">4</div><div class="pin-key" onclick="pinKey('5')">5</div><div class="pin-key" onclick="pinKey('6')">6</div>
-      <div class="pin-key" onclick="pinKey('7')">7</div><div class="pin-key" onclick="pinKey('8')">8</div><div class="pin-key" onclick="pinKey('9')">9</div>
-      <div class="pin-key pin-key-empty"></div><div class="pin-key" onclick="pinKey('0')">0</div><div class="pin-key pin-key-del" onclick="pinBack()">⌫</div>
+      <div class="pin-key" data-pin="1">1</div><div class="pin-key" data-pin="2">2</div><div class="pin-key" data-pin="3">3</div>
+      <div class="pin-key" data-pin="4">4</div><div class="pin-key" data-pin="5">5</div><div class="pin-key" data-pin="6">6</div>
+      <div class="pin-key" data-pin="7">7</div><div class="pin-key" data-pin="8">8</div><div class="pin-key" data-pin="9">9</div>
+      <div class="pin-key pin-key-empty"></div><div class="pin-key" data-pin="0">0</div><div class="pin-key pin-key-del" data-pin="del">⌫</div>
     </div>
     <div class="auth-error" id="pinError">PINコードが違います</div>
     <div class="auth-hint">管理者から共有されたPINを入力してください</div>
+  </div>
+</div>
+
+<!-- STARTUP FILE SELECT -->
+<div id="startup-screen">
+  <div class="startup-title">
+    <h2>📍 現場情報共有ツール</h2>
+    <p id="startup-subtitle">現場データを選択してください</p>
+  </div>
+  <div id="startup-prev-block" class="startup-prev-info" style="display:none;">
+    <strong id="startup-prev-name"></strong>
+    <span id="startup-prev-meta" class="prev-meta"></span>
+  </div>
+  <div class="startup-cards">
+    <div class="startup-card s-continue" id="startup-continue-card" onclick="startupContinue()" style="display:none;">
+      <div class="startup-card-icon">📂</div>
+      <div class="startup-card-body">
+        <h3>前回のファイルを続ける</h3>
+        <p id="startup-continue-desc">前回のデータを読み込みます</p>
+      </div>
+      <div class="startup-card-arrow">›</div>
+    </div>
+    <div class="startup-card s-open" onclick="startupOpenFile()">
+      <div class="startup-card-icon">📁</div>
+      <div class="startup-card-body">
+        <h3>ファイルを開く</h3>
+        <p>JSONファイルを選択して読み込みます</p>
+      </div>
+      <div class="startup-card-arrow">›</div>
+    </div>
+    <div class="startup-card s-new" onclick="startupNew()">
+      <div class="startup-card-icon">🆕</div>
+      <div class="startup-card-body">
+        <h3>新しくはじめる</h3>
+        <p>現場名を入力して新規作成します</p>
+      </div>
+      <div class="startup-card-arrow">›</div>
+    </div>
+  </div>
+  <input type="file" id="startup-file-input" accept=".json" style="display:none" onchange="doStartupFileInput(this)">
+</div>
+
+<!-- 新規現場作成モーダル -->
+<div id="new-project-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border-radius:18px;padding:28px 24px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:16px;">
+    <div style="font-size:22px;text-align:center;">🆕</div>
+    <div style="font-size:16px;font-weight:700;text-align:center;">新しい現場を作成</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="font-size:12px;color:var(--text2);">現場名 <span style="color:var(--danger)">*</span></label>
+      <input id="new-project-name" type="text" placeholder="例：○○工事"
+        style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:15px;color:var(--text);outline:none;width:100%;">
+    </div>
+    <div style="background:var(--surface2);border-radius:10px;padding:12px;font-size:12px;color:var(--text2);line-height:1.7;">
+      📋 作成後に設定画面から図面をアップロードできます。<br>
+      図面なしでもピンの追加・記録は可能です。
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-secondary" style="flex:1;padding:12px;" onclick="closeNewProjectModal()">キャンセル</button>
+      <button class="btn btn-primary" style="flex:1;padding:12px;font-weight:700;" onclick="confirmNewProject()">作成して開始 →</button>
+    </div>
   </div>
 </div>
 
@@ -414,8 +520,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 <header>
   <div class="header-project">
     <div class="header-project-name" id="headerProjectName">📁 現場を選択 ▾</div>
-  </div>
-    <span id="syncLabel">未接続</span>
   </div>
 </header>
 
@@ -563,18 +667,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </div>
 </div><!-- /main-wrapper -->
 
-<!-- 設定モーダル -->
-<div id="startup-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);z-index:9000;align-items:center;justify-content:center;pointer-events:none;">
-  <div style="background:var(--surface);border-radius:20px;padding:32px 24px;max-width:380px;width:92%;box-shadow:0 12px 48px rgba(0,0,0,0.7);text-align:center;">
-    <div style="font-size:40px;margin-bottom:10px;">🏗️</div>
-    <div style="font-size:18px;font-weight:700;margin-bottom:20px;">現場を選択してください</div>
-    <div id="startup-prev-info" style="color:var(--text-sub);font-size:13px;margin-bottom:16px;line-height:1.6;"></div>
-    <button id="startup-continue-btn" class="btn btn-primary" style="width:100%;padding:16px;font-size:15px;margin-bottom:10px;border-radius:12px;font-weight:700;display:none;" onclick="startupContinue()">▶ 前回の現場を続ける</button>
-    <button class="btn btn-secondary" style="width:100%;padding:14px;font-size:15px;border-radius:12px;" onclick="startupLoad()">📥 ファイルから現場を開く</button>
-    <input type="file" id="startup-file-input" accept=".json" style="display:none" onchange="doStartupLoad(this)">
-  </div>
-</div>
-
 <div id="settings-modal">
   <div class="settings-modal-header">
     <h2>⚙️ 設定</h2>
@@ -716,6 +808,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="save-banner">💾 上書き保存しました</div>
 <input type="file" id="json-import-input" accept=".json" style="display:none" onchange="doImportJSON(this)">
 
 <!-- 描画エディタ -->
@@ -771,7 +864,7 @@ const ITEMS_BY_DIV   = {
 // ══════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════
-let pins = [], currentProjectId = '', currentProjectName = '', currentFileName = '', drawBaseImage = null;
+let pins = [], currentProjectId = '', currentProjectName = '', currentFileName = '';
 let addMode=false, moveMode=false, isDragging=false;
 let lastX=0, lastY=0, mapScale=1, mapOffX=0, mapOffY=0, pinchDist=0;
 let editingId=null, pendingX=0, pendingY=0;
@@ -789,15 +882,15 @@ function getStoredPin(){ return localStorage.getItem('app_pin')||DEFAULT_PIN; }
 
 function checkSession(){
   const s = localStorage.getItem('auth_session');
-  if(s){ try{ const o=JSON.parse(s); if(o.expires>Date.now()){unlockApp();return true;} }catch{} }
+  if(s){ try{ const o=JSON.parse(s); if(o.expires>Date.now()){unlockApp();return true;} }catch(e){} }
   return false;
 }
+let pinBuffer='';
 function pinKey(k){
   if(pinBuffer.length>=4)return;
   pinBuffer+=k; updatePinDots();
   if(pinBuffer.length===4)setTimeout(submitPin,120);
 }
-let pinBuffer='';
 function pinBack(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
 function updatePinDots(){ for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length); }
 function submitPin(){
@@ -816,7 +909,10 @@ function showPinError(){
   setTimeout(()=>{dots.style.transform='';err.classList.remove('show');},300);
   pinBuffer=''; updatePinDots();
 }
-function unlockApp(){ document.getElementById('auth-screen').style.display='none'; init(); }
+function unlockApp(){
+  document.getElementById('auth-screen').style.display='none';
+  init();
+}
 function logout(){ if(!confirm('ログアウトしますか？'))return; localStorage.removeItem('auth_session'); location.reload(); }
 function changePinPrompt(){
   const cur=prompt('現在のPINを入力');
@@ -832,16 +928,300 @@ function changePinPrompt(){
 // ══════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════
+let currentFileHandle = null; // File System Access API ハンドル（上書き保存用）
+
 async function init(){
   const lastPj = localStorage.getItem('last_project_id');
-  if(lastPj){ currentProjectId=lastPj; currentProjectName=localStorage.getItem('last_project_name')||lastPj; }
+  if(lastPj){
+    currentProjectId = lastPj;
+    currentProjectName = localStorage.getItem('last_project_name')||lastPj;
+  }
   currentFileName = localStorage.getItem('current_file_name') || '';
   updateHeaderProject();
-  loadData(); // 図面・ピンを復元
+  loadData();
   renderPins();
   updateStorageDisplay();
   applyLayout();
-  setTimeout(showStartupModal, 50); // 起動ポップアップ（DOM確実に描画後）
+  // PIN認証後は必ずファイル選択画面を表示
+  setTimeout(showStartupScreen, 50);
+}
+
+// ══════════════════════════════════════
+//  起動ファイル選択画面
+// ══════════════════════════════════════
+function showStartupScreen(){
+  const lastPj    = localStorage.getItem('last_project_id');
+  const lastName  = localStorage.getItem('last_project_name');
+  const lastFile  = localStorage.getItem('current_file_name');
+  const hasPrev   = !!(lastPj && localStorage.getItem('pins_'+lastPj));
+
+  const prevBlock    = document.getElementById('startup-prev-block');
+  const continueCard = document.getElementById('startup-continue-card');
+  const subtitle     = document.getElementById('startup-subtitle');
+
+  if(hasPrev){
+    const prevPins = (() => { try{ return JSON.parse(localStorage.getItem('pins_'+lastPj)||'[]'); }catch(e){ return []; } })();
+    document.getElementById('startup-prev-name').textContent = `「${lastName||lastPj}」`;
+    document.getElementById('startup-prev-meta').textContent =
+      `${prevPins.length}件のピン${lastFile ? '　ファイル: '+lastFile : ''}`;
+    document.getElementById('startup-continue-desc').textContent =
+      `「${lastName||lastPj}」（${prevPins.length}件）を続ける`;
+    prevBlock.style.display    = '';
+    continueCard.style.display = '';
+    subtitle.textContent = '現場データを選択してください';
+  } else {
+    prevBlock.style.display    = 'none';
+    continueCard.style.display = 'none';
+    subtitle.textContent = 'ファイルを開いて作業を開始してください';
+  }
+  document.getElementById('startup-screen').classList.add('show');
+}
+
+function startupNew(){
+  const modal = document.getElementById('new-project-modal');
+  modal.style.display = 'flex';
+  const input = document.getElementById('new-project-name');
+  input.value = '';
+  setTimeout(()=> input.focus(), 100);
+  // Enterキーで確定
+  input.onkeydown = e=>{ if(e.key==='Enter') confirmNewProject(); };
+}
+
+function closeNewProjectModal(){
+  document.getElementById('new-project-modal').style.display = 'none';
+}
+
+function confirmNewProject(){
+  const name = document.getElementById('new-project-name').value.trim();
+  if(!name){
+    document.getElementById('new-project-name').style.borderColor = 'var(--danger)';
+    document.getElementById('new-project-name').focus();
+    return;
+  }
+  document.getElementById('new-project-name').style.borderColor = '';
+  closeNewProjectModal();
+
+  // 新規プロジェクトを初期化
+  currentProjectId   = 'proj_' + Date.now();
+  currentProjectName = name;
+  currentFileName    = '';
+  currentFileHandle  = null;
+  pins = [];
+  localStorage.setItem('last_project_id',   currentProjectId);
+  localStorage.setItem('last_project_name', currentProjectName);
+  localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
+  localStorage.removeItem('current_file_name');
+  localStorage.setItem('pins_'+currentProjectId, JSON.stringify([]));
+  // 前の図面データをクリア（新規なので図面なし）
+  localStorage.removeItem('map_img_'+currentProjectId);
+  localStorage.removeItem('map_name_'+currentProjectId);
+
+  document.getElementById('startup-screen').classList.remove('show');
+  updateHeaderProject();
+  loadData(); // 図面なし状態でmapAreaをリセット
+  renderAll();
+  updateStorageDisplay();
+
+  // confirm を使わず直接アップロード画面へ（confirmはブラウザによりfile pickerをブロックする）
+  showToast(`「${name}」を作成しました`, 'ok');
+  showNewProjectMapPrompt(name);
+}
+
+function showNewProjectMapPrompt(name){
+  // 図面アップロードを促すオーバーレイ（confirmの代替）
+  const overlay = document.createElement('div');
+  overlay.id = 'map-prompt-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.82);display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--surface);border-radius:18px;padding:28px 24px;width:100%;max-width:360px;display:flex;flex-direction:column;gap:16px;text-align:center;">
+      <div style="font-size:32px;">🗺️</div>
+      <div style="font-size:15px;font-weight:700;">「${name}」を作成しました</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.7;">
+        図面（PNG・JPG・PDF）をアップロードしますか？<br>
+        後から設定画面でもアップロードできます。
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <button class="btn btn-primary" style="padding:14px;font-size:14px;font-weight:700;"
+          onclick="document.getElementById('map-prompt-overlay').remove();triggerMapInput();">
+          📁 図面をアップロードする
+        </button>
+        <button class="btn btn-secondary" style="padding:12px;font-size:13px;"
+          onclick="document.getElementById('map-prompt-overlay').remove();">
+          後でアップロードする
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function startupContinue(){
+  document.getElementById('startup-screen').classList.remove('show');
+  // loadData() 済み・renderPins() 済みなのでそのまま表示
+  renderAll();
+  updateStorageDisplay();
+}
+
+function startupOpenFile(){
+  if(window.showOpenFilePicker){
+    window.showOpenFilePicker({
+      types:[{description:'JSONファイル',accept:{'application/json':['.json']}}],
+      multiple:false
+    }).then(async handles=>{
+      if(!handles?.length) return;
+      currentFileHandle = handles[0];
+      const file = await handles[0].getFile();
+      _loadStartupFile(file, handles[0].name);
+    }).catch(e=>{ if(e.name!=='AbortError') console.warn(e); });
+  } else {
+    document.getElementById('startup-file-input').click();
+  }
+}
+
+function doStartupFileInput(input){
+  const file = input.files[0]; if(!file) return;
+  currentFileHandle = null;
+  _loadStartupFile(file, file.name);
+  input.value = '';
+}
+
+function _loadStartupFile(file, fname){
+  const r = new FileReader();
+  r.onload = e => {
+    let d;
+    try{ d = JSON.parse(e.target.result); }
+    catch(e2){ showToast('ファイル形式が正しくありません','err'); return; }
+    currentProjectName = d.project_name||d.project_id||fname.replace(/\.json$/i,'');
+    currentProjectId   = d.project_id||('proj_'+Date.now());
+    currentFileName    = fname;
+    pins = Array.isArray(d.pins) ? d.pins : [];
+    localStorage.setItem('last_project_id',   currentProjectId);
+    localStorage.setItem('last_project_name', currentProjectName);
+    localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
+    localStorage.setItem('current_file_name', currentFileName);
+    localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
+    if(d.map_image){
+      localStorage.setItem('map_img_'+currentProjectId,  d.map_image);
+      if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
+      showMapImage(d.map_image);
+      const mn = document.getElementById('currentMapName');
+      if(mn) mn.textContent = d.map_name || currentProjectName;
+    }
+    document.getElementById('startup-screen').classList.remove('show');
+    updateHeaderProject();
+    renderAll();
+    updateStorageDisplay();
+    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
+  };
+  r.readAsText(file);
+}
+
+// ══════════════════════════════════════
+//  データ保存（上書き）
+// ══════════════════════════════════════
+let saveBannerTimer;
+function showSaveBanner(fname){
+  const b = document.getElementById('save-banner');
+  b.textContent = `💾 「${fname}」に上書き保存しました`;
+  b.classList.add('show');
+  clearTimeout(saveBannerTimer);
+  saveBannerTimer = setTimeout(()=>b.classList.remove('show'), 2500);
+}
+
+async function saveOverwrite(){
+  if(!currentProjectId){ showToast('データがありません','warn'); return; }
+  localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
+  updateStorageDisplay();
+  const data = {
+    project_id:   currentProjectId,
+    project_name: currentProjectName,
+    exported:     new Date().toISOString(),
+    map_name:     localStorage.getItem('map_name_'+currentProjectId),
+    map_image:    localStorage.getItem('map_img_'+currentProjectId),
+    pins
+  };
+  const content = JSON.stringify(data, null, 2);
+
+  // 既存ハンドルで上書き
+  if(currentFileHandle){
+    try{
+      const writable = await currentFileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      showSaveBanner(currentFileHandle.name);
+      return;
+    }catch(e){
+      if(e.name==='AbortError') return;
+      console.warn('上書き失敗、ファイルピッカーへフォールバック:', e);
+      currentFileHandle = null;
+    }
+  }
+  // 保存先が不明 → ファイルピッカーで指定
+  if(window.showSaveFilePicker){
+    const safe = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
+    try{
+      const handle = await window.showSaveFilePicker({
+        suggestedName: currentFileName || (safe+'.json'),
+        types:[{description:'JSONファイル',accept:{'application/json':['.json']}}]
+      });
+      currentFileHandle = handle;
+      currentFileName   = handle.name;
+      localStorage.setItem('current_file_name', handle.name);
+      const writable = await handle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      showSaveBanner(handle.name);
+      return;
+    }catch(e){ if(e.name==='AbortError') return; }
+  }
+  // iOS / Safari フォールバック（ダウンロード）
+  const safe = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
+  const fname = currentFileName || (safe+'.json');
+  currentFileName = fname;
+  localStorage.setItem('current_file_name', fname);
+  dl(fname, content, 'application/json');
+  showSaveBanner(fname);
+}
+
+// ファイルに出力（現場名+yyyymmdd）
+function exportJSON(){
+  if(!currentProjectId){ showToast('データがありません','warn'); return; }
+  const safe = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
+  const t = new Date();
+  const ymd = t.getFullYear()+String(t.getMonth()+1).padStart(2,'0')+String(t.getDate()).padStart(2,'0');
+  const fname = `${safe}${ymd}.json`;
+  const data = {
+    project_id:   currentProjectId,
+    project_name: currentProjectName,
+    exported:     new Date().toISOString(),
+    map_name:     localStorage.getItem('map_name_'+currentProjectId),
+    map_image:    localStorage.getItem('map_img_'+currentProjectId),
+    pins
+  };
+  dl(fname, JSON.stringify(data, null, 2), 'application/json');
+  showToast(`「${fname}」を出力しました`,'ok');
+}
+
+// データ読み込み
+function importJSON(){
+  if(window.showOpenFilePicker){
+    window.showOpenFilePicker({
+      types:[{description:'JSONファイル',accept:{'application/json':['.json']}}],
+      multiple:false
+    }).then(async handles=>{
+      if(!handles?.length) return;
+      currentFileHandle = handles[0];
+      const file = await handles[0].getFile();
+      _loadStartupFile(file, handles[0].name);
+    }).catch(e=>{ if(e.name!=='AbortError') console.warn(e); });
+  } else {
+    document.getElementById('json-import-input').click();
+  }
+}
+function doImportJSON(input){
+  const file = input.files[0]; if(!file) return;
+  currentFileHandle = null;
+  _loadStartupFile(file, file.name);
+  input.value = '';
 }
 
 // ══════════════════════════════════════
@@ -1245,7 +1625,7 @@ async function spDownload(projectId, filename){
       if(resp.ok){
         const text = await resp.text();
         const etag = resp.headers.get('ETag') || null;
-        try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
+        try{ return {data:JSON.parse(text), etag}; }catch(e){ return {data:null, etag:null}; }
       }
       if(resp.status === 404) return {data:null, etag:null};
       console.warn('SP REST v2.0 download failed:', resp.status);
@@ -1262,7 +1642,7 @@ async function spDownload(projectId, filename){
   }
   const {text, etag} = await graphDownload(url);
   if(!text) return {data:null, etag:null};
-  try{ return {data:JSON.parse(text), etag}; }catch{ return {data:null, etag:null}; }
+  try{ return {data:JSON.parse(text), etag}; }catch(e){ return {data:null, etag:null}; }
 }
 
 // 共有フォルダ内の現場フォルダ一覧を取得
@@ -1589,6 +1969,7 @@ async function manualSync(){
 }
 function setSyncState(s){
   const dot=document.getElementById('syncDot'),lbl=document.getElementById('syncLabel');
+  if(!dot||!lbl) return;
   if(!odEnabled){dot.className='sync-dot off';lbl.textContent='未接続';return;}
   if(s==='syncing'){dot.className='sync-dot syncing';lbl.textContent='同期中...';}
   else if(s==='error'){dot.className='sync-dot error';lbl.textContent='エラー';}
@@ -1876,21 +2257,27 @@ function loadAndCompressPhoto(file,maxPx=1200,quality=0.75){
         const cv=document.createElement('canvas');cv.width=w;cv.height=h;
         cv.getContext('2d').drawImage(imgEl,0,0,w,h);
         resolve(cv.toDataURL('image/jpeg',quality));
-      }catch{resolve(null);}
+      }catch(e){resolve(null);}
     };
     img.onload=()=>{URL.revokeObjectURL(url);compress(img);};
     img.onerror=()=>{URL.revokeObjectURL(url);const fr=new FileReader();fr.onload=e=>{const i2=new Image();i2.onload=()=>compress(i2);i2.onerror=()=>resolve(null);i2.src=e.target.result;};fr.onerror=()=>resolve(null);fr.readAsDataURL(file);};
     img.src=url;
   });
 }
+function photoThumb(src){ return typeof src==='object' ? src.composite||src.base : src; }
+function photoBase(src){ return typeof src==='object' ? src.base : src; }
+function photoDrawing(src){ return typeof src==='object' ? (src.drawing||null) : null; }
+
 function renderPhotoGrid(){
   const g=document.getElementById('photoGrid');g.innerHTML='';
   currentPhotos.forEach((src,i)=>{
+    const thumb=photoThumb(src);
     const d=document.createElement('div');
     d.className='photo-thumb';
-    d.innerHTML=`<img src="${src}" onclick="openDrawEditor('${src}',${i})" style="cursor:pointer">
+    d.innerHTML=`<img src="${thumb}" style="cursor:pointer">
       <button class="del-photo" onclick="event.stopPropagation();removePhoto(${i})">✕</button>
-      <button class="edit-photo" onclick="event.stopPropagation();openDrawEditor('${src}',${i})" title="描画・メモ">✏️</button>`;
+      <button class="edit-photo" onclick="event.stopPropagation();openDrawEditor(${i})" title="描画・メモ">✏️</button>`;
+    d.querySelector('img').addEventListener('click',()=>openDrawEditor(i));
     g.appendChild(d);
   });
   // 写真追加ボタン
@@ -1900,7 +2287,7 @@ function renderPhotoGrid(){
   g.appendChild(a);
   // 新規描画ボタン
   const b=document.createElement('div');b.className='photo-add-btn';
-  b.onclick=()=>{ drawColor='#000000'; document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active')); openDrawEditor('white',-1); };
+  b.onclick=()=>{ drawColor='#000000'; document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active')); openDrawEditor(-1); };
   b.innerHTML='<div class="ph-i">✏️</div><span>手書きメモ</span>';
   g.appendChild(b);
 }
@@ -2127,57 +2514,28 @@ function exportCSV(){
   dl(`pins_${currentProjectId}_${now()}.csv`,csv,'text/csv');
   showToast('CSV出力しました','ok');
 }
-function saveOverwrite(){
-  if(!currentProjectId){showToast('データがありません','warn');return;}
-  localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
-  updateStorageDisplay();
-  const safeName=(currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
-  const fname=currentFileName||(safeName+'.json');
-  currentFileName=fname;
-  localStorage.setItem('current_file_name',fname);
-  const data={project_id:currentProjectId,project_name:currentProjectName,exported:new Date().toISOString(),map_name:localStorage.getItem('map_name_'+currentProjectId),map_image:localStorage.getItem('map_img_'+currentProjectId),pins};
-  dl(fname,JSON.stringify(data,null,2),'application/json');
-  showToast(`「${fname}」に保存しました ✓`,'ok');
-}
-function exportJSON(){
-  if(!currentProjectId){showToast('データがありません','warn');return;}
-  const safeName=(currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
-  const fname=currentFileName||(safeName+'.json');
-  const data={project_id:currentProjectId,project_name:currentProjectName,exported:new Date().toISOString(),map_name:localStorage.getItem('map_name_'+currentProjectId),map_image:localStorage.getItem('map_img_'+currentProjectId),pins};
-  dl(fname,JSON.stringify(data,null,2),'application/json');
-  showToast(`「${fname}」を出力しました`,'ok');
-}
-function importJSON(){document.getElementById('json-import-input').click();}
-function doImportJSON(input){
-  const file=input.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=e=>{
-    let d;
-    try{d=JSON.parse(e.target.result);}
-    catch(e2){showToast('ファイル形式が正しくありません','err');input.value='';return;}
-    currentProjectName=d.project_name||d.project_id||file.name.replace(/\.json$/i,'');
-    currentProjectId=d.project_id||('proj_'+Date.now());
-    currentFileName=file.name;
-    pins=Array.isArray(d.pins)?d.pins:[];
-    localStorage.setItem('last_project_id',currentProjectId);
-    localStorage.setItem('last_project_name',currentProjectName);
-    localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
-    localStorage.setItem('current_file_name',currentFileName);
-    localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
-    if(d.map_image){
-      localStorage.setItem('map_img_'+currentProjectId,d.map_image);
-      if(d.map_name)localStorage.setItem('map_name_'+currentProjectId,d.map_name);
-      showMapImage(d.map_image);
-      document.getElementById('currentMapName').textContent=d.map_name||currentProjectName;
-    }
-    updateHeaderProject();renderAll();updateStorageDisplay();
-    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
-    input.value='';
-  };
-  r.readAsText(file);
-}
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
 function now(){return new Date().toISOString().slice(0,10);}
+function updateStorageDisplay(){
+  try{
+    let total=0;
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      total+=(localStorage.getItem(k)||'').length*2;
+    }
+    const kb=total/1024;
+    const pct=Math.min(100,Math.round(total/(5*1024*1024)*100));
+    const label = kb>=1000 ? (kb/1024).toFixed(1)+'MB' : Math.round(kb)+'KB';
+    const fill=document.getElementById('storageBarFill');
+    const txt=document.getElementById('storageTxt');
+    if(fill){fill.style.width=pct+'%';fill.className='storage-bar-fill'+(pct>80?' danger':pct>60?' warn':'');}
+    if(txt) txt.textContent=label;
+    ['storageDetailTxt','storageDetailTxt2'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.textContent=`${label} 使用中`;
+    });
+  }catch(e){}
+}
 
 // ══════════════════════════════════════
 //  その他
@@ -2229,11 +2587,12 @@ function showToast(msg,type=''){
 // ════════════════════════════════════════
 let drawCanvas=null, drawCtx=null;
 let drawColor='#000000', drawSize=4;
-let drawHistory=[], drawEditing=-1; // 編集中のphotoIndex
+let drawHistory=[], drawEditing=-1;
 let drawPointing=false, drawLastX=0, drawLastY=0;
+let drawLayerBase=null; // 描画開始時点のベース（消しゴムはここへ戻す）
 
-function openDrawEditor(imgSrc, photoIndex){
-  drawEditing = photoIndex; // -1=新規描画
+function openDrawEditor(photoIndex){
+  drawEditing = photoIndex; // -1=新規手書き
   const editor = document.getElementById('draw-editor');
   editor.classList.add('open');
   drawCanvas = document.getElementById('draw-canvas');
@@ -2242,35 +2601,56 @@ function openDrawEditor(imgSrc, photoIndex){
 
   const wrap = document.getElementById('draw-canvas-wrap');
 
-  if(!imgSrc || imgSrc === 'white'){
-    // 白地の手書きメモ
+  if(photoIndex === -1){
+    // 新規手書きメモ（白地）
     const maxW = Math.max(wrap.clientWidth - 16, 320);
     const maxH = Math.max(wrap.clientHeight - 16, 480);
     drawCanvas.width = maxW;
     drawCanvas.height = maxH;
     drawCtx.fillStyle = '#ffffff';
     drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
-    drawBaseImage = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
-    // デフォルトペン色を黒に
+    drawLayerBase = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
     setPenColor('#000000', document.getElementById('pen-black'));
     saveDrawHistory();
     setupDrawEvents();
   } else {
+    // 既存写真 or 既存手書き → base画像を読み込み、drawingレイヤーを上に重ねる
+    const entry = currentPhotos[photoIndex];
+    const baseSrc = photoBase(entry);
+    const drawSrc = photoDrawing(entry);
+
     const img = new Image();
     img.onload = ()=>{
       const maxW = wrap.clientWidth - 16;
       const maxH = wrap.clientHeight - 16;
       const scale = Math.min(maxW/img.width, maxH/img.height, 1);
-      drawCanvas.width = img.width * scale;
+      drawCanvas.width  = img.width  * scale;
       drawCanvas.height = img.height * scale;
       drawCtx.fillStyle='#ffffff';
       drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
-      drawBaseImage=drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
       drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
-      saveDrawHistory();
-      setupDrawEvents();
+      // 消しゴムが戻るべきベース（base画像のみの状態）
+      drawLayerBase = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+
+      const finishSetup = ()=>{
+        saveDrawHistory();
+        setupDrawEvents();
+      };
+
+      if(drawSrc){
+        // 保存済み描画レイヤーを上に重ねる
+        const dImg = new Image();
+        dImg.onload = ()=>{
+          drawCtx.globalAlpha = 1;
+          drawCtx.drawImage(dImg, 0, 0, drawCanvas.width, drawCanvas.height);
+          finishSetup();
+        };
+        dImg.src = drawSrc;
+      } else {
+        finishSetup();
+      }
     };
-    img.src = imgSrc;
+    img.src = baseSrc;
   }
 }
 
@@ -2300,19 +2680,23 @@ function drawDot(x,y){
   drawCtx.beginPath();
   drawCtx.globalCompositeOperation='source-over';
   if(drawColor==='eraser'){
-    // 元の画像を復元（履歴の最初のフレームから該当部分をコピー）
     const eraserSize = drawSize * 3;
-    drawCtx.putImageData(
-      drawHistory[0],
-      0, 0,
-      Math.max(0, x - eraserSize), Math.max(0, y - eraserSize),
-      eraserSize * 2, eraserSize * 2
-    );
-    // 現在の描画を上から合成
-    if(drawHistory.length > 1){
-      const cur = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
-      drawCtx.putImageData(drawHistory[0],0,0);
-      // 消した領域以外は現在の描画を維持
+    const base = drawLayerBase || drawHistory[0];
+    const sx = Math.max(0, Math.round(x - eraserSize));
+    const sy = Math.max(0, Math.round(y - eraserSize));
+    const sw = Math.min(eraserSize*2, drawCanvas.width-sx);
+    const sh = Math.min(eraserSize*2, drawCanvas.height-sy);
+    if(sw>0&&sh>0){
+      const patch = new ImageData(sw,sh);
+      for(let j=0;j<patch.data.length;j+=4){
+        const bx = sx+(j/4%sw), by = sy+Math.floor(j/4/sw);
+        const bi = (by*drawCanvas.width+bx)*4;
+        patch.data[j]   = base.data[bi];
+        patch.data[j+1] = base.data[bi+1];
+        patch.data[j+2] = base.data[bi+2];
+        patch.data[j+3] = base.data[bi+3];
+      }
+      drawCtx.putImageData(patch, sx, sy);
     }
     return;
   }
@@ -2325,8 +2709,8 @@ function drawLine(x1,y1,x2,y2){
   drawCtx.beginPath();
   drawCtx.globalCompositeOperation='source-over';
   if(drawColor==='eraser'){
-    // 元画像から消しゴム領域を復元
     const eraserSize = drawSize * 2;
+    const base = drawLayerBase || drawHistory[0];
     const steps = Math.ceil(Math.hypot(x2-x1, y2-y1) / (eraserSize/2)) || 1;
     for(let i=0;i<=steps;i++){
       const px = x1 + (x2-x1)*i/steps;
@@ -2336,16 +2720,16 @@ function drawLine(x1,y1,x2,y2){
       const sw = Math.min(eraserSize*2, drawCanvas.width-sx);
       const sh = Math.min(eraserSize*2, drawCanvas.height-sy);
       if(sw>0&&sh>0){
-        const orig = drawHistory[0].data;
-        const cur = drawCtx.getImageData(sx,sy,sw,sh);
-        for(let j=0;j<cur.data.length;j+=4){
-          const base = ((sy + Math.floor(j/4/sw)) * drawCanvas.width + sx + (j/4%sw)) * 4;
-          cur.data[j]   = orig[base];
-          cur.data[j+1] = orig[base+1];
-          cur.data[j+2] = orig[base+2];
-          cur.data[j+3] = orig[base+3];
+        const patch = new ImageData(sw,sh);
+        for(let j=0;j<patch.data.length;j+=4){
+          const bx = sx+(j/4%sw), by = sy+Math.floor(j/4/sw);
+          const bi = (by*drawCanvas.width+bx)*4;
+          patch.data[j]   = base.data[bi];
+          patch.data[j+1] = base.data[bi+1];
+          patch.data[j+2] = base.data[bi+2];
+          patch.data[j+3] = base.data[bi+3];
         }
-        drawCtx.putImageData(cur, sx, sy);
+        drawCtx.putImageData(patch, sx, sy);
       }
     }
     return;
@@ -2371,9 +2755,11 @@ function undoDraw(){
 }
 
 function clearDraw(){
-  if(!confirm('描画をすべて消しますか？')) return;
-  drawCtx.putImageData(drawHistory[0],0,0);
-  drawHistory = [drawHistory[0]];
+  if(!confirm('すべての線を消しますか？')) return;
+  // drawLayerBase = 真っ白（手書きメモ）or 元写真（写真メモ）の状態に完全リセット
+  const base = drawLayerBase || drawHistory[0];
+  drawCtx.putImageData(base, 0, 0);
+  drawHistory = [drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height)];
 }
 
 function setPenColor(color, btn){
@@ -2388,30 +2774,66 @@ function updatePenSize(v){
 }
 
 function saveDrawing(){
-  // メモをcanvasに描画
+  // メモテキストを描画レイヤーに追記
   const memo = (document.getElementById('draw-memo-text')?.value || '').trim();
   if(memo){
     drawCtx.globalCompositeOperation='source-over';
     const lines = memo.split('\n');
     const fontSize = Math.max(12, drawCanvas.width * 0.025);
     drawCtx.font = `bold ${fontSize}px sans-serif`;
-    drawCtx.fillStyle = 'rgba(0,0,0,0.6)';
     lines.forEach((line,i)=>{
       const y = drawCanvas.height - fontSize*(lines.length-i) - 8;
       const w = drawCtx.measureText(line).width;
+      drawCtx.fillStyle = 'rgba(0,0,0,0.6)';
       drawCtx.fillRect(4, y-fontSize+2, w+8, fontSize+2);
-    });
-    drawCtx.fillStyle = '#fff';
-    lines.forEach((line,i)=>{
+      drawCtx.fillStyle = '#fff';
       drawCtx.fillText(line, 8, drawCanvas.height - fontSize*(lines.length-i) - 4);
     });
   }
-  const dataUrl = drawCanvas.toDataURL('image/jpeg', 0.88);
-  if(drawEditing >= 0){
-    currentPhotos[drawEditing] = dataUrl;
+
+  // 現在の合成画像
+  const compositeUrl = drawCanvas.toDataURL('image/png');
+
+  // 描画レイヤーのみを透過PNGで抽出（drawLayerBase との差分）
+  const _extractDrawingLayer = ()=>{
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width  = drawCanvas.width;
+    offCanvas.height = drawCanvas.height;
+    const offCtx = offCanvas.getContext('2d');
+    const compositeData = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+    const baseData = drawLayerBase;
+    const layerData = offCtx.createImageData(drawCanvas.width, drawCanvas.height);
+    for(let i=0;i<compositeData.data.length;i+=4){
+      const rC=compositeData.data[i],gC=compositeData.data[i+1],bC=compositeData.data[i+2];
+      const rB=baseData.data[i],  gB=baseData.data[i+1],  bB=baseData.data[i+2];
+      if(Math.abs(rC-rB)+Math.abs(gC-gB)+Math.abs(bC-bB) > 8){
+        layerData.data[i]=rC; layerData.data[i+1]=gC;
+        layerData.data[i+2]=bC; layerData.data[i+3]=255;
+      } else {
+        layerData.data[i+3]=0;
+      }
+    }
+    offCtx.putImageData(layerData, 0, 0);
+    return offCanvas.toDataURL('image/png');
+  };
+
+  if(drawEditing === -1){
+    // 新規手書きメモ：白地をbaseとして保存し、描画は差分レイヤーで保持
+    const whiteCanvas = document.createElement('canvas');
+    whiteCanvas.width  = drawCanvas.width;
+    whiteCanvas.height = drawCanvas.height;
+    const wCtx = whiteCanvas.getContext('2d');
+    wCtx.fillStyle = '#ffffff';
+    wCtx.fillRect(0,0,whiteCanvas.width,whiteCanvas.height);
+    const baseUrl    = whiteCanvas.toDataURL('image/png');
+    const drawingUrl = _extractDrawingLayer();
+    currentPhotos.push({ base: baseUrl, drawing: drawingUrl, composite: compositeUrl });
   } else {
-    currentPhotos.push(dataUrl);
+    const baseSrc    = photoBase(currentPhotos[drawEditing]);
+    const drawingUrl = _extractDrawingLayer();
+    currentPhotos[drawEditing] = { base: baseSrc, drawing: drawingUrl, composite: compositeUrl };
   }
+
   closeDrawEditor(true);
   renderPhotoGrid();
   showToast('保存しました ✓', 'ok');
@@ -2446,69 +2868,24 @@ function fixIOSScroll(el){
   }, {passive:true});
 }
 
+
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-function showStartupModal(){
-  const modal=document.getElementById('startup-modal');
-  if(!modal){ console.warn('startup-modal not found'); return; }
-  const hasPrev=!!(currentProjectName||pins.length);
-  const info=document.getElementById('startup-prev-info');
-  const btn=document.getElementById('startup-continue-btn');
-  if(hasPrev){
-    info.innerHTML=`前回の現場：<strong style="color:var(--text);font-size:15px;">「${currentProjectName||'無題'}」</strong>（${pins.length}件）`;
-    btn.style.display='block';
-  }else{
-    info.textContent='ファイルを選択して現場データを読み込んでください';
-    btn.style.display='none';
-  }
-  modal.style.cssText='display:flex;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.88);z-index:9000;align-items:center;justify-content:center;pointer-events:auto;';
-}
-function startupContinue(){
-  const modal=document.getElementById('startup-modal');
-  if(modal){modal.style.cssText='display:none;pointer-events:none;';}
-  // 図面・ピンをすぐ表示
-  loadData();
-  renderAll();
-}
-function startupLoad(){document.getElementById('startup-file-input').click();}
-function doStartupLoad(input){
-  const file=input.files[0];if(!file)return;
-  const r=new FileReader();
-  r.onload=e=>{
-    let d;
-    try{d=JSON.parse(e.target.result);}
-    catch(e2){showToast('ファイル形式が正しくありません','err');input.value='';return;}
-    currentProjectName=d.project_name||d.project_id||file.name.replace(/\.json$/i,'');
-    currentProjectId=d.project_id||('proj_'+Date.now());
-    currentFileName=file.name;
-    pins=Array.isArray(d.pins)?d.pins:[];
-    localStorage.setItem('last_project_id',currentProjectId);
-    localStorage.setItem('last_project_name',currentProjectName);
-    localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
-    localStorage.setItem('current_file_name',currentFileName);
-    localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
-    if(d.map_image){
-      localStorage.setItem('map_img_'+currentProjectId,d.map_image);
-      if(d.map_name)localStorage.setItem('map_name_'+currentProjectId,d.map_name);
-      showMapImage(d.map_image);
-      const mn=document.getElementById('currentMapName');
-      if(mn)mn.textContent=d.map_name||currentProjectName;
-    }
-    updateHeaderProject();renderPins();renderList();updateStorageDisplay();
-    const modal=document.getElementById('startup-modal');
-    if(modal){modal.style.display='none';modal.style.pointerEvents='none';}
-    showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
-    input.value='';
-  };
-  r.readAsText(file);
-}
-
 window.addEventListener('load', ()=>{
+  // PINパッド イベント登録
+  document.querySelectorAll('.pin-key[data-pin]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const v = el.dataset.pin;
+      if(v==='del') pinBack(); else pinKey(v);
+    });
+  });
+  document.addEventListener('keydown',e=>{
+    if(/^[0-9]$/.test(e.key)) pinKey(e.key);
+    if(e.key==='Backspace') pinBack();
+  });
   initMsal();
-  if(!checkSession()){
-    document.addEventListener('keydown',e=>{if(/^[0-9]$/.test(e.key))pinKey(e.key);if(e.key==='Backspace')pinBack();});
-  }
+  checkSession();
 });
 </script>
 
