@@ -538,6 +538,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
           <div class="export-item" onclick="exportShunkoExcel()" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><span class="ei">📑</span><div><strong>竣工検査記録帳票の作成</strong><span>設計・施工ピンをExcel様式で出力</span></div></div>
+          <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
                 </div>
       </div>
     </div>
@@ -665,15 +666,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="si" onclick="clearPins()">
         <span class="sii">🗑️</span>
         <div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div>
-        <span class="si-arrow">›</span>
-      </div>
-    </div>
-
-    <div class="ss">
-      <div class="ss-title">出力</div>
-      <div class="si" onclick="exportCSV()">
-        <span class="sii">📄</span>
-        <div class="si-body"><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div>
         <span class="si-arrow">›</span>
       </div>
     </div>
