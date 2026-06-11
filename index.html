@@ -833,10 +833,12 @@ async function init(){
 //  起動ファイル選択画面
 // ══════════════════════════════════════
 function showStartupScreen(){
-  const lastPj    = _lsGet('last_project_id');
-  const lastName  = _lsGet('last_project_name');
-  const lastFile  = _lsGet('current_file_name');
-  const hasPrev   = !!(lastPj && _lsGet('pins_'+lastPj));
+  const lastPj    = _lsGet('last_project_id')   || currentProjectId;
+  const lastName  = _lsGet('last_project_name') || currentProjectName;
+  const lastFile  = _lsGet('current_file_name') || currentFileName;
+  // localStorage が使えない場合はメモリ上のpinsで判定
+  const pinsFromLs = lastPj ? _lsGet('pins_'+lastPj) : null;
+  const hasPrev   = !!(lastPj && (pinsFromLs || (currentProjectId && pins.length >= 0 && currentProjectName)));
 
   const prevBlock    = document.getElementById('startup-prev-block');
   const continueCard = document.getElementById('startup-continue-card');
@@ -966,6 +968,8 @@ function showNewProjectMapPrompt(name){
 
 function startupContinue(){
   document.getElementById('startup-screen').classList.remove('show');
+  // 常にloadDataを呼ぶ（図面・ピンをlocalStorageから復元）
+  // localStorageが使えない環境ではメモリ上のデータがそのまま残るので問題なし
   loadData();
   requestAnimationFrame(()=>{
     const img = document.getElementById('mapImg');
