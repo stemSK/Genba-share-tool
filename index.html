@@ -137,8 +137,9 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .fab{width:48px;height:48px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:22px;cursor:pointer;transition:all 0.2s;box-shadow:var(--sh);}
 .fab-primary{background:linear-gradient(135deg,var(--accent),#2855a8);color:#fff;}
 .fab-primary.active{background:linear-gradient(135deg,var(--warn),#b07020);}
-.fab-secondary{background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:18px;}
-.fab-secondary.active{background:var(--surface3);border-color:var(--accent);color:var(--accent3);}
+.fab-secondary{background:var(--surface2);border:2px solid var(--border);color:var(--text2);font-size:18px;}
+.fab-secondary.active{background:#1a3a6a;border-color:#4a8ff7;color:#4a8ff7;box-shadow:0 0 0 3px rgba(74,143,247,0.35);}
+input[type="date"]{color-scheme:dark;}
 .map-hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(224,144,64,0.92);color:#000;padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;z-index:20;pointer-events:none;display:none;}
 .stats-bar{background:var(--surface);border-top:1px solid var(--border);padding:7px 14px;display:flex;gap:14px;flex-shrink:0;align-items:center;}
 .stat{display:flex;align-items:center;gap:5px;font-size:11px;}
@@ -1002,6 +1003,10 @@ function confirmNewProject(){
   // 前の図面データをクリア（新規なので図面なし）
   try{ localStorage.removeItem('map_img_'+currentProjectId) }catch(e){};
   try{ localStorage.removeItem('map_name_'+currentProjectId) }catch(e){};
+  currentMapImage = '';  // メモリ上の図面もクリア
+  currentMapName  = '';
+  idbDel('map_img_'+currentProjectId);
+  idbDel('map_name_'+currentProjectId);
 
   document.getElementById('startup-screen').classList.remove('show');
   updateHeaderProject();
@@ -1407,7 +1412,11 @@ function loadData(){
   const imgSrc  = storedImg  || currentMapImage;
   const mapName = storedName || currentMapName;
   if(imgSrc){ showMapImage(imgSrc); }
-  else{ document.getElementById('mapImg').style.display='none'; document.getElementById('mapPlaceholder').style.display='flex'; }
+  else{
+    currentMapImage = '';  // 図面なしのプロジェクトでは確実にクリア
+    document.getElementById('mapImg').style.display='none';
+    document.getElementById('mapPlaceholder').style.display='flex';
+  }
   document.getElementById('currentMapName').textContent = mapName || 'PNG・JPG・PDF・HEIC対応';
 }
 function saveData(){
