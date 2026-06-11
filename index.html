@@ -58,21 +58,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dv
 .startup-card-arrow{font-size:20px;color:var(--text3);margin-left:auto;flex-shrink:0;}
 
 /* AUTH */
-#auth-screen{position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:32px 24px;overflow-y:auto;}
-.auth-logo h1{font-size:20px;font-weight:700;color:var(--accent3);text-align:center;}
-.auth-logo p{font-size:12px;color:var(--text2);margin-top:4px;text-align:center;}
 #pin-view{display:flex;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:320px;}
-.pin-dots{display:flex;gap:14px;justify-content:center;margin-bottom:8px;}
-.pin-dot{width:16px;height:16px;border-radius:50%;background:var(--surface3);border:2px solid var(--border2);transition:all 0.2s;}
-.pin-dot.filled{background:var(--accent2);border-color:var(--accent);transform:scale(1.1);}
-.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px;}
-.pin-key{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;font-size:22px;font-weight:600;font-family:var(--mono);color:var(--text);cursor:pointer;transition:all 0.15s;user-select:none;}
-.pin-key:active{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(0.94);}
-.pin-key-empty{background:transparent;border:none;cursor:default;}
-.pin-key-del{font-size:18px;color:var(--text2);}
 .auth-error{color:var(--danger);font-size:12px;text-align:center;opacity:0;transition:opacity 0.3s;min-height:18px;}
 .auth-error.show{opacity:1;}
-.auth-hint{font-size:11px;color:var(--text3);text-align:center;line-height:1.6;}
 
 /* PROJECT SELECT SCREEN */
 #project-screen{position:fixed;inset:0;z-index:8000;background:var(--bg);display:none;flex-direction:column;}
@@ -141,7 +129,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .pin-施工.pin-high .pin-marker{background:linear-gradient(135deg,#e05555,#b83030);}
 .pin-施工.pin-mid .pin-marker{background:linear-gradient(135deg,#f0a000,#c07800);}
 .pin-施工.pin-low .pin-marker{background:linear-gradient(135deg,#d4c800,#a09800);}
-.pin-設計.pin-high .pin-marker{background:linear-gradient(135deg,#9040e0,#6020b0);}
+.pin-設計.pin-high .pin-marker{background:linear-gradient(135deg,#e05555,#b83030);}
 .pin-設計.pin-mid .pin-marker{background:linear-gradient(135deg,#f0a000,#c07800);}
 .pin-設計.pin-low .pin-marker{background:linear-gradient(135deg,#d4c800,#a09800);}
 .pin-complete .pin-marker{background:linear-gradient(135deg,#2ea87e,#1a7055);opacity:0.75;}
@@ -175,7 +163,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 .pin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:11px 13px;cursor:pointer;transition:all 0.15s;border-left:3px solid var(--border);display:flex;gap:10px;}
 .pin-card:active{transform:scale(0.98);background:var(--surface2);}
 .pin-card.施工-high{border-left-color:#e05555;}.pin-card.施工-mid{border-left-color:#f0a000;}.pin-card.施工-low{border-left-color:#d4c800;}
-.pin-card.設計-high{border-left-color:#9040e0;}.pin-card.設計-mid{border-left-color:#f0a000;}.pin-card.設計-low{border-left-color:#d4c800;}
+.pin-card.設計-high{border-left-color:#e05555;}.pin-card.設計-mid{border-left-color:#f0a000;}.pin-card.設計-low{border-left-color:#d4c800;}
 .pin-card.done{opacity:0.55;}
 .pin-card-thumb{width:44px;height:44px;border-radius:6px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--text3);overflow:hidden;}
 .pin-card-thumb img{width:100%;height:100%;object-fit:cover;}
@@ -425,27 +413,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </head>
 <body>
 
-<div id="auth-screen">
-  <div class="auth-logo">
-    <h1>📍 現場情報共有ツール</h1>
-    <p>PINコードを入力してください</p>
-  </div>
-  <div id="pin-view">
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
-      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
-    </div>
-    <div class="pin-pad">
-      <div class="pin-key" data-pin="1">1</div><div class="pin-key" data-pin="2">2</div><div class="pin-key" data-pin="3">3</div>
-      <div class="pin-key" data-pin="4">4</div><div class="pin-key" data-pin="5">5</div><div class="pin-key" data-pin="6">6</div>
-      <div class="pin-key" data-pin="7">7</div><div class="pin-key" data-pin="8">8</div><div class="pin-key" data-pin="9">9</div>
-      <div class="pin-key pin-key-empty"></div><div class="pin-key" data-pin="0">0</div><div class="pin-key pin-key-del" data-pin="del">⌫</div>
-    </div>
-    <div class="auth-error" id="pinError">PINコードが違います</div>
-    <div class="auth-hint">管理者から共有されたPINを入力してください</div>
-  </div>
-</div>
-
 <!-- STARTUP FILE SELECT -->
 <div id="startup-screen">
   <div class="startup-title">
@@ -455,6 +422,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
   <div id="startup-prev-block" class="startup-prev-info" style="display:none;">
     <strong id="startup-prev-name"></strong>
     <span id="startup-prev-meta" class="prev-meta"></span>
+    <div id="startup-prev-file" style="margin-top:6px;font-size:12px;color:var(--text2);word-break:break-all;"></div>
+    <div id="startup-save-info" style="margin-top:6px;font-size:12px;word-break:break-all;"></div>
   </div>
   <div class="startup-cards">
     <div class="startup-card s-continue" id="startup-continue-card" onclick="startupContinue()" style="display:none;">
@@ -504,16 +473,6 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <button class="btn btn-primary" style="flex:1;padding:12px;font-weight:700;" onclick="confirmNewProject()">作成して開始 →</button>
     </div>
   </div>
-</div>
-
-<!-- PROJECT SELECT -->
-<div id="project-screen">
-  <div class="project-header">
-    <h2>🏗️ 現場選択</h2>
-    <button class="icon-btn" onclick="closeProjectScreen()">✕</button>
-  </div>
-  <div class="project-list" id="projectList"></div>
-  <button class="project-add-btn" onclick="createProject()">＋ 新規現場を作成</button>
 </div>
 
 <!-- APP -->
@@ -575,10 +534,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="rc"><h3>📁 区分別</h3><div id="divBars"></div></div>
       <div class="rc"><h3>📤 出力</h3>
         <div class="export-list">
-          <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
+          <div class="export-item" onclick="exportShunkoExcel()" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><span class="ei">📑</span><div><strong>竣工検査記録帳票の作成</strong><span>設計・施工ピンをExcel様式で出力</span></div></div>
                 </div>
       </div>
     </div>
@@ -615,10 +574,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="rc"><h3>📁 区分別</h3><div id="divBarsPc"></div></div>
       <div class="rc"><h3>📤 出力</h3>
         <div class="export-list">
-          <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
+          <div class="export-item" onclick="exportShunkoExcel()" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><span class="ei">📑</span><div><strong>竣工検査記録帳票の作成</strong><span>設計・施工ピンをExcel様式で出力</span></div></div>
+          <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
                 </div>
       </div>
     </div>
@@ -652,16 +612,11 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
         <div class="si"><span class="sii">📦</span><div class="si-body"><strong>使用データ量</strong><span id="storageDetailTxt2">計算中...</span></div></div>
         <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0 8px;">
           <button class="btn btn-secondary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
-          <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;" onclick="saveOverwrite()">💾 データ保存</button>
-          <button class="btn" style="width:100%;padding:12px;font-size:14px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 ファイルに出力</button>
+          <button class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;" onclick="exportJSON()">💾 データ保存</button>
         </div>
         <div class="si" onclick="clearPins()"><span class="sii">🗑️</span><div class="si-body"><strong style="color:var(--danger)">ピンをすべて削除</strong></div><span class="si-arrow">›</span></div>
       </div>
-      <div class="ss">
-        <div class="ss-title">🔧 詳細設定</div>
-        <div class="si" onclick="changePinPrompt()"><span class="sii">🔐</span><div class="si-body"><strong>PIN変更</strong></div><span class="si-arrow">›</span></div>
-        <div class="si" onclick="logout()"><span class="sii">🚪</span><div class="si-body"><strong>ログアウト</strong></div><span class="si-arrow">›</span></div>
-      </div>
+      <button class="btn btn-secondary" style="width:100%;padding:12px;font-size:14px;border-radius:10px;margin-top:4px;" onclick="showStartupScreen()">🏠 起動画面へ戻る</button>
     </div>
   </div>
 </div>
@@ -705,8 +660,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;padding:4px 0 8px;">
         <button class="btn btn-secondary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="importJSON()">📥 データ読込</button>
-        <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="saveOverwrite()">💾 データ保存</button>
-        <button class="btn" style="width:100%;padding:14px;font-size:15px;border-radius:10px;background:var(--surface2);color:var(--text);" onclick="exportJSON()">📤 ファイルに出力</button>
+        <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;" onclick="exportJSON()">💾 データ保存</button>
       </div>
       <div class="si" onclick="clearPins()">
         <span class="sii">🗑️</span>
@@ -719,22 +673,12 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="ss-title">アプリ情報</div>
       <div class="si">
         <span class="sii">ℹ️</span>
-        <div class="si-body"><strong>現場情報共有ツール v7.0</strong><span>SharePoint 共有フォルダ連携</span></div>
+        <div class="si-body"><strong>現場情報共有ツール v1.0</strong></div>
       </div>
     </div>
 
-    <!-- 詳細設定（一番下） -->
-    <div class="ss">
-      <div class="ss-title">🔧 詳細設定</div>
-      <div class="si" onclick="changePinPrompt()">
-        <span class="sii">🔐</span>
-        <div class="si-body"><strong>PIN変更</strong></div>
-        <span class="si-arrow">›</span>
-      </div>
-      <div class="si" onclick="logout()">
-        <span class="sii">🚪</span>
-        <div class="si-body"><strong>ログアウト</strong></div>
-        <span class="si-arrow">›</span>
+    <button class="btn btn-secondary" style="width:100%;padding:14px;font-size:15px;border-radius:10px;margin-top:4px;" onclick="closeSettings();showStartupScreen()">🏠 起動画面へ戻る</button>
+
       </div>
     </div>
 
@@ -840,6 +784,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.2/full/pyodide.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
 <script>
 'use strict';
@@ -847,13 +793,8 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
 // ══════════════════════════════════════
 //  設定定数（管理者設定済み）
 // ══════════════════════════════════════
-const APP_CLIENT_ID  = 'c3791faa-e116-4a99-a93e-c8670ced32b1';
-const APP_TENANT_ID  = '1ebacf42-8164-4ced-9a76-539490b71999';
-// OneDrive設定
-// OneDrive個人フォルダ（共有して使用）
 
 // SP_BASE_FOLDERはlocalStorageから動的に取得（下のgetBaseFolderを使用）
-const GRAPH_BASE     = 'https://graph.microsoft.com/v1.0';
 const SCOPES         = ['Files.ReadWrite', 'User.Read'];
 const DEFAULT_PIN    = '0611';
 const ITEMS_BY_DIV   = {
@@ -870,65 +811,15 @@ let lastX=0, lastY=0, mapScale=1, mapOffX=0, mapOffY=0, pinchDist=0;
 let editingId=null, pendingX=0, pendingY=0;
 let currentPhotos=[], doneState=false, currentDiv='施工';
 let filterIncomplete=false, filterIncomplPc=false;
-let odEnabled=false, msalInstance=null, odAccessToken=null;
-let pollTimer=null; 
-let lastSyncedEtag = {};  // リアルタイム競合検知用
-let spDriveCache = null; // SharePoint driveId/itemIdキャッシュ
 
 // ══════════════════════════════════════
 //  AUTH: PIN
 // ══════════════════════════════════════
-function getStoredPin(){ return localStorage.getItem('app_pin')||DEFAULT_PIN; }
 
-function checkSession(){
-  const s = localStorage.getItem('auth_session');
-  if(s){ try{ const o=JSON.parse(s); if(o.expires>Date.now()){unlockApp();return true;} }catch(e){} }
-  return false;
-}
-let pinBuffer='';
-function pinKey(k){
-  if(pinBuffer.length>=4)return;
-  pinBuffer+=k; updatePinDots();
-  if(pinBuffer.length===4)setTimeout(submitPin,120);
-}
-function pinBack(){ pinBuffer=pinBuffer.slice(0,-1); updatePinDots(); }
-function updatePinDots(){ for(let i=0;i<4;i++) document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length); }
-function submitPin(){
-  if(pinBuffer===getStoredPin()){
-    localStorage.setItem('auth_session',JSON.stringify({expires:Date.now()+30*24*3600*1000}));
-    unlockApp();
-  } else { showPinError(); }
-}
-function showPinError(){
-  const err=document.getElementById('pinError');
-  err.classList.add('show');
-  const dots=document.getElementById('pinDots');
-  dots.style.transform='translateX(8px)';
-  setTimeout(()=>dots.style.transform='translateX(-8px)',80);
-  setTimeout(()=>dots.style.transform='translateX(4px)',160);
-  setTimeout(()=>{dots.style.transform='';err.classList.remove('show');},300);
-  pinBuffer=''; updatePinDots();
-}
-function unlockApp(){
-  document.getElementById('auth-screen').style.display='none';
-  init();
-}
-function logout(){ if(!confirm('ログアウトしますか？'))return; localStorage.removeItem('auth_session'); location.reload(); }
-function changePinPrompt(){
-  const cur=prompt('現在のPINを入力');
-  if(cur!==getStoredPin()){showToast('現在のPINが違います','err');return;}
-  const n1=prompt('新しいPIN（4桁以上）');
-  if(!n1||n1.length<4){showToast('4桁以上で入力してください','err');return;}
-  const n2=prompt('新しいPINを再入力');
-  if(n1!==n2){showToast('PINが一致しません','err');return;}
-  localStorage.setItem('app_pin',n1);
-  showToast('PINを変更しました ✓','ok');
-}
 
 // ══════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════
-let currentFileHandle = null; // File System Access API ハンドル（上書き保存用）
 
 async function init(){
   const lastPj = localStorage.getItem('last_project_id');
@@ -941,7 +832,6 @@ async function init(){
   loadData();
   renderPins();
   updateStorageDisplay();
-  applyLayout();
   // PIN認証後は必ずファイル選択画面を表示
   setTimeout(showStartupScreen, 50);
 }
@@ -962,8 +852,33 @@ function showStartupScreen(){
   if(hasPrev){
     const prevPins = (() => { try{ return JSON.parse(localStorage.getItem('pins_'+lastPj)||'[]'); }catch(e){ return []; } })();
     document.getElementById('startup-prev-name').textContent = `「${lastName||lastPj}」`;
-    document.getElementById('startup-prev-meta').textContent =
-      `${prevPins.length}件のピン${lastFile ? '　ファイル: '+lastFile : ''}`;
+    document.getElementById('startup-prev-meta').textContent = `${prevPins.length}件のピン`;
+    // 開いたファイル名
+    const fileEl = document.getElementById('startup-prev-file');
+    if(fileEl){
+      fileEl.textContent = lastFile ? `📂 前回開いたファイル: ${lastFile}` : '（保存ファイル未設定）';
+      fileEl.style.color = lastFile ? 'var(--text2)' : 'var(--text3)';
+    }
+    // ② 最終保存情報の表示と不一致チェック
+    const saveInfoEl = document.getElementById('startup-save-info');
+    if(saveInfoEl){
+      const lastSavedFile = localStorage.getItem('last_saved_file_name');
+      const lastSavedAt   = localStorage.getItem('last_saved_at');
+      const lastSavedPj   = localStorage.getItem('last_saved_project_id');
+      if(lastSavedFile && lastSavedAt){
+        const savedDate = new Date(lastSavedAt);
+        const fmt = `${savedDate.getFullYear()}/${String(savedDate.getMonth()+1).padStart(2,'0')}/${String(savedDate.getDate()).padStart(2,'0')} ${String(savedDate.getHours()).padStart(2,'0')}:${String(savedDate.getMinutes()).padStart(2,'0')}`;
+        // ③ 不一致チェック：保存したプロジェクトと現在キャッシュのプロジェクトが違う、またはファイル名が違う
+        const mismatch = lastSavedPj !== lastPj || lastSavedFile !== lastFile;
+        if(mismatch){
+          saveInfoEl.innerHTML = `<span style="color:#e05555;font-weight:600;">⚠️ 最後に保存したファイルと異なります</span><br>💾 最終保存: ${lastSavedFile}（${fmt}）<br><span style="color:#e05555;font-size:11px;">「ファイルを開く」から最新ファイルを選択することをお勧めします</span>`;
+        } else {
+          saveInfoEl.innerHTML = `<span style="color:var(--ok,#2ea87e);">✅ 最終保存: ${lastSavedFile}（${fmt}）</span>`;
+        }
+      } else {
+        saveInfoEl.textContent = '';
+      }
+    }
     document.getElementById('startup-continue-desc').textContent =
       `「${lastName||lastPj}」（${prevPins.length}件）を続ける`;
     prevBlock.style.display    = '';
@@ -1005,7 +920,6 @@ function confirmNewProject(){
   currentProjectId   = 'proj_' + Date.now();
   currentProjectName = name;
   currentFileName    = '';
-  currentFileHandle  = null;
   pins = [];
   localStorage.setItem('last_project_id',   currentProjectId);
   localStorage.setItem('last_project_name', currentProjectName);
@@ -1054,24 +968,32 @@ function showNewProjectMapPrompt(name){
   document.body.appendChild(overlay);
 }
 
+
+
+
 function startupContinue(){
   document.getElementById('startup-screen').classList.remove('show');
-  // loadData() 済み・renderPins() 済みなのでそのまま表示
   renderAll();
   updateStorageDisplay();
+
 }
 
-function startupOpenFile(){
+
+
+
+
+async function startupOpenFile(){
   if(window.showOpenFilePicker){
-    window.showOpenFilePicker({
-      types:[{description:'JSONファイル',accept:{'application/json':['.json']}}],
-      multiple:false
-    }).then(async handles=>{
+    try{
+      const handles = await window.showOpenFilePicker({
+        types:[{description:'JSONファイル',accept:{'application/json':['.json']}}],
+        multiple:false
+      });
       if(!handles?.length) return;
-      currentFileHandle = handles[0];
+      // ディレクトリハンドルはファイルハンドルから取れないので別途保存不要
       const file = await handles[0].getFile();
       _loadStartupFile(file, handles[0].name);
-    }).catch(e=>{ if(e.name!=='AbortError') console.warn(e); });
+    }catch(e){ if(e.name!=='AbortError') console.warn(e); }
   } else {
     document.getElementById('startup-file-input').click();
   }
@@ -1079,7 +1001,6 @@ function startupOpenFile(){
 
 function doStartupFileInput(input){
   const file = input.files[0]; if(!file) return;
-  currentFileHandle = null;
   _loadStartupFile(file, file.name);
   input.value = '';
 }
@@ -1099,6 +1020,10 @@ function _loadStartupFile(file, fname){
     localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
     localStorage.setItem('current_file_name', currentFileName);
     localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
+    // 開いたファイルのexported日時を記録（不一致チェック用）
+    if(d.exported){
+      localStorage.setItem('last_opened_exported', d.exported);
+    }
     if(d.map_image){
       localStorage.setItem('map_img_'+currentProjectId,  d.map_image);
       if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
@@ -1127,78 +1052,122 @@ function showSaveBanner(fname){
   saveBannerTimer = setTimeout(()=>b.classList.remove('show'), 2500);
 }
 
-async function saveOverwrite(){
-  if(!currentProjectId){ showToast('データがありません','warn'); return; }
-  localStorage.setItem('pins_'+currentProjectId, JSON.stringify(pins));
-  updateStorageDisplay();
-  const data = {
-    project_id:   currentProjectId,
-    project_name: currentProjectName,
-    exported:     new Date().toISOString(),
-    map_name:     localStorage.getItem('map_name_'+currentProjectId),
-    map_image:    localStorage.getItem('map_img_'+currentProjectId),
-    pins
-  };
-  const content = JSON.stringify(data, null, 2);
-
-  // 既存ハンドルで上書き
-  if(currentFileHandle){
-    try{
-      const writable = await currentFileHandle.createWritable();
-      await writable.write(content);
-      await writable.close();
-      showSaveBanner(currentFileHandle.name);
-      return;
-    }catch(e){
-      if(e.name==='AbortError') return;
-      console.warn('上書き失敗、ファイルピッカーへフォールバック:', e);
-      currentFileHandle = null;
-    }
-  }
-  // 保存先が不明 → ファイルピッカーで指定
-  if(window.showSaveFilePicker){
-    const safe = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
-    try{
-      const handle = await window.showSaveFilePicker({
-        suggestedName: currentFileName || (safe+'.json'),
-        types:[{description:'JSONファイル',accept:{'application/json':['.json']}}]
-      });
-      currentFileHandle = handle;
-      currentFileName   = handle.name;
-      localStorage.setItem('current_file_name', handle.name);
-      const writable = await handle.createWritable();
-      await writable.write(content);
-      await writable.close();
-      showSaveBanner(handle.name);
-      return;
-    }catch(e){ if(e.name==='AbortError') return; }
-  }
-  // iOS / Safari フォールバック（ダウンロード）
-  const safe = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
-  const fname = currentFileName || (safe+'.json');
-  currentFileName = fname;
-  localStorage.setItem('current_file_name', fname);
-  dl(fname, content, 'application/json');
-  showSaveBanner(fname);
-}
 
 // ファイルに出力（現場名+yyyymmdd）
+
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力（Pyodide + openpyxl）
+// ══════════════════════════════════════
+
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力（ExcelJS）
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力（ExcelJS 完全再現版）
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力（ExcelJS 完全再現版 v2）
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力（v3 全行スタイル完全再現）
+// ══════════════════════════════════════
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力（openpyxl生成テンプレ + JSZip値書き込み）
+// ══════════════════════════════════════
+// openpyxlで生成した正確なXLSXテンプレート（行高さ・罫線完全再現）
+// ══════════════════════════════════════
+//  竣工検査記録帳票 Excel出力（Pyodide + openpyxl）
+// ══════════════════════════════════════
+const SHUNKO_TPL_B64 = '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';
+const SHUNKO_PY_CODE = "import io, base64, copy, textwrap\nfrom openpyxl import load_workbook\nfrom openpyxl.styles import Font, Alignment, Border, Side\nfrom openpyxl.utils import get_column_letter\n\nTEMPLATE = '/mnt/user-data/uploads/20_竣工検査記録帳票.xlsx'\nPINS_PER = 7\n\ndef clone_style(src, dst):\n    if not src.has_style: return\n    try:\n        f = src.font\n        dst.font = Font(\n            name=f.name, size=f.size, bold=f.bold, italic=f.italic,\n            color=copy.copy(f.color) if f.color else None,\n            underline=f.underline, strike=f.strike\n        )\n    except: pass\n    try:\n        b = src.border\n        def cs(s): return Side(border_style=s.border_style) if s and s.border_style else Side()\n        dst.border = Border(top=cs(b.top), bottom=cs(b.bottom), left=cs(b.left), right=cs(b.right))\n    except: pass\n    try:\n        a = src.alignment\n        dst.alignment = Alignment(\n            horizontal=a.horizontal, vertical=a.vertical,\n            wrap_text=a.wrap_text, text_rotation=a.text_rotation\n        )\n    except: pass\n    try:\n        dst.fill = copy.copy(src.fill)\n    except: pass\n\ndef wrap(text, max_half):\n    if not text: return ''\n    lines = []\n    for para in str(text).split('\\n'):\n        cur, w = '', 0\n        for ch in para:\n            cw = 2 if ord(ch) > 255 else 1\n            if w + cw > max_half and cur:\n                lines.append(cur); cur = ''; w = 0\n            cur += ch; w += cw\n        if cur: lines.append(cur)\n    return '\\n'.join(lines)\n\ndef auto_sz(text, max_half, base_sz, pin_rows=4):\n    half = sum(2 if ord(c) > 255 else 1 for c in str(text))\n    cap = max_half * pin_rows\n    if half > cap * 0.9: return max(7, base_sz - 3)\n    if half > cap * 0.6: return max(8, base_sz - 2)\n    if half > cap * 0.3: return max(9, base_sz - 1)\n    return base_sz\n\ndef build_sheet(wb_out, tpl_ws, sheet_name, pins, project_name, page_idx):\n    ws = wb_out.create_sheet(title=sheet_name)\n    DATA_START, DATA_END, FOOTER_START = 8, 35, 36\n\n    # 列幅\n    for i in range(1, 12):\n        col = get_column_letter(i)\n        ws.column_dimensions[col].width = tpl_ws.column_dimensions[col].width\n\n    # 全行高さ・全セルスタイル+値をコピー\n    for r in range(1, tpl_ws.max_row + 1):\n        # 行高さ\n        if r in tpl_ws.row_dimensions and tpl_ws.row_dimensions[r].height:\n            ws.row_dimensions[r].height = tpl_ws.row_dimensions[r].height\n\n        for c in range(1, 12):\n            src = tpl_ws.cell(row=r, column=c)\n            dst = ws.cell(row=r, column=c)\n            # データ行は値なし\n            if r < DATA_START or r >= FOOTER_START:\n                if src.value is not None:\n                    dst.value = src.value\n            clone_style(src, dst)\n\n    # 結合セル（データ行以外）\n    for mg in tpl_ws.merged_cells.ranges:\n        if mg.min_row >= DATA_START and mg.min_row < FOOTER_START:\n            continue\n        try:\n            ws.merge_cells(\n                start_row=mg.min_row, start_column=mg.min_col,\n                end_row=mg.max_row, end_column=mg.max_col\n            )\n        except: pass\n\n    # 工事名称\n    ws['C5'] = project_name\n\n    # ページ番号（2枚目以降）\n    if page_idx > 0:\n        suffix = '施工編' if '施工' in tpl_ws.title else '設計編'\n        ws['D2'] = f'竣工検査記録簿\u3000<{suffix}>\u3000({page_idx+1}ページ)'\n\n    # 列幅→最大半角文字数\n    cw = {get_column_letter(i): tpl_ws.column_dimensions[get_column_letter(i)].width for i in range(1,12)}\n    mh = {\n        'A':  int((cw.get('A',10)) * 2.2),\n        'B':  int((cw.get('B',11)) * 2.2),\n        'C':  int((cw.get('C',26)) * 2.2),\n        'DG': int((cw.get('D',10)+cw.get('E',10)+cw.get('F',11)+cw.get('G',13)) * 2.2),\n        'HJ': int((cw.get('H',11)+cw.get('I',11)+cw.get('J',13)) * 2.2),\n        'K':  int((cw.get('K',13)) * 2.2),\n    }\n\n    for i in range(PINS_PER):\n        pin = pins[i] if i < len(pins) else {}\n        r0 = DATA_START + i * 4\n        r3 = r0 + 3\n\n        # テンプレ行8〜11のスタイルをコピー\n        for dr in range(4):\n            src_r = DATA_START + dr\n            dst_r = r0 + dr\n            ws.row_dimensions[dst_r].height = tpl_ws.row_dimensions[src_r].height if src_r in tpl_ws.row_dimensions else 13.2\n            for c in range(1, 12):\n                clone_style(tpl_ws.cell(row=src_r, column=c), ws.cell(row=dst_r, column=c))\n\n        # 結合 + 値\n        def set_cell(col_s, col_e, row_s, row_e, val, sz=11, halign=None):\n            try: ws.merge_cells(start_row=row_s, start_column=ord(col_s)-64, end_row=row_e, end_column=ord(col_e)-64)\n            except: pass\n            cell = ws.cell(row=row_s, column=ord(col_s)-64)\n            cell.value = val or ''\n            cell.font = Font(name='ＭＳ ゴシック', size=sz)\n            cell.alignment = Alignment(horizontal=halign, vertical='top', wrap_text=True)\n\n        target = wrap(pin.get('target','') or pin.get('name',''), mh['A'])\n        item   = wrap(pin.get('item','')   or pin.get('label',''), mh['B'])\n        place  = wrap(pin.get('place','')  or pin.get('location',''), mh['C'])\n        detail = wrap(pin.get('detail','') or pin.get('note',''), mh['DG'])\n        action = wrap(pin.get('action','') or pin.get('countermeasure',''), mh['HJ'])\n        due    = pin.get('due','') or pin.get('dueDate','') or ''\n\n        set_cell('A','A', r0,r3, target, sz=auto_sz(target, mh['A'], 10))\n        set_cell('B','B', r0,r3, item,   sz=auto_sz(item,   mh['B'], 10))\n        set_cell('C','C', r0,r3, place,  sz=auto_sz(place,  mh['C'], 11))\n        set_cell('D','G', r0,r3, detail, sz=auto_sz(detail, mh['DG'], 11), halign='left')\n        set_cell('H','J', r0,r3, action, sz=auto_sz(action, mh['HJ'], 11), halign='left')\n        set_cell('K','K', r0,r3, due,    sz=11, halign='center')\n\n    # 35行目 A〜G列の下に太い罫線を引く\n    thick = Side(border_style='medium')\n    for c in range(1, 8):  # A=1 〜 G=7\n        cell = ws.cell(row=35, column=c)\n        b = cell.border\n        cell.border = Border(\n            top=b.top, left=b.left, right=b.right,\n            bottom=thick\n        )\n\n    # A列 3〜35行目の左罫線を太くする\n    for r in range(3, 36):\n        cell = ws.cell(row=r, column=1)\n        b = cell.border\n        cell.border = Border(\n            top=b.top, bottom=b.bottom, right=b.right,\n            left=thick\n        )\n\n    # 印刷設定（設計編=A1:K38、施工編=A1:K40）\n    is_const = '施工' in tpl_ws.title\n    ws.print_area = '$A$1:$K$40' if is_const else '$A$1:$K$38'\n    ws.page_setup.paperSize = 9\n    ws.page_setup.orientation = 'portrait'\n    ws.page_setup.fitToPage = True\n    ws.page_setup.fitToWidth = 1\n    ws.page_setup.fitToHeight = 1\n\n\ndef generate(pins_design, pins_const, project_name, tmpl_b64_str):\n    import base64, io\n    tpl_bytes = base64.b64decode(tmpl_b64_str)\n    tpl_wb = load_workbook(io.BytesIO(tpl_bytes))\n    tpl_d = tpl_wb['①竣工検査記録簿(設計編)']\n    tpl_c = tpl_wb['②竣工検査記録簿(施工編)']\n    tpl_r = tpl_wb['竣工検査結果票']\n\n    out_wb = load_workbook(io.BytesIO(tpl_bytes))\n    # 既存シートを全削除\n    for sn in list(out_wb.sheetnames):\n        del out_wb[sn]\n\n    # 設計編\n    d_pages = max(1, -(-len(pins_design) // PINS_PER))\n    for s in range(d_pages):\n        name = '①竣工検査記録簿(設計編)' if s == 0 else f'①竣工検査記録簿(設計編)_{s+1}'\n        build_sheet(out_wb, tpl_d, name, pins_design[s*PINS_PER:(s+1)*PINS_PER], project_name, s)\n\n    # 施工編\n    c_pages = max(1, -(-len(pins_const) // PINS_PER))\n    for s in range(c_pages):\n        name = '②竣工検査記録簿(施工編)' if s == 0 else f'②竣工検査記録簿(施工編)_{s+1}'\n        build_sheet(out_wb, tpl_c, name, pins_const[s*PINS_PER:(s+1)*PINS_PER], project_name, s)\n\n    # 竣工検査結果票（テンプレそのまま）\n    ws_r = out_wb.create_sheet(title='竣工検査結果票')\n    for i in range(1, tpl_r.max_column + 1):\n        col = get_column_letter(i)\n        ws_r.column_dimensions[col].width = tpl_r.column_dimensions[col].width\n    for r in range(1, tpl_r.max_row + 1):\n        if r in tpl_r.row_dimensions and tpl_r.row_dimensions[r].height:\n            ws_r.row_dimensions[r].height = tpl_r.row_dimensions[r].height\n        for c in range(1, tpl_r.max_column + 1):\n            src = tpl_r.cell(row=r, column=c)\n            dst = ws_r.cell(row=r, column=c)\n            if src.value is not None: dst.value = src.value\n            clone_style(src, dst)\n    for mg in tpl_r.merged_cells.ranges:\n        try:\n            ws_r.merge_cells(start_row=mg.min_row, start_column=mg.min_col,\n                             end_row=mg.max_row, end_column=mg.max_col)\n        except: pass\n    # 結果票の印刷設定\n    ws_r.print_area = '$A$1:$H$50'\n    ws_r.page_setup.paperSize = 9\n    ws_r.page_setup.orientation = 'portrait'\n    ws_r.page_setup.fitToPage = True\n    ws_r.page_setup.fitToWidth = 1\n    ws_r.page_setup.fitToHeight = 1\n\n    buf = io.BytesIO()\n    out_wb.save(buf)\n    return base64.b64encode(buf.getvalue()).decode()";
+let _pyodideInstance = null;
+
+async function _getPyodide(){
+  if(_pyodideInstance) return _pyodideInstance;
+  if(!window.loadPyodide) throw new Error('Pyodideが読み込まれていません');
+  showToast('Python環境を初期化中（初回のみ）...','warn');
+  _pyodideInstance = await loadPyodide();
+  await _pyodideInstance.loadPackage('micropip');
+  await _pyodideInstance.runPythonAsync(`
+import micropip
+await micropip.install('openpyxl')
+`);
+  return _pyodideInstance;
+}
+
+async function exportShunkoExcel(){
+  if(!pins||pins.length===0){showToast('ピンがありません','warn');return;}
+  const pinsDesign=pins.filter(p=>(p.division||'施工')==='設計');
+  const pinsConst =pins.filter(p=>(p.division||'施工')!=='設計');
+  showToast('Excel生成中...（初回は数十秒かかります）','warn');
+  try{
+    const py = await _getPyodide();
+    await py.runPythonAsync(SHUNKO_PY_CODE);
+    const toRow = p => ({
+      target: p.target||'',
+      item:   p.item||'',
+      place:  p.location||'',
+      detail: p.content||'',
+      action: p.action||'',
+      due:    p.complete_date||''
+    });
+    py.globals.set('_pd_json', JSON.stringify(pinsDesign.map(toRow)));
+    py.globals.set('_pc_json', JSON.stringify(pinsConst.map(toRow)));
+    py.globals.set('_proj',    currentProjectName||'竣工検査記録');
+    py.globals.set('_tmpl',    SHUNKO_TPL_B64);
+    const b64 = await py.runPythonAsync(`
+import json
+generate(json.loads(_pd_json), json.loads(_pc_json), _proj, _tmpl)
+`);
+    const bytes=atob(b64);
+    const arr=new Uint8Array(bytes.length);
+    for(let i=0;i<bytes.length;i++) arr[i]=bytes.charCodeAt(i);
+    const safe=(currentProjectName||'竣工検査記録').replace(/[\/:*?"<>|]/g,'_');
+    const t=new Date();
+    const ymd=t.getFullYear()+String(t.getMonth()+1).padStart(2,'0')+String(t.getDate()).padStart(2,'0');
+    const fname=safe+ymd+'_竣工検査記録帳票.xlsx';
+    const blob=new Blob([arr],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=fname;a.click();
+    URL.revokeObjectURL(url);
+    showToast('「'+fname+'」を出力しました','ok');
+  }catch(e){
+    console.error('Excel生成エラー:',e);
+    showToast('Excel生成に失敗: '+e.message,'err');
+  }
+}
+
+
+
+
+
+
+
 function exportJSON(){
   if(!currentProjectId){ showToast('データがありません','warn'); return; }
   const safe = (currentProjectName||currentProjectId).replace(/[\/:*?"<>|]/g,'_');
   const t = new Date();
   const ymd = t.getFullYear()+String(t.getMonth()+1).padStart(2,'0')+String(t.getDate()).padStart(2,'0');
   const fname = `${safe}${ymd}.json`;
+  const isoNow = new Date().toISOString();
   const data = {
     project_id:   currentProjectId,
     project_name: currentProjectName,
-    exported:     new Date().toISOString(),
+    exported:     isoNow,
     map_name:     localStorage.getItem('map_name_'+currentProjectId),
     map_image:    localStorage.getItem('map_img_'+currentProjectId),
     pins
   };
   dl(fname, JSON.stringify(data, null, 2), 'application/json');
-  showToast(`「${fname}」を出力しました`,'ok');
+  // 最終保存ファイル名・日時・プロジェクトIDを記録
+  localStorage.setItem('last_saved_file_name',   fname);
+  localStorage.setItem('last_saved_at',           isoNow);
+  localStorage.setItem('last_saved_project_id',   currentProjectId);
+  showSaveBanner(fname);
 }
 
 // データ読み込み
@@ -1209,7 +1178,6 @@ function importJSON(){
       multiple:false
     }).then(async handles=>{
       if(!handles?.length) return;
-      currentFileHandle = handles[0];
       const file = await handles[0].getFile();
       _loadStartupFile(file, handles[0].name);
     }).catch(e=>{ if(e.name!=='AbortError') console.warn(e); });
@@ -1219,7 +1187,6 @@ function importJSON(){
 }
 function doImportJSON(input){
   const file = input.files[0]; if(!file) return;
-  currentFileHandle = null;
   _loadStartupFile(file, file.name);
   input.value = '';
 }
@@ -1227,500 +1194,57 @@ function doImportJSON(input){
 // ══════════════════════════════════════
 //  MSAL / 認証
 // ══════════════════════════════════════
-async function waitForMsal(timeout=12000){
-  const t0=Date.now();
-  while(!window.msal&&(Date.now()-t0)<timeout) await new Promise(r=>setTimeout(r,150));
-  if(!window.msal) throw new Error('MSALライブラリの読み込みに失敗しました');
-}
-async function initMsal(){
-  odEnabled = false;
-}
 
 // ══════════════════════════════════════
 //  フォルダパス管理
 // ══════════════════════════════════════
-function getBaseFolder(){
-  return localStorage.getItem('od_base_folder') || '現場情報共有ツール';
-}
 
 // DriveID手動入力ダイアログ（接続確認でドライブが見つからない場合の回避策）
-function promptManualDriveId(){
-  const cur = localStorage.getItem('sp_manual_drive_id') || '';
-  const v = prompt(
-    'ドライブIDを直接入力します（接続確認でドライブが見つからない場合）\n\n' +
-    '【取得方法①】まず「接続確認」を実行 → 成功すれば自動保存されます\n\n' +
-    '【取得方法②】Graph Explorerで手動取得:\n' +
-    '  https://developer.microsoft.com/graph/graph-explorer\n' +
-    '  にサインインして以下をGET:\n' +
-    '  /v1.0/sites/stem365.sharepoint.com/drives\n' +
-    '  → 表示される value[n].id をコピー\n\n' +
-    '現在の設定: ' + (cur || '未設定（自動検索）'),
-    cur
-  );
-  if(v === null) return;
-  const id = v.trim();
-  if(id){
-    localStorage.setItem('sp_manual_drive_id', id);
-    spDriveCache = null;
-    showToast('ドライブIDを設定しました ✓ 接続確認してください', 'ok');
-  } else {
-    localStorage.removeItem('sp_manual_drive_id');
-    spDriveCache = null;
-    showToast('ドライブIDをクリアしました（自動検索に戻します）', 'warn');
-  }
-  updateManualDriveLabel();
-}
-function updateManualDriveLabel(){
-  const v = localStorage.getItem('sp_manual_drive_id') || '';
-  const label = v ? v.slice(0,24)+'...' : '未設定（自動）';
-  ['manualDriveLabel','manualDriveLabel2'].forEach(id=>{
-    const el = document.getElementById(id); if(el) el.textContent = label;
-  });
-}
 
 // 共有フォルダ名を変更するダイアログ
-function promptSharedBase(){
-  const cur = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
-  const v = prompt('SharePoint上の共有フォルダ名を入力してください', cur);
-  if(v === null) return;
-  const name = v.trim() || '現場情報共有ツール';
-  localStorage.setItem('od_base_folder', name);
-  updateSharedBaseLabel();
-  showToast('共有フォルダ名を設定しました ✓', 'ok');
-}
 
 // フォルダラベル全体更新（updateOdUIから呼ばれる）
-function updateFolderLabels(){
-  updateShareLabel();
-  updateSharedBaseLabel();
-  updateManualDriveLabel();
-}
 
 // 共有フォルダ名ラベルを更新
-function updateSharedBaseLabel(){
-  const name = localStorage.getItem('od_base_folder') || '現場情報共有ツール';
-  ['sharedBaseLabel','sharedBaseLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=name;
-  });
-}
 
 // 共有URLラベルを更新（設定画面表示用）
-function updateShareLabel(){
-  const url = getShareUrl();
-  const shareLabel = url ? (url.length > 50 ? url.slice(0,50)+'...' : url) : '未設定';
-  ['odShareLabel','odShareLabel2'].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.textContent=shareLabel;
-  });
-}
 
 // 共有フォルダの接続確認ボタン
 // spGetDriveInfo() の多段フォールバックを使い、
 // 成功時に見つかったdriveIdをUIに表示する
-async function checkSharedFolder(){
-  if(!odAccessToken){ showToast('先にサインインしてください','warn'); return; }
-  if(!getShareUrl()){ showToast('先に共有URLを設定してください','warn'); promptShareUrl(); return; }
-  showToast('接続確認中（全方式で試します）...','warn');
-  spDriveCache = null; // キャッシュリセット
-  try{
-    // spGetDriveInfo() に全フォールバックを委ねる
-    const info = await spGetDriveInfo();
-    const ok = !!(info?.itemId);
-
-    if(ok){
-      const driveShort = info.driveId ? info.driveId.slice(0,20)+'...' : '(不明)';
-      ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-        const el=document.getElementById(id);
-        if(el) el.textContent = `接続OK ✓ driveId: ${driveShort}`;
-      });
-      showToast('SharePoint接続OK ✓','ok');
-      // 見つかったdriveIdを自動でlocalStorageに保存して次回以降も使えるようにする
-      if(info.driveId){
-        localStorage.setItem('sp_manual_drive_id', info.driveId);
-        updateManualDriveLabel();
-        showToast(`driveIdを自動保存しました ✓`, 'ok');
-      }
-      if(!currentProjectId) setTimeout(openProjectScreen, 500);
-    } else {
-      ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-        const el=document.getElementById(id);
-        if(el) el.textContent = '接続できません（ドライブID手動設定を試してください）';
-      });
-      showToast('ドライブが見つかりません。「ドライブID手動設定」から直接入力してください','err');
-    }
-  }catch(e){
-    console.error('📡 接続エラー詳細:', e);
-    const msg = e.message.includes('403') ?
-      '権限エラー(403)。ドライブIDを手動設定するか、共有URLを確認してください' :
-      'エラー: '+e.message.slice(0,60);
-    ['sharedFolderStatus','sharedFolderStatus2'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) el.textContent = msg;
-    });
-    showToast(msg, 'err');
-  }
-}
 // ══════════════════════════════════════
 //  GRAPH API / OneDrive
 // ══════════════════════════════════════
-async function ensureToken(){
-  const expiry=parseInt(localStorage.getItem('od_token_expiry')||'0');
-  if(expiry-Date.now()<60000) await silentAcquireToken();
-  if(!odAccessToken) throw new Error('未認証');
-}
-async function graphRequest(method,endpoint,body=null){
-  await ensureToken();
-  const headers={'Authorization':'Bearer '+odAccessToken};
-  if(body!==null) headers['Content-Type']='application/json';
-  const opts={method,headers};
-  if(body!==null) opts.body=JSON.stringify(body);
-  let res=await fetch(GRAPH_BASE+endpoint,opts);
-  if(res.status===401){ await silentAcquireToken(); opts.headers['Authorization']='Bearer '+odAccessToken; res=await fetch(GRAPH_BASE+endpoint,opts); }
-  if(!res.ok&&res.status!==404) throw new Error(`Graph ${res.status}: ${await res.text().catch(()=>'')}`);
-  if(res.status===204||res.status===404) return null;
-  return res.json().catch(()=>null);
-}
-async function graphDownload(endpoint){
-  await ensureToken();
-  const res=await fetch(GRAPH_BASE+endpoint,{headers:{'Authorization':'Bearer '+odAccessToken},cache:'no-store'});
-  if(!res.ok) return {text:null,etag:null};
-  const etag=res.headers.get('ETag')||'';
-  const text=await res.text();
-  return {text,etag};
-}
 
 // OneDrive /me/drive アクセス
 // ══════════════════════════════════════
-//  SharePoint 共有リンク経由アクセス
 //  Files.ReadWrite スコープのみで動作
 //  共有リンクURL → Base64エンコード → /shares/{id}/driveItem
 // ══════════════════════════════════════
 
-// SharePoint driveInfo をキャッシュ付きで取得
 // Files.ReadWrite スコープで動作するサイト直接アクセス方式
-async function spGetDriveInfo(){
-  if(spDriveCache) return spDriveCache;
-  const shareUrl = getShareUrl();
-  if(!shareUrl) return null;
-
-  // 方式0: 手動設定のドライブIDがあればそれを使う（最優先）
-  // b!xxx... 形式のSharePoint driveIdはGraph /drives/ でもSP REST v2.0でも使える
-  const manualDriveId = localStorage.getItem('sp_manual_drive_id');
-  if(manualDriveId){
-    // まずGraph API /drives/{id}/root を試す
-    try{
-      const rootRes = await graphRequest('GET', `/drives/${manualDriveId}/root?$select=id`);
-      if(rootRes?.id){
-        spDriveCache = { driveId: manualDriveId, itemId: rootRes.id, siteId: null };
-        console.log('✅ spGetDriveInfo (manual driveId via graph):', spDriveCache);
-        return spDriveCache;
-      }
-    }catch(e){ console.warn('manual driveId graph failed:', e.message); }
-
-    // Graph APIが失敗した場合 → SharePoint REST v2.0 で root itemId を取得
-    try{
-      const spBase = getShareUrl() ? new URL(getShareUrl()).origin : 'https://stem365.sharepoint.com';
-      const resp = await fetch(`${spBase}/_api/v2.0/drives/${encodeURIComponent(manualDriveId)}/root?$select=id`, {
-        headers: { 'Authorization': 'Bearer ' + odAccessToken, 'Accept': 'application/json' }
-      });
-      if(resp.ok){
-        const data = await resp.json();
-        if(data?.id){
-          spDriveCache = { driveId: manualDriveId, itemId: data.id, siteId: null };
-          console.log('✅ spGetDriveInfo (manual driveId via SP REST v2.0):', spDriveCache);
-          return spDriveCache;
-        }
-      } else {
-        console.warn('SP REST v2.0 root failed:', resp.status, await resp.text());
-      }
-    }catch(e){ console.warn('manual driveId SP REST failed:', e.message); }
-  }
-
-  try{
-    // 方式A: /shares/{token} 経由（Files.ReadWrite で動作するケース）
-    const token = encodeSharingUrl(shareUrl);
-    try{
-      const item = await graphRequest('GET', `/shares/${token}/driveItem?$select=id,parentReference,webUrl`);
-      if(item?.id){
-        spDriveCache = {
-          driveId: item.parentReference?.driveId || null,
-          itemId: item.id,
-          siteId: item.parentReference?.siteId || null,
-        };
-        console.log('✅ spGetDriveInfo (shares):', spDriveCache);
-        return spDriveCache;
-      }
-    }catch(e){ console.warn('shares API failed:', e.message); }
-
-    // 方式B: /sites/root → 全サイト検索 → ドライブ照合
-    // /:f:/g/ 形式はルートサイトのドキュメントライブラリを指すが、
-    // /sites/{hostname} だけではドライブが見つからない場合がある
-    const u = new URL(shareUrl);
-    const hostname = u.hostname;
-
-    // まずルートサイトのドライブを試す
-    let foundDrive = null;
-    let foundSiteId = null;
-    try{
-      const rootSite = await graphRequest('GET', `/sites/${hostname}?$select=id`);
-      if(rootSite?.id){
-        foundSiteId = rootSite.id;
-        const drivesRes = await graphRequest('GET',
-          `/sites/${rootSite.id}/drives?$select=id,name,driveType,webUrl`);
-        console.log('root site drives:', drivesRes?.value);
-        if(drivesRes?.value?.length){
-          foundDrive =
-            drivesRes.value.find(d => d.name === 'Documents' && d.driveType === 'documentLibrary') ||
-            drivesRes.value.find(d => d.driveType === 'documentLibrary') ||
-            drivesRes.value[0];
-        }
-      }
-    }catch(e){ console.warn('root site failed:', e.message); }
-
-    // ルートサイトにドライブが無い場合 → /sites?search= で全サイトを検索
-    if(!foundDrive){
-      console.log('root site had no drives, searching all sites...');
-      try{
-        const sitesRes = await graphRequest('GET',
-          `/sites?$search=*&$select=id,displayName,webUrl&$top=20`);
-        console.log('all sites:', sitesRes?.value?.map(s=>s.displayName));
-        if(sitesRes?.value?.length){
-          for(const site of sitesRes.value){
-            try{
-              const drivesRes = await graphRequest('GET',
-                `/sites/${site.id}/drives?$select=id,name,driveType,webUrl`);
-              if(drivesRes?.value?.length){
-                const d =
-                  drivesRes.value.find(d => d.name === 'Documents' && d.driveType === 'documentLibrary') ||
-                  drivesRes.value.find(d => d.driveType === 'documentLibrary');
-                if(d){
-                  foundDrive = d;
-                  foundSiteId = site.id;
-                  console.log('✅ found drive in site:', site.displayName, d.name);
-                  break;
-                }
-              }
-            }catch(_){}
-          }
-        }
-      }catch(e){ console.warn('sites search failed:', e.message); }
-    }
-
-    if(!foundDrive){
-      console.error('No drive found. Set drive ID manually.');
-      return null;
-    }
-
-    const rootRes = await graphRequest('GET', `/drives/${foundDrive.id}/root?$select=id`);
-    if(!rootRes?.id) return null;
-
-    spDriveCache = {
-      driveId: foundDrive.id,
-      itemId: rootRes.id,
-      siteId: foundSiteId,
-    };
-    console.log('✅ spGetDriveInfo (site search):', spDriveCache);
-    return spDriveCache;
-  }catch(e){
-    console.error('spGetDriveInfo error:', e);
-    return null;
-  }
-}
 
 // 現場フォルダ名に使えない文字を除去
-function getSafeFolderName(name){
-  return (name||currentProjectId).replace(/[\\/:*?"<>|]/g,'_').trim() || currentProjectId;
-}
 
 // 共有リンクURLをGraph API用のsharing tokenに変換
-function encodeSharingUrl(url){
-  // UTF-8バイト列でbase64urlエンコード（Microsoftの仕様通り）
-  // btoa()はマルチバイト文字で失敗するためTextEncoderを使用
-  try{
-    const bytes = new TextEncoder().encode(url);
-    let bin = '';
-    bytes.forEach(b => bin += String.fromCharCode(b));
-    const b64 = btoa(bin).replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-    return 'u!' + b64;
-  }catch(e){
-    // フォールバック
-    const b64 = btoa(encodeURIComponent(url).replace(/%([0-9A-F]{2})/g,
-      (_,p)=>String.fromCharCode(parseInt(p,16))))
-      .replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
-    return 'u!' + b64;
-  }
-}
 
 // 共有リンクURLを取得（localStorageから）
-function getShareUrl(){
-  return localStorage.getItem('sp_share_url') || '';
-}
 
 // 共有リンクが設定されているか確認
-function hasShareUrl(){
-  return !!getShareUrl();
-}
 
-// SharePointの共有フォルダ内ファイルをアップロード
 // パス: /shares/{token}/driveItem:/現場名/ファイル名:/content
-async function spUpload(projectId, filename, data){
-  const shareUrl = getShareUrl();
-  if(!shareUrl) throw new Error('SharePoint共有URLが設定されていません');
-  const rawName = (projectId === currentProjectId && currentProjectName)
-    ? currentProjectName
-    : (localStorage.getItem('project_name_'+projectId) || projectId);
-  const projName = getSafeFolderName(rawName);
-  const info = await spGetDriveInfo();
-  const spBase = shareUrl ? new URL(shareUrl).origin : 'https://stem365.sharepoint.com';
 
-  // SP REST v2.0 でアップロード（b!形式driveIdはGraph /drives/ で403になる場合がある）
-  if(info?.driveId){
-    try{
-      const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
-      const resp = await fetch(
-        `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': 'Bearer ' + odAccessToken,
-            'Content-Type': 'application/json',
-          },
-          body: typeof data === 'string' ? data : JSON.stringify(data),
-        }
-      );
-      if(resp.ok){ console.log('✅ spUpload (SP REST v2.0):', filename); return await resp.json(); }
-      console.warn('SP REST v2.0 upload failed:', resp.status, await resp.text());
-    }catch(e){ console.warn('SP REST v2.0 upload error:', e.message); }
-  }
-
-  // フォールバック: Graph API
-  let url;
-  if(info?.driveId && info?.itemId){
-    url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
-  } else {
-    const token = encodeSharingUrl(shareUrl);
-    url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
-  }
-  return graphRequest('PUT', url, data);
-}
-
-// SharePointの共有フォルダ内ファイルをダウンロード
-async function spDownload(projectId, filename){
-  const shareUrl = getShareUrl();
-  if(!shareUrl) return {data:null, etag:null};
-  const rawName = (projectId === currentProjectId && currentProjectName)
-    ? currentProjectName
-    : (localStorage.getItem('project_name_'+projectId) || projectId);
-  const projName = getSafeFolderName(rawName);
-  const info = await spGetDriveInfo();
-  const spBase = shareUrl ? new URL(shareUrl).origin : 'https://stem365.sharepoint.com';
-
-  // SP REST v2.0 でダウンロード
-  if(info?.driveId){
-    try{
-      const path = `${encodeURIComponent(projName)}/${encodeURIComponent(filename)}`;
-      const resp = await fetch(
-        `${spBase}/_api/v2.0/drives/${encodeURIComponent(info.driveId)}/root:/${path}:/content`,
-        { headers: { 'Authorization': 'Bearer ' + odAccessToken } }
-      );
-      if(resp.ok){
-        const text = await resp.text();
-        const etag = resp.headers.get('ETag') || null;
-        try{ return {data:JSON.parse(text), etag}; }catch(e){ return {data:null, etag:null}; }
-      }
-      if(resp.status === 404) return {data:null, etag:null};
-      console.warn('SP REST v2.0 download failed:', resp.status);
-    }catch(e){ console.warn('SP REST v2.0 download error:', e.message); }
-  }
-
-  // フォールバック: Graph API
-  let url;
-  if(info?.driveId && info?.itemId){
-    url = `/drives/${info.driveId}/items/${info.itemId}:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
-  } else {
-    const token = encodeSharingUrl(shareUrl);
-    url = `/shares/${token}/driveItem:/${encodeURIComponent(projName)}/${encodeURIComponent(filename)}:/content`;
-  }
-  const {text, etag} = await graphDownload(url);
-  if(!text) return {data:null, etag:null};
-  try{ return {data:JSON.parse(text), etag}; }catch(e){ return {data:null, etag:null}; }
-}
 
 // 共有フォルダ内の現場フォルダ一覧を取得
-async function spListProjects(){
-  if(!odEnabled) return [];
-  const shareUrl = getShareUrl();
-  if(!shareUrl) return [];
-  try{
-    const token = encodeSharingUrl(shareUrl);
-    // まずdriveItemのID・siteId・driveIdを取得（:f:/g/形式URLへの対応）
-    const item = await graphRequest('GET', `/shares/${token}/driveItem`);
-    if(!item?.id) return [];
-    // driveId があればそちら経由でchildren取得（より確実）
-    let res;
-    if(item.parentReference?.driveId){
-      res = await graphRequest('GET',
-        `/drives/${item.parentReference.driveId}/items/${item.id}/children`);
-    } else {
-      res = await graphRequest('GET', `/shares/${token}/driveItem/children`);
-    }
-    if(!res?.value) return [];
-    return res.value.filter(i=>i.folder).map(i=>i.name);
-  }catch(e){ console.warn('spListProjects:',e); return []; }
-}
 
 // 共有URLの接続確認
-async function checkShortcut(){
-  spDriveCache = null; // 接続確認時はキャッシュをリセット
-  const shareUrl = getShareUrl();
-  if(!shareUrl) return false;
-  try{
-    const info = await spGetDriveInfo();
-    return !!(info?.itemId);
-  }catch(e){ return false; }
-}
 
 // 共有URLの設定ダイアログ
-function promptShareUrl(){
-  const cur = getShareUrl();
-  const v = prompt(
-    'SharePoint共有フォルダのURLを入力してください\n\n' +
-    '【取得方法】\n' +
-    'SharePointで genba-share-tool フォルダを開く\n' +
-    '→「共有」または「リンクのコピー」→ここに貼り付け\n\n' +
-    '現在の設定: ' + (cur ? cur.slice(0,50)+'...' : '未設定'),
-    cur
-  );
-  if(v === null) return;
-  const url = v.trim();
-  localStorage.setItem('sp_share_url', url);
-  updateShareLabel();
-  if(url){
-    showToast('共有URLを設定しました ✓', 'ok');
-    setTimeout(async ()=>{
-      if(odEnabled && odAccessToken){
-        const ok = await checkShortcut();
-        if(ok){ showToast('接続確認OK ✓', 'ok'); closeSettings(); openProjectScreen(); }
-        else showToast('URLに接続できません。URLを確認してください', 'err');
-      } else {
-        showToast('次にサインインしてください', 'warn');
-      }
-    }, 500);
-  } else {
-    showToast('共有URLをクリアしました', 'warn');
-  }
-}
 
 
 // プロジェクトのconfig.jsonを読む
-async function spGetProjectConfig(projectId){
-  const {data}=await spDownload(projectId,'config.json');
-  return data;
-}
 
 // プロジェクトのconfig.jsonを保存
-async function spSaveProjectConfig(projectId,config){
-  return spUpload(projectId,'config.json',config);
-}
 
 // ══════════════════════════════════════
 //  プロジェクト管理
@@ -1748,238 +1272,18 @@ function updateHeaderProject(){
   if(m2) m2.textContent=localStorage.getItem('map_name_'+currentProjectId)||'PNG・JPG・PDF・HEIC対応';
 }
 
-async function openProjectScreen(){
-  const screen=document.getElementById('project-screen');
-  screen.classList.add('show');
-  const list=document.getElementById('projectList');
-  list.innerHTML='<div class="empty"><div class="ei">⏳</div><p>読み込み中...</p></div>';
-  if(!odEnabled||!odAccessToken){
-    renderProjectList(getLocalProjects(),[]);
-    return;
-  }
-  try{
-    const spFolders=await spListProjects();
-    // フォルダ名がそのまま現場名。config.jsonがあればpin_count/updatedも取得
-    const configs=await Promise.all(spFolders.map(async folderName=>{
-      // フォルダ名を現場名として使用、IDはフォルダ名から生成
-      const safeId = folderName.replace(/[^a-zA-Z0-9_\-\u3000-\u9fff\u30A0-\u30FF\u3040-\u309F]/g,'_');
-      // localStorage上のIDとしてフォルダ名自体を使う
-      const storedId = Object.keys(localStorage).filter(k=>k.startsWith('project_name_'))
-        .find(k=>localStorage.getItem(k)===folderName)?.replace('project_name_','') || folderName;
-      const cfg = await spGetProjectConfig(storedId).catch(()=>null);
-      const localPins=JSON.parse(localStorage.getItem('pins_'+storedId)||'[]');
-      return {id:storedId,name:folderName,pin_count:cfg?.pin_count||localPins.length,updated:cfg?.updated||''};
-    }));
-    renderProjectList(configs,spFolders);
-  }catch(e){
-    showToast('プロジェクト一覧取得エラー: '+e.message,'err');
-    renderProjectList(getLocalProjects(),[]);
-  }
-}
 
-function getLocalProjects(){
-  const ids=new Set();
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(k?.startsWith('pins_')) ids.add(k.replace('pins_',''));
-  }
-  return [...ids].map(id=>({id,name:localStorage.getItem('project_name_'+id)||id,pin_count:JSON.parse(localStorage.getItem('pins_'+id)||'[]').length,updated:''}));
-}
 
-function renderProjectList(projects,spIds){
-  const list=document.getElementById('projectList');
-  if(!projects.length){
-    list.innerHTML='<div class="empty"><div class="ei">📁</div><p>プロジェクトがありません<br>下のボタンから新規作成してください</p></div>';
-    return;
-  }
-  list.innerHTML=projects.map(p=>`
-    <div class="project-card" onclick="selectProject('${p.id}','${(p.name||p.id).replace(/'/g,"\\'")}')">
-      <div class="project-card-icon">📁</div>
-      <div class="project-card-body">
-        <div class="project-card-id">${p.id}</div>
-        <div class="project-card-name">${p.name||p.id}</div>
-        <div class="project-card-meta">${p.pin_count}件${p.updated?` ／ 更新: ${p.updated.slice(0,10)}`:''}</div>
-      </div>
-      <div class="project-card-arrow">›</div>
-    </div>`).join('');
-}
 
-async function selectProject(id,name){
-  currentProjectId=id;
-  currentProjectName=name;
-  localStorage.setItem('last_project_id',id);
-  localStorage.setItem('last_project_name',name);
-  localStorage.setItem('project_name_'+id,name);
-  closeProjectScreen();
-  loadData();
-  updateHeaderProject();
-  renderPins();
-  renderAll();
-  updateStorageDisplay();
-  showToast(`${name} を開きました`,'ok');
-  if(odEnabled&&odAccessToken){
-    // 現場切替時は強制取得（確認なし）
-    forcePullFromOd();
-  }
-}
 
-function closeProjectScreen(){
-  document.getElementById('project-screen').classList.remove('show');
-}
 
-async function createProject(){
-  const name=prompt('現場名を入力\n（例: ○○ビル新築工事）','');
-  if(!name?.trim()){return;}
-  const trimmedName = name.trim();
-  // IDは内部管理用：日時ベースで自動生成
-  const safeId = 'proj_' + Date.now();
-  currentProjectId=safeId;
-  currentProjectName=trimmedName;
-  localStorage.setItem('last_project_id',safeId);
-  localStorage.setItem('last_project_name',currentProjectName);
-  localStorage.setItem('project_name_'+safeId,currentProjectName);
-  pins=[];
-  localStorage.setItem('pins_'+safeId,JSON.stringify([]));
-  updateHeaderProject();
-  if(odEnabled&&odAccessToken){
-    try{
-      await spSaveProjectConfig(safeId,{name:currentProjectName,created:new Date().toISOString(),pin_count:0,updated:new Date().toISOString()});
-      showToast(`${currentProjectName} を作成しました`,'ok');
-    }catch(e){showToast('作成エラー: '+e.message,'err');}
-  } else {
-    showToast(`${currentProjectName} を作成しました`,'ok');
-  }
-  closeProjectScreen();
-  renderAll();
-  updateStorageDisplay();
-}
 
-function renameProject(){
-  if(!currentProjectId){showToast('データがありません','warn');return;}
-  const n=prompt('新しい現場名を入力',currentProjectName);
-  if(!n?.trim()||n===currentProjectName)return;
-  currentProjectName=n.trim();
-  localStorage.setItem('last_project_name',currentProjectName);
-  localStorage.setItem('project_name_'+currentProjectId,currentProjectName);
-  updateHeaderProject();
-  showToast(`現場名を「${currentProjectName}」に変更しました`,'ok');
-}
 
-async function autoSyncToOd(){
-  if(!odEnabled||!odAccessToken||!currentProjectId)return;
-  try{ await pushToOd(); }catch(e){console.warn('AutoSync:',e);}
-}
-async function pushToOd(){
-  if(!currentProjectId)return;
-  setSyncState('syncing');
-  const ts=new Date().toISOString();
-  const payload={project_id:currentProjectId,synced_at:ts,pins,version:Date.now()};
-  await spUpload(currentProjectId,'pins.json',payload);
-  const imgData=localStorage.getItem('map_img_'+currentProjectId);
-  if(imgData){
-    const kb=Math.round(imgData.length*0.75/1024);
-    if(kb>20000){showToast(`図面が大きすぎます(${kb}KB)`,'warn');}
-    else{
-      const mp={project_id:currentProjectId,synced_at:ts,map_name:localStorage.getItem('map_name_'+currentProjectId)||currentProjectId,image:imgData};
-      await spUpload(currentProjectId,'map.json',mp);
-    }
-  }
-  // config更新
-  const cfg=await spGetProjectConfig(currentProjectId)||{};
-  await spSaveProjectConfig(currentProjectId,{...cfg,name:currentProjectName,pin_count:pins.length,updated:ts});
-  localStorage.setItem('synced_at_'+currentProjectId,ts);
-  setSyncState('ok');
-}
 
 // 現場切替時の強制取得（確認ダイアログなし）
-async function forcePullFromOd(){
-  if(!odEnabled||!odAccessToken||!currentProjectId) return;
-  setSyncState('syncing');
-  try{
-    const {data,etag}=await spDownload(currentProjectId,'pins.json');
-    const mp=await spDownload(currentProjectId,'map.json');
-    if(mp?.image){
-      localStorage.setItem('map_img_'+currentProjectId,mp.image);
-      if(mp.map_name) localStorage.setItem('map_name_'+currentProjectId,mp.map_name);
-      showMapImage(mp.image);
-      document.getElementById('currentMapName').textContent=mp.map_name||currentProjectId;
-    }
-    if(data?.pins&&Array.isArray(data.pins)){
-      pins=data.pins;
-      localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
-      if(etag) localStorage.setItem('etag_'+currentProjectId,etag);
-      renderPins(); renderAll();
-      showToast(`${pins.length}件を取得しました`,'ok');
-    }
-    setSyncState('ok');
-  }catch(e){
-    setSyncState('error');
-    console.warn('forcePullFromOd:',e);
-  }
-}
 
-async function pullFromOd(silent=false){
-  if(!odEnabled||!odAccessToken){if(!silent)showToast('OneDrive未接続','warn');return;}
-  if(!currentProjectId){if(!silent)showToast('現場を選択してください','warn');return;}
-  setSyncState('syncing');
-  try{
-    const {data,etag}=await spDownload(currentProjectId,'pins.json');
-    // ETagで競合検知
-    const prevEtag=lastSyncedEtag[currentProjectId]||'';
-    // 図面取得
-    const {data:mp}=await spDownload(currentProjectId,'map.json');
-    if(mp?.image){
-      const localSynced=localStorage.getItem('synced_at_'+currentProjectId)||'';
-      if(mp.synced_at>localSynced){
-        localStorage.setItem('map_img_'+currentProjectId,mp.image);
-        if(mp.map_name)localStorage.setItem('map_name_'+currentProjectId,mp.map_name);
-        showMapImage(mp.image);
-        document.getElementById('currentMapName').textContent=mp.map_name||currentProjectId;
-      }
-    }
-    if(!data){setSyncState('ok');return;}
-    const localSynced=localStorage.getItem('synced_at_'+currentProjectId)||'';
-    const hasNew=data.synced_at>localSynced;
-    if(hasNew&&Array.isArray(data.pins)){
-      // リアルタイム競合チェック: ローカルに未同期の変更があるか
-      const localPins=JSON.parse(localStorage.getItem('pins_'+currentProjectId)||'[]');
-      const localTs=localStorage.getItem('synced_at_'+currentProjectId)||'';
-      const hasLocalChange=localPins.length!==data.pins.length||JSON.stringify(localPins)!==JSON.stringify(data.pins);
-      if(!silent&&hasLocalChange&&prevEtag&&etag!==prevEtag){
-        // 競合発生
-        if(!confirm(`⚠️ 競合検知\n別のユーザーがデータを更新しました。\nOneDriveの最新データ(${data.pins.length}件)で上書きしますか？\n\n「キャンセル」でローカルのデータを保持します`)){setSyncState('ok');return;}
-      }
-      pins=data.pins;
-      localStorage.setItem('pins_'+currentProjectId,JSON.stringify(pins));
-      localStorage.setItem('synced_at_'+currentProjectId,data.synced_at);
-      lastSyncedEtag[currentProjectId]=etag||'';
-      renderPins();updateStorageDisplay();renderAll();
-      if(!silent)showToast(`${pins.length}件を取得しました`,'ok');
-      else if(hasNew)showToast(`最新データ受信: ${pins.length}件`,'ok');
-    } else if(etag) lastSyncedEtag[currentProjectId]=etag;
-    setSyncState('ok');
-  }catch(e){setSyncState('error');if(!silent)showToast('取得エラー: '+e.message,'err');}
-}
-async function silentPullFromOd(){ await pullFromOd(true); }
-async function manualSync(){
-  if(!currentProjectId){showToast('現場を選択してください','warn');return;}
-  if(!odEnabled||!odAccessToken){showToast('OneDriveに接続してください','warn');return;}
-  try{ await pushToOd(); showToast('OneDriveに同期しました ✓','ok'); }
-  catch(e){setSyncState('error');showToast('同期失敗: '+e.message,'err');}
-}
-function setSyncState(s){
-  const dot=document.getElementById('syncDot'),lbl=document.getElementById('syncLabel');
-  if(!dot||!lbl) return;
-  if(!odEnabled){dot.className='sync-dot off';lbl.textContent='未接続';return;}
-  if(s==='syncing'){dot.className='sync-dot syncing';lbl.textContent='同期中...';}
-  else if(s==='error'){dot.className='sync-dot error';lbl.textContent='エラー';}
-  else{dot.className='sync-dot';lbl.textContent='OneDrive';}
-}
 
 // ポーリング（15秒ごと）
-function startPolling(){ stopPolling(); if(!odEnabled)return; pollTimer=setInterval(()=>{ if(odEnabled&&odAccessToken&&currentProjectId&&document.visibilityState!=='hidden') silentPullFromOd(); },15000); }
-function stopPolling(){ if(pollTimer){clearInterval(pollTimer);pollTimer=null;} }
-document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible'&&odEnabled&&odAccessToken&&currentProjectId) silentPullFromOd(); });
 
 // ══════════════════════════════════════
 //  TAB / LAYOUT
@@ -2007,8 +1311,10 @@ function switchPcTab(name){
 
 function renderPcSettings(){
   updateStorageDisplay();
-  updateFolderLabels();
-  updateShareLabel();
+  const sp  = document.getElementById('settingsProjectName');
+  const sp2 = document.getElementById('settingsProjectName2');
+  if(sp)  sp.textContent  = currentProjectName||'-';
+  if(sp2) sp2.textContent = currentProjectName||'-';
 }
 function isPC(){return window.innerWidth>=900;}
 function applyLayout(){ if(isPC()){switchPcTab('report');} }
@@ -2035,7 +1341,6 @@ function renderAll(){
   }
 }
 new ResizeObserver(()=>{
-  applyLayout();
   const img=document.getElementById('mapImg');
   if(img&&img.naturalWidth) fitMap();
 }).observe(document.body);
@@ -2043,17 +1348,36 @@ new ResizeObserver(()=>{
 // ══════════════════════════════════════
 //  設定モーダル
 // ══════════════════════════════════════
+function renameProject(){
+  if(!currentProjectId){ showToast('現場が選択されていません','warn'); return; }
+  const newName = prompt('現場名を入力してください', currentProjectName||'');
+  if(newName === null) return; // キャンセル
+  if(!newName.trim()){ showToast('現場名を入力してください','warn'); return; }
+  currentProjectName = newName.trim();
+  localStorage.setItem('last_project_name', currentProjectName);
+  localStorage.setItem('project_name_'+currentProjectId, currentProjectName);
+  updateHeaderProject();
+  // 設定画面の表示を更新
+  const sp  = document.getElementById('settingsProjectName');
+  const sp2 = document.getElementById('settingsProjectName2');
+  if(sp)  sp.textContent  = currentProjectName;
+  if(sp2) sp2.textContent = currentProjectName;
+  showToast(`現場名を「${currentProjectName}」に変更しました`,'ok');
+}
+
 function openSettings(){
   updateStorageDisplay();
-  updateFolderLabels();
+  // 現場名を設定画面に反映
+  const sp  = document.getElementById('settingsProjectName');
+  const sp2 = document.getElementById('settingsProjectName2');
+  if(sp)  sp.textContent  = currentProjectName||'-';
+  if(sp2) sp2.textContent = currentProjectName||'-';
   const modal = document.getElementById('settings-modal');
   modal.classList.add('open');
-  // iOS Safari スクロール修正
   setTimeout(()=>{
     const scroll = modal.querySelector('.settings-scroll');
     if(!scroll) return;
     scroll.scrollTop = 0;
-    // iOSでスクロール可能にするためのハック
     scroll.style.webkitOverflowScrolling = 'touch';
     scroll.style.overflowY = 'scroll';
     fixIOSScroll(scroll);
@@ -2079,7 +1403,6 @@ async function uploadMap(input){
   updateStorageDisplay();
   showToast(`図面設定完了`,'ok');
   input.value='';
-  if(odEnabled&&odAccessToken) autoSyncToOd();
 }
 async function pdfToJpeg(file,maxPx=1920,quality=0.85){
   try{
@@ -2347,7 +1670,7 @@ function buildListHTML(pinArr){
   if(!pinArr.length)return'<div class="empty"><div class="ei">📋</div><p>該当するピンがありません</p></div>';
   return pinArr.map(pin=>`
     <div class="pin-card ${pin.division||'施工'}-${pin.priority||'low'}${pin.completed?' done':''}" onclick="openPinSheet(pins.find(p=>p.id==='${pin.id}'))">
-      ${pin.photos?.length?`<div class="pin-card-thumb"><img src="${pin.photos[0]}"></div>`:`<div class="pin-card-thumb">📍</div>`}
+      ${pin.photos?.length?`<div class="pin-card-thumb"><img src="${photoThumb(pin.photos[0])}"></div>`:`<div class="pin-card-thumb">📍</div>`}
       <div class="pin-card-body">
         <div class="pin-card-row">
           <span class="badge badge-no">#${String(pin.pin_no).padStart(2,'0')}</span>
@@ -2431,7 +1754,7 @@ td:first-child{width:100px;font-weight:600;background:#f9fafb;color:#555;}
 .photos img{width:220px;height:165px;object-fit:cover;border-radius:6px;border:1px solid #ddd;}
 @media print{.pin-page{page-break-after:always;}.photos img{width:200px;height:150px;}}
 </style></head><body>
-  <div class="cover"><h1>📍 現場指摘レポート</h1><p>${currentProjectName||currentProjectId}</p><p>出力日: ${new Date().toLocaleDateString('ja-JP')}</p><p>出力件数: ${targetPins.length}件 / 未完了: ${targetPins.filter(p=>!p.completed).length}件</p></div>`;
+  <div class="cover"><h1>📍 現場共有レポート</h1><p>${currentProjectName||currentProjectId}</p><p>出力日: ${new Date().toLocaleDateString('ja-JP')}</p><p>出力件数: ${targetPins.length}件 / 未完了: ${targetPins.filter(p=>!p.completed).length}件</p></div>`;
   for(const pin of targetPins){
     html+=`<div class="pin-page"><div class="pin-header"><div class="pin-num">#${String(pin.pin_no).padStart(2,'0')}</div><div class="pin-tags"><span class="tag tag-${pin.division||'施工'}">${pin.division||'施工'}</span>${pin.item?`<span class="tag">${pin.item}</span>`:''} ${pin.priority?`<span class="tag tag-${pin.priority}">${priLabel[pin.priority]||pin.priority}</span>`:''}<span class="tag tag-${pin.completed?'done':'todo'}">${pin.completed?'完了':'未完了'}</span></div></div>
     <table>
@@ -2443,7 +1766,7 @@ td:first-child{width:100px;font-weight:600;background:#f9fafb;color:#555;}
       <tr><td>完了予定日</td><td>${pin.complete_date||'-'}</td></tr>
       <tr><td>記入者</td><td>${pin.author||'-'}</td></tr>
     </table>
-    ${pin.photos?.length?`<div class="photos">${pin.photos.map(s=>`<img src="${s}">`).join('')}</div>`:''}</div>`;
+    ${pin.photos?.length?`<div class="photos">${pin.photos.map(s=>`<img src="${photoThumb(s)}">`).join('')}</div>`:''}</div>`;
   }
   html+='</body></html>';
   dl(`pin_report_${currentProjectId}_${now()}.html`,html,'text/html;charset=utf-8');
@@ -2493,7 +1816,7 @@ async function exportMapPDF(){
     const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
     pins.forEach(pin=>{
       const px=pin.x*img.width,py=pin.y*img.height;
-      const colors={施工:{high:'#e05555',mid:'#e09040',low:'#3b6fd4'},設計:{high:'#9040e0',mid:'#20a0c0',low:'#40a060'}};
+      const colors={施工:{high:'#e05555',mid:'#e09040',low:'#3b6fd4'},設計:{high:'#e05555',mid:'#20a0c0',low:'#40a060'}};
       const color=pin.completed?'#2ea87e':(colors[pin.division||'施工']?.[pin.priority||'low']||'#3b6fd4');
       const r=Math.max(14,img.width*0.012);
       ctx.beginPath();ctx.arc(px,py-r,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
@@ -2873,19 +2196,7 @@ function fixIOSScroll(el){
 //  BOOT
 // ══════════════════════════════════════
 window.addEventListener('load', ()=>{
-  // PINパッド イベント登録
-  document.querySelectorAll('.pin-key[data-pin]').forEach(el=>{
-    el.addEventListener('click', ()=>{
-      const v = el.dataset.pin;
-      if(v==='del') pinBack(); else pinKey(v);
-    });
-  });
-  document.addEventListener('keydown',e=>{
-    if(/^[0-9]$/.test(e.key)) pinKey(e.key);
-    if(e.key==='Backspace') pinBack();
-  });
-  initMsal();
-  checkSession();
+  init();
 });
 </script>
 
