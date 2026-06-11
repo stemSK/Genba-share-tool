@@ -451,7 +451,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:8
       <div class="startup-card-arrow">›</div>
     </div>
   </div>
-  <input type="file" id="startup-file-input" accept=".json" style="display:none" onchange="doStartupFileInput(this)">
+  <input type="file" id="startup-file-input" accept="application/json,.json" style="display:none" onchange="doStartupFileInput(this)">
 </div>
 
 <!-- 新規現場作成モーダル -->
@@ -973,9 +973,13 @@ function showNewProjectMapPrompt(name){
 
 function startupContinue(){
   document.getElementById('startup-screen').classList.remove('show');
+  loadData();
+  requestAnimationFrame(()=>{
+    const img = document.getElementById('mapImg');
+    if(img && img.src && img.naturalWidth){ fitMap(); renderPins(); }
+  });
   renderAll();
   updateStorageDisplay();
-
 }
 
 
@@ -1024,15 +1028,17 @@ function _loadStartupFile(file, fname){
     if(d.exported){
       localStorage.setItem('last_opened_exported', d.exported);
     }
+    // 先に起動画面を閉じてmapContainerのサイズを確定させる
+    document.getElementById('startup-screen').classList.remove('show');
+    updateHeaderProject();
     if(d.map_image){
       localStorage.setItem('map_img_'+currentProjectId,  d.map_image);
       if(d.map_name) localStorage.setItem('map_name_'+currentProjectId, d.map_name);
-      showMapImage(d.map_image);
       const mn = document.getElementById('currentMapName');
       if(mn) mn.textContent = d.map_name || currentProjectName;
+      // レイアウト確定後に図面を表示
+      requestAnimationFrame(()=>{ showMapImage(d.map_image); renderPins(); });
     }
-    document.getElementById('startup-screen').classList.remove('show');
-    updateHeaderProject();
     renderAll();
     updateStorageDisplay();
     showToast(`「${currentProjectName}」を読み込みました（${pins.length}件）`,'ok');
