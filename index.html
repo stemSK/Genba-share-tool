@@ -799,11 +799,57 @@ const ITEMS_BY_DIV   = {
 //  STATE
 // ══════════════════════════════════════
 let pins = [], currentProjectId = '', currentProjectName = '', currentFileName = '';
+let currentMapImage = '', currentMapName = ''; // 図面データをメモリにも保持
+// localStorage が使えない環境向けに保存情報をメモリにも保持
+let memLastSavedFile = '', memLastSavedAt = '', memLastSavedPj = '', memLastOpenedExp = '';
 let addMode=false, moveMode=false, isDragging=false;
 let lastX=0, lastY=0, mapScale=1, mapOffX=0, mapOffY=0, pinchDist=0;
 let editingId=null, pendingX=0, pendingY=0;
 let currentPhotos=[], doneState=false, currentDiv='施工';
 let filterIncomplete=false, filterIncomplPc=false;
+
+// ══════════════════════════════════════
+//  IndexedDB ラッパー（localStorage代替）
+//  file:// + Tracking Prevention 環境でも動作
+// ══════════════════════════════════════
+const IDB_NAME = 'genbaTool', IDB_STORE = 'kv', IDB_VER = 1;
+let _idb = null;
+function _openIDB(){
+  if(_idb) return Promise.resolve(_idb);
+  return new Promise((res,rej)=>{
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = e=>{ e.target.result.createObjectStore(IDB_STORE); };
+    req.onsuccess = e=>{ _idb=e.target.result; res(_idb); };
+    req.onerror   = e=>rej(e);
+  });
+}
+function idbSet(key,val){
+  return _openIDB().then(db=>{
+    return new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).put(val,key);
+      tx.oncomplete=()=>res(); tx.onerror=e=>rej(e);
+    });
+  }).catch(()=>{});
+}
+function idbGet(key){
+  return _openIDB().then(db=>{
+    return new Promise((res,rej)=>{
+      const req=db.transaction(IDB_STORE,'readonly').objectStore(IDB_STORE).get(key);
+      req.onsuccess=e=>res(e.target.result??null);
+      req.onerror=e=>rej(e);
+    });
+  }).catch(()=>null);
+}
+function idbDel(key){
+  return _openIDB().then(db=>{
+    return new Promise((res,rej)=>{
+      const tx=db.transaction(IDB_STORE,'readwrite');
+      tx.objectStore(IDB_STORE).delete(key);
+      tx.oncomplete=()=>res(); tx.onerror=e=>rej(e);
+    });
+  }).catch(()=>{});
+}
 
 // ══════════════════════════════════════
 //  AUTH: PIN
@@ -815,17 +861,36 @@ let filterIncomplete=false, filterIncomplPc=false;
 // ══════════════════════════════════════
 
 async function init(){
-  const lastPj = _lsGet('last_project_id');
+  // IndexedDBから前回データを復元（localStorage が使えない環境でも動作）
+  const lastPj   = await idbGet('last_project_id')   || _lsGet('last_project_id');
+  const lastPjNm = await idbGet('last_project_name') || _lsGet('last_project_name');
+  const lastFn   = await idbGet('current_file_name') || _lsGet('current_file_name');
   if(lastPj){
-    currentProjectId = lastPj;
-    currentProjectName = _lsGet('last_project_name')||lastPj;
+    currentProjectId   = lastPj;
+    currentProjectName = lastPjNm || lastPj;
   }
-  currentFileName = _lsGet('current_file_name') || '';
+  currentFileName = lastFn || '';
+
+  // 図面・ピンをIndexedDBから復元
+  if(currentProjectId){
+    const storedImg   = await idbGet('map_img_'+currentProjectId)  || _lsGet('map_img_'+currentProjectId);
+    const storedName  = await idbGet('map_name_'+currentProjectId) || _lsGet('map_name_'+currentProjectId);
+    const storedPins  = await idbGet('pins_'+currentProjectId)     || _lsGet('pins_'+currentProjectId);
+    if(storedImg)  { currentMapImage = storedImg;  }
+    if(storedName) { currentMapName  = storedName; }
+    if(storedPins) { try{ pins = JSON.parse(storedPins); }catch(e){ pins=[]; } }
+
+    // 保存情報
+    memLastSavedFile = await idbGet('last_saved_file_name')   || _lsGet('last_saved_file_name')   || '';
+    memLastSavedAt   = await idbGet('last_saved_at')           || _lsGet('last_saved_at')           || '';
+    memLastSavedPj   = await idbGet('last_saved_project_id')  || _lsGet('last_saved_project_id')  || '';
+    memLastOpenedExp = await idbGet('last_opened_exported')   || _lsGet('last_opened_exported')   || '';
+  }
+
   updateHeaderProject();
   loadData();
   renderPins();
   updateStorageDisplay();
-  // PIN認証後は必ずファイル選択画面を表示
   setTimeout(showStartupScreen, 50);
 }
 
@@ -836,37 +901,49 @@ function showStartupScreen(){
   const lastPj    = _lsGet('last_project_id')   || currentProjectId;
   const lastName  = _lsGet('last_project_name') || currentProjectName;
   const lastFile  = _lsGet('current_file_name') || currentFileName;
-  // localStorage が使えない場合はメモリ上のpinsで判定
   const pinsFromLs = lastPj ? _lsGet('pins_'+lastPj) : null;
-  const hasPrev   = !!(lastPj && (pinsFromLs || (currentProjectId && pins.length >= 0 && currentProjectName)));
+  const hasPrev   = !!(lastPj && (pinsFromLs || (currentProjectId && currentProjectName)));
 
   const prevBlock    = document.getElementById('startup-prev-block');
   const continueCard = document.getElementById('startup-continue-card');
   const subtitle     = document.getElementById('startup-subtitle');
 
   if(hasPrev){
-    const prevPins = (() => { try{ return JSON.parse(_lsGet('pins_'+lastPj)||'[]'); }catch(e){ return []; } })();
+    // 件数：localStorageが使えない場合はメモリ上のpinsを使う
+    let prevPins = [];
+    try{ prevPins = JSON.parse(pinsFromLs||'[]'); }catch(e){}
+    if(!prevPins.length && currentProjectId === lastPj) prevPins = pins;
+
     document.getElementById('startup-prev-name').textContent = `「${lastName||lastPj}」`;
     document.getElementById('startup-prev-meta').textContent = `${prevPins.length}件のピン`;
-    // 開いたファイル名
+
     const fileEl = document.getElementById('startup-prev-file');
     if(fileEl){
       fileEl.textContent = lastFile ? `📂 前回開いたファイル: ${lastFile}` : '（保存ファイル未設定）';
       fileEl.style.color = lastFile ? 'var(--text2)' : 'var(--text3)';
     }
-    // ② 最終保存情報の表示と不一致チェック
+
     const saveInfoEl = document.getElementById('startup-save-info');
     if(saveInfoEl){
-      const lastSavedFile = _lsGet('last_saved_file_name');
-      const lastSavedAt   = _lsGet('last_saved_at');
-      const lastSavedPj   = _lsGet('last_saved_project_id');
+      const lastSavedFile = _lsGet('last_saved_file_name') || memLastSavedFile;
+      const lastSavedAt   = _lsGet('last_saved_at')        || memLastSavedAt;
+      const lastSavedPj   = _lsGet('last_saved_project_id')|| memLastSavedPj;
+      const lastOpenedExp = _lsGet('last_opened_exported') || memLastOpenedExp;
+
       if(lastSavedFile && lastSavedAt){
         const savedDate = new Date(lastSavedAt);
         const fmt = `${savedDate.getFullYear()}/${String(savedDate.getMonth()+1).padStart(2,'0')}/${String(savedDate.getDate()).padStart(2,'0')} ${String(savedDate.getHours()).padStart(2,'0')}:${String(savedDate.getMinutes()).padStart(2,'0')}`;
-        // ③ 不一致チェック：保存したプロジェクトと現在キャッシュのプロジェクトが違う、またはファイル名が違う
-        const mismatch = lastSavedPj !== lastPj || lastSavedFile !== lastFile;
+
+        // 不一致チェック：プロジェクトIDが違う、またはファイルを開いた後に別のファイルで保存されている
+        const projectMismatch = lastSavedPj && lastPj && lastSavedPj !== lastPj;
+        // 開いたファイルのexported日時 vs 最終保存日時を比較（保存の方が新しければ別ファイル）
+        const timeMismatch = lastOpenedExp && lastSavedAt && lastOpenedExp !== lastSavedAt
+          && new Date(lastSavedAt) > new Date(lastOpenedExp);
+        const fileMismatch = lastFile && lastSavedFile && lastFile !== lastSavedFile;
+        const mismatch = projectMismatch || timeMismatch || fileMismatch;
+
         if(mismatch){
-          saveInfoEl.innerHTML = `<span style="color:#e05555;font-weight:600;">⚠️ 最後に保存したファイルと異なります</span><br>💾 最終保存: ${lastSavedFile}（${fmt}）<br><span style="color:#e05555;font-size:11px;">「ファイルを開く」から最新ファイルを選択することをお勧めします</span>`;
+          saveInfoEl.innerHTML = `<span style="color:#e05555;font-weight:600;">⚠️ 最後に保存したファイルと異なる可能性があります</span><br>💾 最終保存: ${lastSavedFile}（${fmt}）<br><span style="color:#e05555;font-size:11px;">「ファイルを開く」から最新ファイルを選択することをお勧めします</span>`;
         } else {
           saveInfoEl.innerHTML = `<span style="color:var(--ok,#2ea87e);">✅ 最終保存: ${lastSavedFile}（${fmt}）</span>`;
         }
@@ -874,6 +951,7 @@ function showStartupScreen(){
         saveInfoEl.textContent = '';
       }
     }
+
     document.getElementById('startup-continue-desc').textContent =
       `「${lastName||lastPj}」（${prevPins.length}件）を続ける`;
     prevBlock.style.display    = '';
@@ -968,13 +1046,13 @@ function showNewProjectMapPrompt(name){
 
 function startupContinue(){
   document.getElementById('startup-screen').classList.remove('show');
-  // 常にloadDataを呼ぶ（図面・ピンをlocalStorageから復元）
-  // localStorageが使えない環境ではメモリ上のデータがそのまま残るので問題なし
   loadData();
-  requestAnimationFrame(()=>{
-    const img = document.getElementById('mapImg');
-    if(img && img.src && img.naturalWidth){ fitMap(); renderPins(); }
-  });
+  // 図面のonloadが終わってからfitMap+renderPinsを実行
+  const mapImg = document.getElementById('mapImg');
+  if(mapImg && mapImg.src && mapImg.src !== window.location.href){
+    if(mapImg.naturalWidth){ fitMap(); renderPins(); }
+    else{ mapImg.onload = ()=>{ fitMap(); renderPins(); }; }
+  }
   renderAll();
   updateStorageDisplay();
 }
@@ -1013,16 +1091,28 @@ function _loadStartupFile(file, fname){
     _lsSet('project_name_'+currentProjectId, currentProjectName);
     _lsSet('current_file_name', currentFileName);
     _lsSet('pins_'+currentProjectId, JSON.stringify(pins));
-    if(d.exported){ _lsSet('last_opened_exported', d.exported); }
+    // IndexedDBにも保存（localStorage がブロックされる環境向け）
+    idbSet('last_project_id',   currentProjectId);
+    idbSet('last_project_name', currentProjectName);
+    idbSet('current_file_name', currentFileName);
+    idbSet('pins_'+currentProjectId, JSON.stringify(pins));
+    if(d.exported){
+      _lsSet('last_opened_exported', d.exported);
+      memLastOpenedExp = d.exported;
+      idbSet('last_opened_exported', d.exported);
+    }
     // 先に起動画面を閉じてmapContainerのサイズを確定させる
     document.getElementById('startup-screen').classList.remove('show');
     updateHeaderProject();
     if(d.map_image){
+      currentMapImage = d.map_image;
+      currentMapName  = d.map_name || '';
       _lsSet('map_img_'+currentProjectId,  d.map_image);
       if(d.map_name) _lsSet('map_name_'+currentProjectId, d.map_name);
+      idbSet('map_img_'+currentProjectId,  d.map_image);
+      idbSet('map_name_'+currentProjectId, d.map_name||'');
       const mn = document.getElementById('currentMapName');
       if(mn) mn.textContent = d.map_name || currentProjectName;
-      // レイアウト確定後に図面を表示
       requestAnimationFrame(()=>{ showMapImage(d.map_image); renderPins(); });
     }
     renderAll();
@@ -1150,8 +1240,8 @@ function exportJSON(){
     project_id:   currentProjectId,
     project_name: currentProjectName,
     exported:     isoNow,
-    map_name:     _lsGet('map_name_'+currentProjectId),
-    map_image:    _lsGet('map_img_'+currentProjectId),
+    map_name:     _lsGet('map_name_'+currentProjectId) || currentMapName  || null,
+    map_image:    _lsGet('map_img_' +currentProjectId) || currentMapImage || null,
     pins
   };
   dl(fname, JSON.stringify(data, null, 2), 'application/json');
@@ -1159,6 +1249,12 @@ function exportJSON(){
   _lsSet('last_saved_file_name',   fname);
   _lsSet('last_saved_at',           isoNow);
   _lsSet('last_saved_project_id',   currentProjectId);
+  memLastSavedFile = fname;
+  memLastSavedAt   = isoNow;
+  memLastSavedPj   = currentProjectId;
+  idbSet('last_saved_file_name',  fname);
+  idbSet('last_saved_at',          isoNow);
+  idbSet('last_saved_project_id',  currentProjectId);
   showSaveBanner(fname);
 }
 
@@ -1301,16 +1397,24 @@ function isPC(){return window.innerWidth>=900;}
 function applyLayout(){ if(isPC()){switchPcTab('report');} }
 function loadData(){
   if(!currentProjectId){pins=[];return;}
-  try{pins=JSON.parse(_lsGet('pins_'+currentProjectId)||'[]');}catch(e){pins=[];}
-  const img=_lsGet('map_img_'+currentProjectId);
-  if(img) showMapImage(img);
-  else{document.getElementById('mapImg').style.display='none';document.getElementById('mapPlaceholder').style.display='flex';}
-  const mapName=_lsGet('map_name_'+currentProjectId);
-  document.getElementById('currentMapName').textContent=mapName||'PNG・JPG・PDF・HEIC対応';
+  // localStorageが使える場合はそちらを優先、使えない場合はメモリ上のデータをそのまま維持
+  const storedPins = _lsGet('pins_'+currentProjectId);
+  if(storedPins !== null){ try{pins=JSON.parse(storedPins);}catch(e){pins=[];} }
+  // pinsがメモリにあればそのまま使う（storedPinsがnullの場合）
+
+  const storedImg  = _lsGet('map_img_' +currentProjectId);
+  const storedName = _lsGet('map_name_'+currentProjectId);
+  const imgSrc  = storedImg  || currentMapImage;
+  const mapName = storedName || currentMapName;
+  if(imgSrc){ showMapImage(imgSrc); }
+  else{ document.getElementById('mapImg').style.display='none'; document.getElementById('mapPlaceholder').style.display='flex'; }
+  document.getElementById('currentMapName').textContent = mapName || 'PNG・JPG・PDF・HEIC対応';
 }
 function saveData(){
   if(!currentProjectId)return;
-  _lsSet('pins_'+currentProjectId,JSON.stringify(pins));
+  const pinsJson = JSON.stringify(pins);
+  _lsSet('pins_'+currentProjectId, pinsJson);
+  idbSet('pins_'+currentProjectId, pinsJson);
   updateStorageDisplay();
 }
 function renderAll(){
@@ -1379,6 +1483,9 @@ async function uploadMap(input){
   if(!img)return;
   _lsSet('map_img_'+currentProjectId,img);
   _lsSet('map_name_'+currentProjectId,file.name);
+  currentMapName = file.name;
+  idbSet('map_img_'+currentProjectId,  img);
+  idbSet('map_name_'+currentProjectId, file.name);
   showMapImage(img);
   document.getElementById('currentMapName').textContent=file.name;
   updateStorageDisplay();
@@ -1400,6 +1507,7 @@ async function pdfToJpeg(file,maxPx=1920,quality=0.85){
   }catch(e){showToast('PDF変換エラー: '+e.message,'err');return null;}
 }
 function showMapImage(src){
+  currentMapImage = src; // メモリにも保持
   const img=document.getElementById('mapImg');
   img.src=src;img.style.display='block';
   document.getElementById('mapPlaceholder').style.display='none';
