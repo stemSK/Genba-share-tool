@@ -1666,7 +1666,7 @@ async function addPhotos(input){
   renderPhotoGrid();input.value='';
   showToast(added>0?`写真を${added}枚追加しました`:'写真の読み込みに失敗しました',added>0?'ok':'err');
 }
-function loadAndCompressPhoto(file,maxPx=1200,quality=0.75){
+function loadAndCompressPhoto(file,maxPx=800,quality=0.72){
   return new Promise(resolve=>{
     const url=URL.createObjectURL(file);
     const img=new Image();
@@ -1938,24 +1938,32 @@ function exportCSV(){
 function dl(name,content,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));a.download=name;a.click();}
 function now(){return new Date().toISOString().slice(0,10);}
 function updateStorageDisplay(){
+  // メモリ上のデータから直接サイズを計算（localStorage/IndexedDB のブロック対策）
+  let total = 0;
+  if(currentProjectId){
+    total += (currentMapImage||'').length * 0.75; // base64 → バイト概算
+    total += JSON.stringify(pins||[]).length * 2;
+    total += (currentProjectName||'').length * 2;
+  }
+  // localStorageが使える場合は加算
   try{
-    let total=0;
     for(let i=0;i<localStorage.length;i++){
       const k=localStorage.key(i);
       total+=(_lsGet(k)||'').length*2;
     }
-    const kb=total/1024;
-    const pct=Math.min(100,Math.round(total/(5*1024*1024)*100));
-    const label = kb>=1000 ? (kb/1024).toFixed(1)+'MB' : Math.round(kb)+'KB';
-    const fill=document.getElementById('storageBarFill');
-    const txt=document.getElementById('storageTxt');
-    if(fill){fill.style.width=pct+'%';fill.className='storage-bar-fill'+(pct>80?' danger':pct>60?' warn':'');}
-    if(txt) txt.textContent=label;
-    ['storageDetailTxt','storageDetailTxt2'].forEach(id=>{
-      const el=document.getElementById(id);
-      if(el) el.textContent=`${label} 使用中`;
-    });
   }catch(e){}
+
+  const kb=total/1024;
+  const pct=Math.min(100,Math.round(total/(5*1024*1024)*100));
+  const label = kb>=1000 ? (kb/1024).toFixed(1)+'MB' : Math.round(kb)+'KB';
+  const fill=document.getElementById('storageBarFill');
+  const txt=document.getElementById('storageTxt');
+  if(fill){fill.style.width=pct+'%';fill.className='storage-bar-fill'+(pct>80?' danger':pct>60?' warn':'');}
+  if(txt) txt.textContent=label;
+  ['storageDetailTxt','storageDetailTxt2'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.textContent=`${label} 使用中`;
+  });
 }
 
 // ══════════════════════════════════════
@@ -2212,8 +2220,14 @@ function saveDrawing(){
     });
   }
 
-  // 現在の合成画像
-  const compositeUrl = drawCanvas.toDataURL('image/png');
+  // 合成画像をJPEG圧縮（PNGより大幅に軽量）
+  const offComp = document.createElement('canvas');
+  offComp.width = drawCanvas.width; offComp.height = drawCanvas.height;
+  const offCompCtx = offComp.getContext('2d');
+  offCompCtx.fillStyle = '#ffffff';
+  offCompCtx.fillRect(0,0,offComp.width,offComp.height);
+  offCompCtx.drawImage(drawCanvas,0,0);
+  const compositeUrl = offComp.toDataURL('image/jpeg', 0.75);
 
   // 描画レイヤーのみを透過PNGで抽出（drawLayerBase との差分）
   const _extractDrawingLayer = ()=>{
@@ -2235,23 +2249,17 @@ function saveDrawing(){
       }
     }
     offCtx.putImageData(layerData, 0, 0);
+    // 透過PNGのまま保存（描画は透過が必要）
     return offCanvas.toDataURL('image/png');
   };
 
   if(drawEditing === -1){
-    // 新規手書きメモ：白地をbaseとして保存し、描画は差分レイヤーで保持
-    const whiteCanvas = document.createElement('canvas');
-    whiteCanvas.width  = drawCanvas.width;
-    whiteCanvas.height = drawCanvas.height;
-    const wCtx = whiteCanvas.getContext('2d');
-    wCtx.fillStyle = '#ffffff';
-    wCtx.fillRect(0,0,whiteCanvas.width,whiteCanvas.height);
-    const baseUrl    = whiteCanvas.toDataURL('image/png');
-    const drawingUrl = _extractDrawingLayer();
-    currentPhotos.push({ base: baseUrl, drawing: drawingUrl, composite: compositeUrl });
+    // 新規手書きメモ：compositeのみ保存（base/drawingは不要）
+    currentPhotos.push({ composite: compositeUrl });
   } else {
     const baseSrc    = photoBase(currentPhotos[drawEditing]);
     const drawingUrl = _extractDrawingLayer();
+    // compositeのみJSONに保存、base/drawingは再合成用に保持するが軽量化のためcompositeで代替
     currentPhotos[drawEditing] = { base: baseSrc, drawing: drawingUrl, composite: compositeUrl };
   }
 
