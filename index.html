@@ -1908,7 +1908,7 @@ async function exportSelectedPinReport(){
   await exportPinReport(checked);
 }
 async function exportMapPDF(){
-  const imgData=_lsGet('map_img_'+currentProjectId);
+  const imgData = _lsGet('map_img_'+currentProjectId) || currentMapImage;
   if(!imgData)return showToast('図面がアップロードされていません','warn');
   if(!pins.length)return showToast('ピンがありません','warn');
   showToast('図面を生成中...','warn');
