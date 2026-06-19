@@ -725,8 +725,12 @@ input[type="date"]{color-scheme:dark;}
       </div>
     </div>
     <div class="photo-section">
-      <div class="photo-label">写真</div>
-      <div class="photo-grid" id="photoGrid"></div>
+      <div class="photo-label">写真 <span style="font-size:10px;color:var(--text3);font-weight:400;">（ドラッグ&ドロップ または Ctrl+V でペースト可）</span></div>
+      <div class="photo-grid" id="photoGrid"
+        ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+        ondragleave="this.style.borderColor=''"
+        ondrop="event.preventDefault();this.style.borderColor='';handlePhotoDrop(event)">
+      </div>
     </div>
     <div class="fg">
       <div class="f"><label>指摘項目</label><select id="f-item"><option value="">選択</option></select></div>
@@ -2002,6 +2006,37 @@ function triggerPhotoInput(){
   const input=document.createElement('input');input.type='file';input.id='photo-input-dynamic';input.accept='image/*';input.multiple=true;input.style.cssText='position:fixed;top:-999px;left:-999px;opacity:0;';
   input.onchange=()=>addPhotos(input);document.body.appendChild(input);input.click();
 }
+
+// ドラッグ&ドロップで写真追加
+function handlePhotoDrop(e){
+  const files = Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'));
+  if(!files.length) return showToast('画像ファイルをドロップしてください','warn');
+  const fakeInput = { files };
+  addPhotos(fakeInput);
+}
+
+// Ctrl+V でクリップボードから写真を貼り付け
+document.addEventListener('paste', e=>{
+  // ピン追加/編集パネルが開いているか判定
+  const pinSheet = document.getElementById('pinSheet');
+  const isOpen = pinSheet && pinSheet.classList.contains('open');
+  if(!isOpen) return;
+
+  const items = Array.from(e.clipboardData.items).filter(i=>i.type.startsWith('image/'));
+  if(!items.length) return;
+  e.preventDefault();
+  showToast('クリップボードから画像を貼り付け中...','warn');
+  Promise.all(items.map(item=>{
+    return new Promise(res=>{
+      const blob = item.getAsFile();
+      loadAndCompressPhoto(blob).then(res);
+    });
+  })).then(results=>{
+    results.forEach(url=>{ if(url) currentPhotos.push(url); });
+    renderPhotoGrid();
+    showToast(`${results.length}枚の画像を追加しました`,'ok');
+  });
+});
 function triggerMapInput(){
   const old=document.getElementById('map-input-dynamic');if(old)old.remove();
   const input=document.createElement('input');input.type='file';input.id='map-input-dynamic';input.accept='.jpg,.jpeg,.png,.bmp,.heic,.heif,.tiff,.tif,.pdf,.webp';input.style.cssText='position:fixed;top:-999px;left:-999px;opacity:0;';
