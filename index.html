@@ -1922,8 +1922,8 @@ async function exportMapPDF(){
     const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0);
     pins.forEach(pin=>{
       const px=pin.x*img.width,py=pin.y*img.height;
-      const colors={施工:{high:'#e05555',mid:'#e09040',low:'#3b6fd4'},設計:{high:'#e05555',mid:'#20a0c0',low:'#40a060'}};
-      const color=pin.completed?'#2ea87e':(colors[pin.division||'施工']?.[pin.priority||'low']||'#3b6fd4');
+      const priorityColors={high:'#e05555',mid:'#e09040',low:'#d4c800'};
+      const color=pin.completed?'#2ea87e':(priorityColors[pin.priority||'low']||'#d4c800');
       const r=Math.max(14,img.width*0.012);
       ctx.beginPath();ctx.arc(px,py-r,r,0,Math.PI*2);ctx.fillStyle=color;ctx.fill();
       ctx.strokeStyle='white';ctx.lineWidth=r*0.15;ctx.stroke();
