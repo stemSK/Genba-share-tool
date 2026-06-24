@@ -2265,6 +2265,8 @@ function setupDrawEvents(){
     const sx=eventCanvas.width/r.width, sy=eventCanvas.height/r.height;
     return [(e.clientX-r.left)*sx,(e.clientY-r.top)*sy];
   };
+
+  const onStart=(x,y)=>{
     drawPointing=true;
     if(drawMode==='free'||drawMode==='eraser'){
       drawLastX=x; drawLastY=y;
