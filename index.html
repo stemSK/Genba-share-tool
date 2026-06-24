@@ -2241,32 +2241,8 @@ function eraseAt(x,y,r){
   drawCtx.putImageData(patch,sx,sy);
 }
 
-// ─── 直線スナップ ───
-// PC: Shiftキーで0/45/90/135度にスナップ
-// スマホ: 角度が各スナップ方向の±15度以内なら自動スナップ
-let shiftDown = false;
-document.addEventListener('keydown', e=>{ if(e.key==='Shift') shiftDown=true; });
-document.addEventListener('keyup',   e=>{ if(e.key==='Shift') shiftDown=false; });
-
-function snapLine(x0,y0,x1,y1){
-  const dx=x1-x0, dy=y1-y0;
-  const len=Math.hypot(dx,dy);
-  if(len<2) return [x1,y1];
-  const angle=Math.atan2(dy,dx); // -π〜π
-  const deg=angle*180/Math.PI;   // -180〜180
-
-  // スナップ候補: 0, 45, 90, 135, 180, -45, -90, -135
-  const snaps=[0,45,90,135,180,-45,-90,-135];
-  const THRESHOLD = shiftDown ? 360 : 15; // Shift押下時は常にスナップ
-  let best=null, bestDiff=Infinity;
-  for(const s of snaps){
-    const diff=Math.abs(((deg-s+540)%360)-180);
-    if(diff<THRESHOLD && diff<bestDiff){ bestDiff=diff; best=s; }
-  }
-  if(best===null) return [x1,y1];
-  const snapAngle=best*Math.PI/180;
-  return [x0+Math.cos(snapAngle)*len, y0+Math.sin(snapAngle)*len];
-}
+// ─── 図形配置プレビュー ───
+let shapeStartX=0, shapeStartY=0, shapePreviewing=false;
 
 // ─── イベント設定 ───
 function setupDrawEvents(){
@@ -2351,10 +2327,8 @@ function setupDrawEvents(){
       // 図形プレビュー（shapeレイヤーのみ更新）
       shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);
       shapes.forEach(sh=>renderOneShape(shapeCtx,sh));
-      let ex=x, ey=y;
-      if(drawMode==='line'){ [ex,ey]=snapLine(shapeStartX,shapeStartY,x,y); }
-      const tmpSh={type:drawMode,cx:(shapeStartX+ex)/2,cy:(shapeStartY+ey)/2,
-        w:Math.abs(ex-shapeStartX)||2,h:Math.abs(ey-shapeStartY)||2,angle:0,
+      const tmpSh={type:drawMode,cx:(shapeStartX+x)/2,cy:(shapeStartY+y)/2,
+        w:Math.abs(x-shapeStartX)||2,h:Math.abs(y-shapeStartY)||2,angle:0,
         color:drawColor==='eraser'?'#e05555':drawColor,lineWidth:drawSize};
       renderOneShape(shapeCtx,tmpSh);
     }
@@ -2369,14 +2343,13 @@ function setupDrawEvents(){
       if(dragState){ dragState=null; }
     } else if(shapePreviewing){
       shapePreviewing=false;
-      let ex=x, ey=y;
-      if(drawMode==='line'){ [ex,ey]=snapLine(shapeStartX,shapeStartY,x,y); }
-      const w=Math.abs(ex-shapeStartX), h=Math.abs(ey-shapeStartY);
+      const w=Math.abs(x-shapeStartX), h=Math.abs(y-shapeStartY);
       if(w>5||h>5){
-        const sh={type:drawMode,cx:(shapeStartX+ex)/2,cy:(shapeStartY+ey)/2,
+        const sh={type:drawMode,cx:(shapeStartX+x)/2,cy:(shapeStartY+y)/2,
           w,h,angle:0,color:drawColor==='eraser'?'#e05555':drawColor,lineWidth:drawSize};
         shapes.push(sh);
         selectedShape=sh;
+        // 配置後は自動で選択モードに切替
         setDrawMode('select', document.getElementById('shape-select'));
       }
       renderShapeLayer();
