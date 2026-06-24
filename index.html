@@ -225,9 +225,12 @@ input[type="date"]{color-scheme:dark;}
 .draw-toolbar-title{font-size:13px;font-weight:600;color:#fff;margin-right:4px;}
 .pen-btn{width:32px;height:32px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all 0.15s;flex-shrink:0;}
 .pen-btn.active{border-color:#fff;transform:scale(1.15);}
+.shape-btn{width:34px;height:34px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--text1);font-size:16px;cursor:pointer;transition:all 0.15s;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.shape-btn.active{border-color:#4a8ff7;background:#1a3a6a;color:#4a8ff7;}
 .pen-size{display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;}
 .pen-size input{width:80px;accent-color:var(--accent);}
-.draw-canvas-wrap{flex:1;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#111;position:relative;}
+.draw-canvas-wrap{flex:1;overflow:auto;display:flex;align-items:flex-start;justify-content:center;background:#111;position:relative;padding:8px;box-sizing:border-box;}
+.draw-canvas-container{position:relative;flex-shrink:0;}
 #draw-canvas{display:block;touch-action:none;cursor:crosshair;}
 .draw-actions{background:#1a1a1a;padding:10px 14px;display:flex;gap:8px;flex-shrink:0;}
 .draw-memo{flex:1;background:#222;border:1px solid #444;border-radius:8px;color:#fff;padding:8px 10px;font-size:13px;font-family:var(--sans);resize:none;outline:none;min-height:44px;}
@@ -761,12 +764,21 @@ input[type="date"]{color-scheme:dark;}
 <div id="draw-editor">
   <div class="draw-toolbar">
     <span class="draw-toolbar-title">✏️ 描画</span>
+    <!-- カラー -->
     <button class="pen-btn active" id="pen-black" style="background:#000000;border:2px solid #fff" onclick="setPenColor('#000000',this)" title="黒"></button>
     <button class="pen-btn" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
     <button class="pen-btn" id="pen-blue" style="background:#3b8fd4" onclick="setPenColor('#3b8fd4',this)" title="青"></button>
     <button class="pen-btn" id="pen-green" style="background:#2ea87e" onclick="setPenColor('#2ea87e',this)" title="緑"></button>
     <button class="pen-btn" id="pen-white" style="background:#ffffff" onclick="setPenColor('#ffffff',this)" title="白"></button>
     <button class="pen-btn" id="pen-eraser" style="background:#555;border:2px solid #888;font-size:13px;border-radius:8px;width:36px;" onclick="setPenColor('eraser',this)" title="消しゴム">消</button>
+    <div style="width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
+    <!-- ツールモード -->
+    <button class="shape-btn active" id="shape-free"   onclick="setDrawMode('free',this)"   title="フリーハンド">✏️</button>
+    <button class="shape-btn"        id="shape-rect"   onclick="setDrawMode('rect',this)"   title="四角形を描く">□</button>
+    <button class="shape-btn"        id="shape-circle" onclick="setDrawMode('circle',this)" title="円を描く">○</button>
+    <button class="shape-btn"        id="shape-line"   onclick="setDrawMode('line',this)"   title="直線を描く">╱</button>
+    <button class="shape-btn"        id="shape-valve"  onclick="setDrawMode('valve',this)"  title="バルブを描く">⧖</button>
+    <button class="shape-btn"        id="shape-select" onclick="setDrawMode('select',this)" title="図形を選択・移動・変形">🖐</button>
     <div class="pen-size">
       <span>太さ</span>
       <input type="range" id="pen-size" min="1" max="30" value="4" oninput="updatePenSize(this.value)">
@@ -777,7 +789,10 @@ input[type="date"]{color-scheme:dark;}
     <button class="icon-btn" onclick="closeDrawEditor(false)" title="キャンセル">✕</button>
   </div>
   <div class="draw-canvas-wrap" id="draw-canvas-wrap">
-    <canvas id="draw-canvas"></canvas>
+    <div class="draw-canvas-container" id="draw-canvas-container">
+      <canvas id="draw-canvas" style="position:absolute;top:0;left:0;display:block;"></canvas>
+      <canvas id="shape-canvas" style="position:absolute;top:0;left:0;display:block;"></canvas>
+    </div>
   </div>
   <div class="draw-actions">
     <textarea class="draw-memo" id="draw-memo-text" placeholder="メモを入力（任意）" rows="2"></textarea>
@@ -2053,270 +2068,499 @@ function showToast(msg,type=''){
 // ════════════════════════════════════════
 //  描画エディタ
 // ════════════════════════════════════════
-let drawCanvas=null, drawCtx=null;
+// ══════════════════════════════════════
+//  描画エディタ（3レイヤー設計）
+//  Layer0: ベース（元写真）→ drawCanvas に描画済み
+//  Layer1: フリーハンド → drawCanvas に直接描画
+//  Layer2: 図形オブジェクト → shapeCanvas に描画
+// ══════════════════════════════════════
+let drawCanvas=null, drawCtx=null;   // フリーハンドレイヤー
+let shapeCanvas=null, shapeCtx=null; // 図形レイヤー
 let drawColor='#000000', drawSize=4;
-let drawHistory=[], drawEditing=-1;
+let drawMode='free'; // 'free'|'eraser'|'rect'|'circle'|'valve'|'select'
 let drawPointing=false, drawLastX=0, drawLastY=0;
-let drawLayerBase=null; // 描画開始時点のベース（消しゴムはここへ戻す）
+let drawLayerBase=null; // ベース画像（消しゴム用）
+let drawHistory=[], drawEditing=-1;
 
-function openDrawEditor(photoIndex){
-  drawEditing = photoIndex; // -1=新規手書き
-  const editor = document.getElementById('draw-editor');
-  editor.classList.add('open');
-  drawCanvas = document.getElementById('draw-canvas');
-  drawCtx = drawCanvas.getContext('2d');
-  drawHistory = [];
+// 図形オブジェクト管理
+let shapes=[]; // {type,cx,cy,w,h,angle,color,lineWidth}
+let selectedShape=null;
+let dragState=null; // {mode,ox,oy,origShape}
+const HR=10; // ハンドル半径
 
-  const wrap = document.getElementById('draw-canvas-wrap');
+// ─── モード切替 ───
+function setDrawMode(mode,btn){
+  drawMode=mode;
+  document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  if(mode!=='select') selectedShape=null;
+  // カーソル設定
+  const top = shapeCanvas||drawCanvas;
+  if(top){
+    if(mode==='select') top.style.cursor='default';
+    else if(mode==='free'||mode==='eraser') top.style.cursor='crosshair';
+    else top.style.cursor='crosshair';
+  }
+  renderShapeLayer();
+}
 
-  if(photoIndex === -1){
-    // 新規手書きメモ（白地）
-    const maxW = Math.max(wrap.clientWidth - 16, 320);
-    const maxH = Math.max(wrap.clientHeight - 16, 480);
-    drawCanvas.width = maxW;
-    drawCanvas.height = maxH;
-    drawCtx.fillStyle = '#ffffff';
-    drawCtx.fillRect(0, 0, drawCanvas.width, drawCanvas.height);
-    drawLayerBase = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
-    setPenColor('#000000', document.getElementById('pen-black'));
-    saveDrawHistory();
-    setupDrawEvents();
-  } else {
-    // 既存写真 or 既存手書き → base画像を読み込み、drawingレイヤーを上に重ねる
-    const entry = currentPhotos[photoIndex];
-    const baseSrc = photoBase(entry);
-    const drawSrc = photoDrawing(entry);
+// ─── 座標変換 ───
+function toCanvasXY(e, canvas){
+  const r=canvas.getBoundingClientRect();
+  const sx=canvas.width/r.width, sy=canvas.height/r.height;
+  return [(e.clientX-r.left)*sx,(e.clientY-r.top)*sy];
+}
 
-    const img = new Image();
-    img.onload = ()=>{
-      const maxW = wrap.clientWidth - 16;
-      const maxH = wrap.clientHeight - 16;
-      const scale = Math.min(maxW/img.width, maxH/img.height, 1);
-      drawCanvas.width  = img.width  * scale;
-      drawCanvas.height = img.height * scale;
-      drawCtx.fillStyle='#ffffff';
-      drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
-      drawCtx.drawImage(img, 0, 0, drawCanvas.width, drawCanvas.height);
-      // 消しゴムが戻るべきベース（base画像のみの状態）
-      drawLayerBase = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+// ─── シェイプ描画 ───
+function renderOneShape(c, sh){
+  c.save();
+  c.translate(sh.cx,sh.cy);
+  c.rotate(sh.angle||0);
+  c.strokeStyle=sh.color;
+  c.lineWidth=sh.lineWidth;
+  c.lineJoin='round'; c.lineCap='round';
+  const hw=sh.w/2, hh=sh.h/2;
+  c.beginPath();
+  if(sh.type==='rect'){
+    c.strokeRect(-hw,-hh,sh.w,sh.h);
+  } else if(sh.type==='circle'){
+    c.ellipse(0,0,Math.max(1,hw),Math.max(1,hh),0,0,Math.PI*2);
+    c.stroke();
+  } else if(sh.type==='line'){
+    c.moveTo(-hw,0); c.lineTo(hw,0); c.stroke();
+  } else if(sh.type==='valve'){
+    c.moveTo(-hw,-hh); c.lineTo(0,0); c.lineTo(-hw,hh); c.closePath(); c.stroke();
+    c.beginPath();
+    c.moveTo(hw,-hh);  c.lineTo(0,0); c.lineTo(hw,hh);  c.closePath(); c.stroke();
+    c.beginPath();
+    c.moveTo(0,-hh); c.lineTo(0,hh); c.stroke();
+  }
+  c.restore();
+}
 
-      const finishSetup = ()=>{
-        saveDrawHistory();
-        setupDrawEvents();
-      };
+function renderShapeLayer(){
+  if(!shapeCanvas||!shapeCtx) return;
+  shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);
+  shapes.forEach(sh=>renderOneShape(shapeCtx,sh));
+  if(selectedShape) drawHandles(shapeCtx,selectedShape);
+}
 
-      if(drawSrc){
-        // 保存済み描画レイヤーを上に重ねる
-        const dImg = new Image();
-        dImg.onload = ()=>{
-          drawCtx.globalAlpha = 1;
-          drawCtx.drawImage(dImg, 0, 0, drawCanvas.width, drawCanvas.height);
-          finishSetup();
-        };
-        dImg.src = drawSrc;
-      } else {
-        finishSetup();
-      }
-    };
-    img.src = baseSrc;
+// ─── 選択ハンドル ───
+function drawHandles(c, sh){
+  c.save();
+  c.translate(sh.cx,sh.cy);
+  c.rotate(sh.angle||0);
+  const hw=sh.w/2, hh=sh.h/2, pad=10;
+  // 選択枠
+  c.setLineDash([5,4]);
+  c.strokeStyle='#4a8ff7'; c.lineWidth=1.5;
+  c.strokeRect(-hw-pad,-hh-pad,sh.w+pad*2,sh.h+pad*2);
+  c.setLineDash([]);
+  // 回転ハンドル（上中央）
+  const rotY=-(hh+pad+26);
+  c.beginPath(); c.moveTo(0,-(hh+pad)); c.lineTo(0,rotY);
+  c.strokeStyle='#4a8ff7'; c.lineWidth=1.5; c.stroke();
+  _handle(c,0,rotY,'↻','#4a8ff7');
+  // 削除ハンドル（右上）
+  _handle(c,hw+pad,-(hh+pad),'✕','#e05555');
+  // コーナーハンドル（4隅・削除ハンドルと重ならないように右上は除外）
+  [[-hw-pad,-hh-pad],[hw+pad,hh+pad],[-hw-pad,hh+pad]]
+    .forEach(([x,y])=>_handle(c,x,y,null,'#4a8ff7'));
+  c.restore();
+}
+function _handle(c,x,y,label,color){
+  c.beginPath(); c.arc(x,y,HR,0,Math.PI*2);
+  c.fillStyle='#fff'; c.fill();
+  c.strokeStyle=color||'#4a8ff7'; c.lineWidth=2; c.stroke();
+  if(label){
+    c.fillStyle=color||'#4a8ff7';
+    c.font='bold 11px sans-serif'; c.textAlign='center'; c.textBaseline='middle';
+    c.fillText(label,x,y);
   }
 }
 
-function setupDrawEvents(){
-  const c = drawCanvas;
-  // マウス
-  c.onmousedown = e=>{ drawPointing=true; drawLastX=getX(e); drawLastY=getY(e); drawDot(drawLastX,drawLastY); };
-  c.onmousemove = e=>{ if(!drawPointing) return; drawLine(drawLastX,drawLastY,getX(e),getY(e)); drawLastX=getX(e); drawLastY=getY(e); };
-  c.onmouseup = ()=>{ drawPointing=false; saveDrawHistory(); };
-  c.onmouseleave = ()=>{ if(drawPointing){ drawPointing=false; saveDrawHistory(); } };
-  // タッチ
-  c.ontouchstart = e=>{ e.preventDefault(); const t=e.touches[0]; drawPointing=true; drawLastX=getX(t); drawLastY=getY(t); drawDot(drawLastX,drawLastY); };
-  c.ontouchmove = e=>{ e.preventDefault(); const t=e.touches[0]; if(!drawPointing) return; drawLine(drawLastX,drawLastY,getX(t),getY(t)); drawLastX=getX(t); drawLastY=getY(t); };
-  c.ontouchend = ()=>{ drawPointing=false; saveDrawHistory(); };
+// ─── ヒットテスト ───
+function hitHandle(sh,x,y){
+  const cos=Math.cos(-(sh.angle||0)), sin=Math.sin(-(sh.angle||0));
+  const lx=x-sh.cx, ly=y-sh.cy;
+  const rx=lx*cos-ly*sin, ry=lx*sin+ly*cos;
+  const hw=sh.w/2, hh=sh.h/2, pad=10;
+  // 削除（右上）
+  if(Math.hypot(rx-(hw+pad),ry+(hh+pad))<HR*1.8) return 'delete';
+  // 回転（上中央）
+  if(Math.hypot(rx,ry+(hh+pad+26))<HR*1.8) return 'rotate';
+  // コーナー（右上以外）
+  for(const [cx,cy,d] of [[-hw-pad,-hh-pad,'nw'],[hw+pad,hh+pad,'se'],[-hw-pad,hh+pad,'sw']]){
+    if(Math.hypot(rx-cx,ry-cy)<HR*1.8) return d;
+  }
+  // 内側
+  if(Math.abs(rx)<hw+pad&&Math.abs(ry)<hh+pad) return 'move';
+  return null;
+}
+function hitShape(x,y){
+  for(let i=shapes.length-1;i>=0;i--){
+    const sh=shapes[i];
+    const cos=Math.cos(-(sh.angle||0)), sin=Math.sin(-(sh.angle||0));
+    const lx=x-sh.cx, ly=y-sh.cy;
+    const rx=lx*cos-ly*sin, ry=lx*sin+ly*cos;
+    if(Math.abs(rx)<sh.w/2+8&&Math.abs(ry)<sh.h/2+8) return sh;
+  }
+  return null;
 }
 
-function getX(e){
-  const r = drawCanvas.getBoundingClientRect();
-  return (e.clientX - r.left) * (drawCanvas.width / r.width);
-}
-function getY(e){
-  const r = drawCanvas.getBoundingClientRect();
-  return (e.clientY - r.top) * (drawCanvas.height / r.height);
-}
-
+// ─── フリーハンド描画 ───
 function drawDot(x,y){
+  if(drawColor==='eraser'){eraseAt(x,y,drawSize*3);return;}
   drawCtx.beginPath();
-  drawCtx.globalCompositeOperation='source-over';
-  if(drawColor==='eraser'){
-    const eraserSize = drawSize * 3;
-    const base = drawLayerBase || drawHistory[0];
-    const sx = Math.max(0, Math.round(x - eraserSize));
-    const sy = Math.max(0, Math.round(y - eraserSize));
-    const sw = Math.min(eraserSize*2, drawCanvas.width-sx);
-    const sh = Math.min(eraserSize*2, drawCanvas.height-sy);
-    if(sw>0&&sh>0){
-      const patch = new ImageData(sw,sh);
-      for(let j=0;j<patch.data.length;j+=4){
-        const bx = sx+(j/4%sw), by = sy+Math.floor(j/4/sw);
-        const bi = (by*drawCanvas.width+bx)*4;
-        patch.data[j]   = base.data[bi];
-        patch.data[j+1] = base.data[bi+1];
-        patch.data[j+2] = base.data[bi+2];
-        patch.data[j+3] = base.data[bi+3];
-      }
-      drawCtx.putImageData(patch, sx, sy);
-    }
-    return;
-  }
-  drawCtx.fillStyle = drawColor;
-  drawCtx.arc(x, y, drawSize/2, 0, Math.PI*2);
+  drawCtx.fillStyle=drawColor;
+  drawCtx.arc(x,y,drawSize/2,0,Math.PI*2);
   drawCtx.fill();
 }
-
 function drawLine(x1,y1,x2,y2){
+  if(drawColor==='eraser'){eraseAt(x2,y2,drawSize*2);return;}
   drawCtx.beginPath();
-  drawCtx.globalCompositeOperation='source-over';
-  if(drawColor==='eraser'){
-    const eraserSize = drawSize * 2;
-    const base = drawLayerBase || drawHistory[0];
-    const steps = Math.ceil(Math.hypot(x2-x1, y2-y1) / (eraserSize/2)) || 1;
-    for(let i=0;i<=steps;i++){
-      const px = x1 + (x2-x1)*i/steps;
-      const py = y1 + (y2-y1)*i/steps;
-      const sx = Math.max(0, Math.round(px-eraserSize));
-      const sy = Math.max(0, Math.round(py-eraserSize));
-      const sw = Math.min(eraserSize*2, drawCanvas.width-sx);
-      const sh = Math.min(eraserSize*2, drawCanvas.height-sy);
-      if(sw>0&&sh>0){
-        const patch = new ImageData(sw,sh);
-        for(let j=0;j<patch.data.length;j+=4){
-          const bx = sx+(j/4%sw), by = sy+Math.floor(j/4/sw);
-          const bi = (by*drawCanvas.width+bx)*4;
-          patch.data[j]   = base.data[bi];
-          patch.data[j+1] = base.data[bi+1];
-          patch.data[j+2] = base.data[bi+2];
-          patch.data[j+3] = base.data[bi+3];
-        }
-        drawCtx.putImageData(patch, sx, sy);
-      }
-    }
-    return;
-  }
-  drawCtx.strokeStyle = drawColor;
-  drawCtx.lineWidth = drawSize;
-  drawCtx.lineCap = 'round';
-  drawCtx.lineJoin = 'round';
-  drawCtx.moveTo(x1,y1);
-  drawCtx.lineTo(x2,y2);
+  drawCtx.strokeStyle=drawColor;
+  drawCtx.lineWidth=drawSize;
+  drawCtx.lineCap='round';
+  drawCtx.moveTo(x1,y1); drawCtx.lineTo(x2,y2);
   drawCtx.stroke();
 }
-
-function saveDrawHistory(){
-  drawHistory.push(drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
-  if(drawHistory.length>50) drawHistory.shift();
+function eraseAt(x,y,r){
+  const base=drawLayerBase;
+  if(!base) return;
+  const sx=Math.max(0,Math.round(x-r)), sy=Math.max(0,Math.round(y-r));
+  const sw=Math.min(r*2,drawCanvas.width-sx), sh=Math.min(r*2,drawCanvas.height-sy);
+  if(sw<=0||sh<=0) return;
+  const patch=new ImageData(sw,sh);
+  for(let j=0;j<patch.data.length;j+=4){
+    const bx=sx+(j/4%sw)|0, by=sy+(j/4/sw)|0;
+    const bi=(by*drawCanvas.width+bx)*4;
+    patch.data[j]=base.data[bi]; patch.data[j+1]=base.data[bi+1];
+    patch.data[j+2]=base.data[bi+2]; patch.data[j+3]=base.data[bi+3];
+  }
+  drawCtx.putImageData(patch,sx,sy);
 }
 
+// ─── 直線スナップ ───
+// PC: Shiftキーで0/45/90/135度にスナップ
+// スマホ: 角度が各スナップ方向の±15度以内なら自動スナップ
+let shiftDown = false;
+document.addEventListener('keydown', e=>{ if(e.key==='Shift') shiftDown=true; });
+document.addEventListener('keyup',   e=>{ if(e.key==='Shift') shiftDown=false; });
+
+function snapLine(x0,y0,x1,y1){
+  const dx=x1-x0, dy=y1-y0;
+  const len=Math.hypot(dx,dy);
+  if(len<2) return [x1,y1];
+  const angle=Math.atan2(dy,dx); // -π〜π
+  const deg=angle*180/Math.PI;   // -180〜180
+
+  // スナップ候補: 0, 45, 90, 135, 180, -45, -90, -135
+  const snaps=[0,45,90,135,180,-45,-90,-135];
+  const THRESHOLD = shiftDown ? 360 : 15; // Shift押下時は常にスナップ
+  let best=null, bestDiff=Infinity;
+  for(const s of snaps){
+    const diff=Math.abs(((deg-s+540)%360)-180);
+    if(diff<THRESHOLD && diff<bestDiff){ bestDiff=diff; best=s; }
+  }
+  if(best===null) return [x1,y1];
+  const snapAngle=best*Math.PI/180;
+  return [x0+Math.cos(snapAngle)*len, y0+Math.sin(snapAngle)*len];
+}
+
+// ─── イベント設定 ───
+function setupDrawEvents(){
+  const eventCanvas = shapeCanvas || drawCanvas;
+  const wrap = document.getElementById('draw-canvas-wrap');
+  const container = document.getElementById('draw-canvas-container');
+  let canvasScale = 1;
+
+  // ホイールズーム
+  wrap.onwheel = e => {
+    e.preventDefault();
+    const delta = e.deltaY < 0 ? 1.1 : 0.9;
+    canvasScale = Math.min(Math.max(canvasScale * delta, 0.3), 5);
+    container.style.transform = `scale(${canvasScale})`;
+    container.style.transformOrigin = 'top center';
+  };
+
+  const toCV=(e)=>{
+    const r=eventCanvas.getBoundingClientRect();
+    const sx=eventCanvas.width/r.width, sy=eventCanvas.height/r.height;
+    return [(e.clientX-r.left)*sx,(e.clientY-r.top)*sy];
+  };
+
+  const onStart=(x,y)=>{
+    drawPointing=true;
+    if(drawMode==='free'||drawMode==='eraser'){
+      drawLastX=x; drawLastY=y;
+      drawDot(x,y);
+    } else if(drawMode==='select'){
+      // 選択モード
+      if(selectedShape){
+        const hit=hitHandle(selectedShape,x,y);
+        if(hit==='delete'){
+          shapes=shapes.filter(s=>s!==selectedShape);
+          selectedShape=null;
+          renderShapeLayer();
+          drawPointing=false;
+          return;
+        }
+        if(hit){ dragState={mode:hit,ox:x,oy:y,origShape:{...selectedShape}}; return; }
+      }
+      const sh=hitShape(x,y);
+      if(sh){ selectedShape=sh; dragState={mode:'move',ox:x,oy:y,origShape:{...sh}}; }
+      else   { selectedShape=null; }
+      renderShapeLayer();
+    } else {
+      // 図形配置モード
+      selectedShape=null;
+      shapeStartX=x; shapeStartY=y; shapePreviewing=true;
+    }
+  };
+
+  const onMove=(x,y)=>{
+    if(!drawPointing) return;
+    if(drawMode==='free'||drawMode==='eraser'){
+      drawLine(drawLastX,drawLastY,x,y);
+      drawLastX=x; drawLastY=y;
+    } else if(drawMode==='select'&&dragState){
+      const sh=selectedShape;
+      const {mode,ox,oy,origShape}=dragState;
+      if(mode==='move'){
+        sh.cx=origShape.cx+(x-ox); sh.cy=origShape.cy+(y-oy);
+      } else if(mode==='rotate'){
+        sh.angle=Math.atan2(y-sh.cy,x-sh.cx)+Math.PI/2;
+      } else {
+        // リサイズ
+        const ang=-(sh.angle||0);
+        const cos=Math.cos(ang), sin=Math.sin(ang);
+        const lx=x-origShape.cx, ly=y-origShape.cy;
+        const rx=lx*cos-ly*sin, ry=lx*sin+ly*cos;
+        const olx=ox-origShape.cx, oly=oy-origShape.cy;
+        const orx=olx*cos-oly*sin, ory=olx*sin+oly*cos;
+        let nw=origShape.w, nh=origShape.h;
+        if(mode.includes('e')) nw=Math.max(20,origShape.w+(rx-orx)*2);
+        if(mode.includes('w')) nw=Math.max(20,origShape.w-(rx-orx)*2);
+        if(mode.includes('s')) nh=Math.max(20,origShape.h+(ry-ory)*2);
+        if(mode.includes('n')) nh=Math.max(20,origShape.h-(ry-ory)*2);
+        sh.w=nw; sh.h=nh;
+      }
+      renderShapeLayer();
+    } else if(shapePreviewing){
+      // 図形プレビュー（shapeレイヤーのみ更新）
+      shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);
+      shapes.forEach(sh=>renderOneShape(shapeCtx,sh));
+      let ex=x, ey=y;
+      if(drawMode==='line'){ [ex,ey]=snapLine(shapeStartX,shapeStartY,x,y); }
+      const tmpSh={type:drawMode,cx:(shapeStartX+ex)/2,cy:(shapeStartY+ey)/2,
+        w:Math.abs(ex-shapeStartX)||2,h:Math.abs(ey-shapeStartY)||2,angle:0,
+        color:drawColor==='eraser'?'#e05555':drawColor,lineWidth:drawSize};
+      renderOneShape(shapeCtx,tmpSh);
+    }
+  };
+
+  const onEnd=(x,y)=>{
+    if(!drawPointing) return;
+    drawPointing=false;
+    if(drawMode==='free'||drawMode==='eraser'){
+      saveDrawHistory();
+    } else if(drawMode==='select'){
+      if(dragState){ dragState=null; }
+    } else if(shapePreviewing){
+      shapePreviewing=false;
+      let ex=x, ey=y;
+      if(drawMode==='line'){ [ex,ey]=snapLine(shapeStartX,shapeStartY,x,y); }
+      const w=Math.abs(ex-shapeStartX), h=Math.abs(ey-shapeStartY);
+      if(w>5||h>5){
+        const sh={type:drawMode,cx:(shapeStartX+ex)/2,cy:(shapeStartY+ey)/2,
+          w,h,angle:0,color:drawColor==='eraser'?'#e05555':drawColor,lineWidth:drawSize};
+        shapes.push(sh);
+        selectedShape=sh;
+        setDrawMode('select', document.getElementById('shape-select'));
+      }
+      renderShapeLayer();
+    }
+  };
+
+  eventCanvas.onmousedown =e=>onStart(...toCV(e));
+  eventCanvas.onmousemove =e=>onMove(...toCV(e));
+  eventCanvas.onmouseup   =e=>onEnd(...toCV(e));
+  eventCanvas.onmouseleave=e=>{if(drawPointing)onEnd(...toCV(e));};
+  eventCanvas.ontouchstart=e=>{e.preventDefault();onStart(...toCV(e.touches[0]));};
+  eventCanvas.ontouchmove =e=>{e.preventDefault();onMove(...toCV(e.touches[0]));};
+  eventCanvas.ontouchend  =e=>{e.preventDefault();onEnd(...toCV(e.changedTouches[0]));};
+}
+
+// ─── 履歴 ───
+function saveDrawHistory(){
+  drawHistory.push(drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height));
+  if(drawHistory.length>30) drawHistory.shift();
+}
 function undoDraw(){
-  if(drawHistory.length<=1) return;
+  if(drawHistory.length<2){ if(drawHistory.length===1) drawCtx.putImageData(drawHistory[0],0,0); return; }
   drawHistory.pop();
   drawCtx.putImageData(drawHistory[drawHistory.length-1],0,0);
 }
-
 function clearDraw(){
-  if(!confirm('すべての線を消しますか？')) return;
-  // drawLayerBase = 真っ白（手書きメモ）or 元写真（写真メモ）の状態に完全リセット
-  const base = drawLayerBase || drawHistory[0];
-  drawCtx.putImageData(base, 0, 0);
-  drawHistory = [drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height)];
+  if(drawLayerBase) drawCtx.putImageData(drawLayerBase,0,0);
+  shapes=[]; selectedShape=null; drawHistory=[];
+  saveDrawHistory();
+  shapeCtx&&shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);
 }
-
-function setPenColor(color, btn){
-  drawColor = color;
+function setPenColor(color,btn){
+  drawColor=color;
   document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
 }
-
 function updatePenSize(v){
-  drawSize = parseInt(v);
-  document.getElementById('pen-size-val').textContent = v;
+  drawSize=parseInt(v);
+  document.getElementById('pen-size-val').textContent=v;
 }
 
-function saveDrawing(){
-  // メモテキストを描画レイヤーに追記
-  const memo = (document.getElementById('draw-memo-text')?.value || '').trim();
-  if(memo){
-    drawCtx.globalCompositeOperation='source-over';
-    const lines = memo.split('\n');
-    const fontSize = Math.max(12, drawCanvas.width * 0.025);
-    drawCtx.font = `bold ${fontSize}px sans-serif`;
-    lines.forEach((line,i)=>{
-      const y = drawCanvas.height - fontSize*(lines.length-i) - 8;
-      const w = drawCtx.measureText(line).width;
-      drawCtx.fillStyle = 'rgba(0,0,0,0.6)';
-      drawCtx.fillRect(4, y-fontSize+2, w+8, fontSize+2);
-      drawCtx.fillStyle = '#fff';
-      drawCtx.fillText(line, 8, drawCanvas.height - fontSize*(lines.length-i) - 4);
-    });
-  }
+// ─── エディタを開く ───
+function openDrawEditor(photoIndex){
+  drawEditing=photoIndex;
+  const editor=document.getElementById('draw-editor');
+  editor.classList.add('open');
+  // リセット
+  drawMode='free';
+  document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
+  const freeBtn=document.getElementById('shape-free');
+  if(freeBtn) freeBtn.classList.add('active');
+  shapes=[]; selectedShape=null; dragState=null; drawHistory=[];
 
-  // 合成画像をJPEG圧縮（PNGより大幅に軽量）
-  const offComp = document.createElement('canvas');
-  offComp.width = drawCanvas.width; offComp.height = drawCanvas.height;
-  const offCompCtx = offComp.getContext('2d');
-  offCompCtx.fillStyle = '#ffffff';
-  offCompCtx.fillRect(0,0,offComp.width,offComp.height);
-  offCompCtx.drawImage(drawCanvas,0,0);
-  const compositeUrl = offComp.toDataURL('image/jpeg', 0.75);
+  drawCanvas=document.getElementById('draw-canvas');
+  drawCtx=drawCanvas.getContext('2d');
+  shapeCanvas=document.getElementById('shape-canvas');
+  shapeCtx=shapeCanvas.getContext('2d');
 
-  // 描画レイヤーのみを透過PNGで抽出（drawLayerBase との差分）
-  const _extractDrawingLayer = ()=>{
-    const offCanvas = document.createElement('canvas');
-    offCanvas.width  = drawCanvas.width;
-    offCanvas.height = drawCanvas.height;
-    const offCtx = offCanvas.getContext('2d');
-    const compositeData = drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
-    const baseData = drawLayerBase;
-    const layerData = offCtx.createImageData(drawCanvas.width, drawCanvas.height);
-    for(let i=0;i<compositeData.data.length;i+=4){
-      const rC=compositeData.data[i],gC=compositeData.data[i+1],bC=compositeData.data[i+2];
-      const rB=baseData.data[i],  gB=baseData.data[i+1],  bB=baseData.data[i+2];
-      if(Math.abs(rC-rB)+Math.abs(gC-gB)+Math.abs(bC-bB) > 8){
-        layerData.data[i]=rC; layerData.data[i+1]=gC;
-        layerData.data[i+2]=bC; layerData.data[i+3]=255;
-      } else {
-        layerData.data[i+3]=0;
-      }
-    }
-    offCtx.putImageData(layerData, 0, 0);
-    // 透過PNGのまま保存（描画は透過が必要）
-    return offCanvas.toDataURL('image/png');
+  const wrap=document.getElementById('draw-canvas-wrap');
+
+  const initCanvasSize=(w,h)=>{
+    const container=document.getElementById('draw-canvas-container');
+    container.style.width=w+'px'; container.style.height=h+'px';
+    drawCanvas.width=w; drawCanvas.height=h;
+    drawCanvas.style.width=w+'px'; drawCanvas.style.height=h+'px';
+    shapeCanvas.width=w; shapeCanvas.height=h;
+    shapeCanvas.style.width=w+'px'; shapeCanvas.style.height=h+'px';
   };
 
-  if(drawEditing === -1){
-    // 新規手書きメモ：compositeのみ保存（base/drawingは不要）
-    currentPhotos.push({ composite: compositeUrl });
-  } else {
-    const baseSrc    = photoBase(currentPhotos[drawEditing]);
-    const drawingUrl = _extractDrawingLayer();
-    // compositeのみJSONに保存、base/drawingは再合成用に保持するが軽量化のためcompositeで代替
-    currentPhotos[drawEditing] = { base: baseSrc, drawing: drawingUrl, composite: compositeUrl };
-  }
+  const finishSetup=()=>{
+    // フリーハンドデータがあれば復元（ない場合は現在のcanvas状態をベースに）
+    const entry=currentPhotos[photoIndex];
+    if(entry&&entry.freehand){
+      const fImg=new Image();
+      fImg.onload=()=>{
+        drawCtx.drawImage(fImg,0,0,drawCanvas.width,drawCanvas.height);
+        drawLayerBase=drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+        // drawLayerBaseはベース（元写真）のみに戻す → フリーハンドは別途保持
+        // ベース（元写真）を復元してdrawLayerBaseとして保存
+        const baseImg=new Image();
+        baseImg.onload=()=>{
+          // drawLayerBaseにベース画像を保存（消しゴム用）
+          const tmpCtx=document.createElement('canvas').getContext('2d');
+          tmpCtx.canvas.width=drawCanvas.width; tmpCtx.canvas.height=drawCanvas.height;
+          tmpCtx.fillStyle='#ffffff'; tmpCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);
+          tmpCtx.drawImage(baseImg,0,0,drawCanvas.width,drawCanvas.height);
+          drawLayerBase=tmpCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+          saveDrawHistory();
+          setupDrawEvents();
+          if(entry.shapes){ try{ shapes=JSON.parse(entry.shapes); }catch(e){ shapes=[]; } }
+          renderShapeLayer();
+        };
+        const baseSrc2=typeof entry==='object'?(entry.base||entry.composite):entry;
+        baseImg.src=baseSrc2;
+      };
+      fImg.src=entry.freehand;
+    } else {
+      drawLayerBase=drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+      saveDrawHistory();
+      setupDrawEvents();
+      shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);
+      if(entry&&entry.shapes){ try{ shapes=JSON.parse(entry.shapes); }catch(e){ shapes=[]; } renderShapeLayer(); }
+    }
+  };
 
+  if(photoIndex===-1){
+    // 新規手書き
+    const maxW=Math.max(wrap.clientWidth-16,320);
+    const maxH=Math.max(wrap.clientHeight-16,480);
+    initCanvasSize(maxW,maxH);
+    drawCtx.fillStyle='#ffffff';
+    drawCtx.fillRect(0,0,maxW,maxH);
+    setPenColor('#000000',document.getElementById('pen-black'));
+    finishSetup();
+  } else {
+    const entry=currentPhotos[photoIndex];
+    const baseSrc=typeof entry==='object'?(entry.base||entry.composite):entry;
+    const img=new Image();
+    img.onload=()=>{
+      const maxW=wrap.clientWidth-16||600;
+      const maxH=wrap.clientHeight-16||600;
+      const scale=Math.min(maxW/img.width,maxH/img.height,1);
+      const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+      initCanvasSize(w,h);
+      drawCtx.fillStyle='#ffffff';
+      drawCtx.fillRect(0,0,w,h);
+      drawCtx.drawImage(img,0,0,w,h);
+      finishSetup();
+    };
+    img.src=baseSrc;
+  }
+}
+
+// ─── 保存 ───
+function saveDrawing(){
+  selectedShape=null;
+  // フリーハンドレイヤーをPNGで保存（再編集用）
+  const freehandUrl=drawCanvas.toDataURL('image/png');
+
+  // フリーハンド＋図形を合成してJPEGで保存（表示用composite）
+  const offComp=document.createElement('canvas');
+  offComp.width=drawCanvas.width; offComp.height=drawCanvas.height;
+  const offCtx=offComp.getContext('2d');
+  offCtx.fillStyle='#ffffff';
+  offCtx.fillRect(0,0,offComp.width,offComp.height);
+  offCtx.drawImage(drawCanvas,0,0);
+  shapes.forEach(sh=>renderOneShape(offCtx,sh));
+  const compositeUrl=offComp.toDataURL('image/jpeg',0.75);
+
+  const shapesData=JSON.stringify(shapes);
+  const memoEl=document.getElementById('draw-memo-text');
+  const memoVal=memoEl?memoEl.value.trim():'';
+
+  if(drawEditing===-1){
+    const entry={composite:compositeUrl,freehand:freehandUrl,shapes:shapesData};
+    if(memoVal) entry.memo=memoVal;
+    currentPhotos.push(entry);
+  } else {
+    const prev=currentPhotos[drawEditing];
+    const baseSrc=typeof prev==='object'?(prev.base||prev.composite):prev;
+    const entry={base:baseSrc,composite:compositeUrl,freehand:freehandUrl,shapes:shapesData};
+    if(memoVal) entry.memo=memoVal;
+    currentPhotos[drawEditing]=entry;
+  }
+  shapes=[];
   closeDrawEditor(true);
   renderPhotoGrid();
-  showToast('保存しました ✓', 'ok');
 }
 
 function closeDrawEditor(saved){
   document.getElementById('draw-editor').classList.remove('open');
-  const memoEl = document.getElementById('draw-memo-text');
-  if(memoEl) memoEl.value = '';
-  drawCanvas.onmousedown = null;
-  drawCanvas.onmousemove = null;
-  drawCanvas.onmouseup = null;
-  drawCanvas.ontouchstart = null;
-  drawCanvas.ontouchmove = null;
-  drawCanvas.ontouchend = null;
+  shapes=[]; selectedShape=null; dragState=null;
+  const memoEl=document.getElementById('draw-memo-text');
+  if(memoEl) memoEl.value='';
+  const wrap=document.getElementById('draw-canvas-wrap');
+  if(wrap) wrap.onwheel=null;
+  const container=document.getElementById('draw-canvas-container');
+  if(container) container.style.transform='';
+  const ec=shapeCanvas||drawCanvas;
+  if(ec){
+    ec.onmousedown=null; ec.onmousemove=null; ec.onmouseup=null;
+    ec.onmouseleave=null;
+    ec.ontouchstart=null; ec.ontouchmove=null; ec.ontouchend=null;
+  }
 }
 
 // ══════════════════════════════════════
