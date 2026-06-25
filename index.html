@@ -221,10 +221,24 @@ input[type="date"]{color-scheme:dark;}
 /* ═══ 描画エディタ ═══ */
 #draw-editor{position:fixed;inset:0;z-index:700;background:#000;display:none;flex-direction:column;}
 #draw-editor.open{display:flex;}
-.draw-toolbar{background:#1a1a1a;padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;flex-wrap:wrap;}
+.draw-toolbar{background:#1a1a1a;padding:6px 12px;display:flex;flex-direction:column;gap:6px;flex-shrink:0;}
+.draw-toolbar-row{display:flex;align-items:center;gap:8px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.draw-toolbar-row::-webkit-scrollbar{display:none;}
 .draw-toolbar-title{font-size:13px;font-weight:600;color:#fff;margin-right:4px;}
-.pen-btn{width:32px;height:32px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:all 0.15s;flex-shrink:0;}
-.pen-btn.active{border-color:#fff;transform:scale(1.15);}
+.history-card{background:var(--surface2);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--border);}
+.history-card.add{border-left-color:var(--success);}
+.history-card.edit{border-left-color:var(--accent);}
+.history-card.delete{border-left-color:var(--danger);}
+.history-card.complete{border-left-color:#d4c800;}
+.history-card.uncomplete{border-left-color:var(--text3);}
+.history-card:hover{background:var(--surface3);}
+.history-meta{font-size:10px;color:var(--text3);margin-bottom:4px;}
+.history-action{font-size:12px;font-weight:700;margin-bottom:2px;}
+.history-detail{font-size:11px;color:var(--text2);}
+@keyframes pinHighlight{0%{box-shadow:0 0 0 0 rgba(255,255,255,0.9);}50%{box-shadow:0 0 0 12px rgba(255,255,255,0);}100%{box-shadow:0 0 0 0 rgba(255,255,255,0);}}
+.pin-highlight .pin-marker{animation:pinHighlight 0.6s ease 2;}
+.pen-btn{width:20px;height:20px;border-radius:50%;border:none;cursor:pointer;transition:box-shadow 0.15s,transform 0.15s;flex-shrink:0;display:inline-block;box-shadow:0 0 0 0 transparent;}
+.pen-btn.active{box-shadow:0 0 0 2px #1a1a1a, 0 0 0 4px #fff;transform:scale(1.05);}
 .shape-btn{width:34px;height:34px;border-radius:8px;border:2px solid var(--border);background:var(--surface2);color:var(--text1);font-size:16px;cursor:pointer;transition:all 0.15s;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
 .shape-btn.active{border-color:#4a8ff7;background:#1a3a6a;color:#4a8ff7;}
 .pen-size{display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;}
@@ -335,6 +349,7 @@ input[type="date"]{color-scheme:dark;}
   /* モバイル用の一覧・集計ページはPC時非表示 */
   #list-page{display:none!important;}
   #report-page{display:none!important;}
+  #history-page{display:none!important;}
   /* PC右ペイン：一覧・集計・設定を切り替え */
   .pc-right{
     display:flex!important;
@@ -494,6 +509,7 @@ input[type="date"]{color-scheme:dark;}
   <div class="tab active" onclick="switchTab('map')"><span class="tab-icon">📌</span>図面</div>
   <div class="tab" onclick="switchTab('list')"><span class="tab-icon">📋</span>一覧</div>
   <div class="tab" onclick="switchTab('report')"><span class="tab-icon">📊</span>集計</div>
+  <div class="tab" onclick="switchTab('history')"><span class="tab-icon">🕐</span>履歴</div>
   <div class="tab" onclick="switchTab('settings')"><span class="tab-icon">⚙️</span>設定</div>
 </div>
 
@@ -551,13 +567,23 @@ input[type="date"]{color-scheme:dark;}
       </div>
     </div>
   </div>
-</div>
+
+  <!-- 履歴 -->
+  <div id="history-page" class="page" style="padding:12px;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h3 style="margin:0;font-size:15px;">🕐 変更履歴</h3>
+      <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px;color:var(--danger);" onclick="clearHistory()">クリア</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+</div><!-- /content -->
 
 <!-- PC右ペイン：一覧／集計／設定 を切り替え -->
 <div class="pc-right" id="pcRight">
   <div class="pc-tabs">
     <div class="pc-tab" onclick="switchPcTab('list')"><span class="pc-tab-icon">📋</span>一覧</div>
     <div class="pc-tab active" onclick="switchPcTab('report')"><span class="pc-tab-icon">📊</span>集計</div>
+    <div class="pc-tab" onclick="switchPcTab('history')"><span class="pc-tab-icon">🕐</span>履歴</div>
     <div class="pc-tab" onclick="switchPcTab('settings')"><span class="pc-tab-icon">⚙️</span>設定</div>
   </div>
   <!-- 一覧 -->
@@ -591,6 +617,14 @@ input[type="date"]{color-scheme:dark;}
                 </div>
       </div>
     </div>
+  </div>
+  <!-- 履歴（PC右ペイン） -->
+  <div class="pc-page" id="pc-history-page" style="overflow-y:auto;padding:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <h3 style="margin:0;font-size:15px;">🕐 変更履歴</h3>
+      <button class="btn btn-secondary" style="padding:5px 10px;font-size:11px;color:var(--danger);" onclick="clearHistory()">クリア</button>
+    </div>
+    <div id="historyListPc"></div>
   </div>
   <!-- 設定（PC右ペイン） -->
   <div class="pc-page" id="pc-settings-page" style="overflow-y:auto;">
@@ -763,30 +797,42 @@ input[type="date"]{color-scheme:dark;}
 <!-- 描画エディタ -->
 <div id="draw-editor">
   <div class="draw-toolbar">
-    <span class="draw-toolbar-title">✏️ 描画</span>
-    <!-- カラー -->
-    <button class="pen-btn active" id="pen-black" style="background:#000000;border:2px solid #fff" onclick="setPenColor('#000000',this)" title="黒"></button>
-    <button class="pen-btn" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
-    <button class="pen-btn" id="pen-blue" style="background:#3b8fd4" onclick="setPenColor('#3b8fd4',this)" title="青"></button>
-    <button class="pen-btn" id="pen-green" style="background:#2ea87e" onclick="setPenColor('#2ea87e',this)" title="緑"></button>
-    <button class="pen-btn" id="pen-white" style="background:#ffffff" onclick="setPenColor('#ffffff',this)" title="白"></button>
-    <button class="pen-btn" id="pen-eraser" style="background:#555;border:2px solid #888;font-size:13px;border-radius:8px;width:36px;" onclick="setPenColor('eraser',this)" title="消しゴム">消</button>
-    <div style="width:1px;height:24px;background:var(--border);margin:0 4px;flex-shrink:0;"></div>
-    <!-- ツールモード -->
-    <button class="shape-btn active" id="shape-free"   onclick="setDrawMode('free',this)"   title="フリーハンド">✏️</button>
-    <button class="shape-btn"        id="shape-rect"   onclick="setDrawMode('rect',this)"   title="四角形を描く">□</button>
-    <button class="shape-btn"        id="shape-circle" onclick="setDrawMode('circle',this)" title="円を描く">○</button>
-    <button class="shape-btn"        id="shape-line"   onclick="setDrawMode('line',this)"   title="直線を描く">╱</button>
-    <button class="shape-btn"        id="shape-valve"  onclick="setDrawMode('valve',this)"  title="バルブを描く">⧖</button>
-    <button class="shape-btn"        id="shape-select" onclick="setDrawMode('select',this)" title="図形を選択・移動・変形">🖐</button>
-    <div class="pen-size">
-      <span>太さ</span>
-      <input type="range" id="pen-size" min="1" max="30" value="4" oninput="updatePenSize(this.value)">
-      <span id="pen-size-val">4</span>
+    <!-- 1行目：色選択 -->
+    <div class="draw-toolbar-row">
+      <span class="draw-toolbar-title">色</span>
+      <button class="pen-btn active" id="pen-black" style="background:#000000;" onclick="setPenColor('#000000',this)" title="黒"></button>
+      <button class="pen-btn" id="pen-red" style="background:#e05555" onclick="setPenColor('#e05555',this)" title="赤"></button>
+      <button class="pen-btn" id="pen-yellow" style="background:#f0c000" onclick="setPenColor('#f0c000',this)" title="黄"></button>
+      <button class="pen-btn" id="pen-blue" style="background:#3b8fd4" onclick="setPenColor('#3b8fd4',this)" title="青"></button>
+      <button class="pen-btn" id="pen-green" style="background:#2ea87e" onclick="setPenColor('#2ea87e',this)" title="緑"></button>
+      <button class="pen-btn" id="pen-white" style="background:#ffffff" onclick="setPenColor('#ffffff',this)" title="白"></button>
+      <div style="width:1px;height:22px;background:#444;flex-shrink:0;"></div>
+      <span style="font-size:11px;color:#aaa;flex-shrink:0;">太さ</span>
+      <input type="range" id="pen-size" min="1" max="30" value="4" style="width:80px;flex-shrink:0;" oninput="updatePenSize(this.value)">
+      <span id="pen-size-val" style="font-size:11px;color:#fff;min-width:18px;flex-shrink:0;">4</span>
     </div>
-    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;margin-left:auto;" onclick="undoDraw()">↩ 元に戻す</button>
-    <button class="btn btn-secondary" style="padding:6px 12px;font-size:12px;color:var(--danger);" onclick="clearDraw()">🗑 クリア</button>
-    <button class="icon-btn" onclick="closeDrawEditor(false)" title="キャンセル">✕</button>
+    <!-- 2行目：ツール選択 -->
+    <div class="draw-toolbar-row">
+      <span class="draw-toolbar-title">ツール</span>
+      <!-- フリーハンド系（消しゴムで消せる） -->
+      <div style="display:flex;align-items:center;gap:4px;background:#1e2a1e;border:1px solid #2ea87e44;border-radius:8px;padding:3px 7px;" title="消しゴムで消せます">
+        <button class="shape-btn active" id="shape-free" onclick="setDrawMode('free',this)" title="フリーハンド（消しゴムで消せる）">✏️</button>
+        <button class="shape-btn" id="pen-eraser" onclick="setEraserMode(this)" title="消しゴム">消</button>
+      </div>
+      <!-- 図形系（🖐で削除） -->
+      <div style="display:flex;align-items:center;gap:4px;background:#1a2030;border:1px solid #4a8ff744;border-radius:8px;padding:3px 7px;" title="🖐で選択・削除できます">
+        <button class="shape-btn" id="shape-rect"   onclick="setDrawMode('rect',this)"   title="四角形（🖐で選択・削除）">□</button>
+        <button class="shape-btn" id="shape-circle" onclick="setDrawMode('circle',this)" title="円（🖐で選択・削除）">○</button>
+        <button class="shape-btn" id="shape-line"   onclick="setDrawMode('line',this)"   title="直線（🖐で選択・削除）">╱</button>
+        <button class="shape-btn" id="shape-valve"  onclick="setDrawMode('valve',this)"  title="バルブ（🖐で選択・削除）">⧖</button>
+        <div style="width:1px;height:18px;background:#4a8ff744;flex-shrink:0;"></div>
+        <button class="shape-btn" id="shape-select" onclick="setDrawMode('select',this)" title="図形を選択・移動・変形・削除">🖐</button>
+      </div>
+      <div style="flex:1;"></div>
+      <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;flex-shrink:0;" onclick="undoDraw()">↩ 元に戻す</button>
+      <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;color:var(--danger);flex-shrink:0;" onclick="clearDraw()">🗑 クリア</button>
+      <button class="icon-btn" style="flex-shrink:0;" onclick="closeDrawEditor(false)" title="キャンセル">✕</button>
+    </div>
   </div>
   <div class="draw-canvas-wrap" id="draw-canvas-wrap">
     <div class="draw-canvas-container" id="draw-canvas-container">
@@ -1394,15 +1440,16 @@ function updateHeaderProject(){
 //  TAB / LAYOUT
 // ══════════════════════════════════════
 function switchTab(name){
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['map','list','report','settings'][i]===name));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['map','list','report','history','settings'][i]===name));
   document.querySelectorAll('.content > .page').forEach(p=>p.classList.remove('active'));
   document.getElementById(name+'-page')?.classList.add('active');
   if(name==='list')renderList();
   if(name==='report')renderReport();
+  if(name==='history'){ renderHistory(); }
   if(name==='settings'){updateStorageDisplay();openSettings();switchTab('map');}
 }
 function switchPcTab(name){
-  const labels={list:'一覧',report:'集計',settings:'設定'};
+  const labels={list:'一覧',report:'集計',history:'履歴',settings:'設定'};
   document.querySelectorAll('.pc-tab').forEach(t=>{
     const isActive=Object.entries(labels).some(([k,v])=>k===name&&t.textContent.includes(v));
     t.classList.toggle('active',isActive);
@@ -1411,7 +1458,7 @@ function switchPcTab(name){
   document.getElementById('pc-'+name+'-page')?.classList.add('active');
   if(name==='list'){renderListPc();}
   if(name==='report'){renderReportPc();}
-
+  if(name==='history'){ renderHistory(); }
 }
 
 function renderPcSettings(){
@@ -1425,9 +1472,11 @@ function isPC(){return window.innerWidth>=900;}
 function applyLayout(){ if(isPC()){switchPcTab('report');} }
 function loadData(){
   if(!currentProjectId){pins=[];return;}
-  // localStorageが使える場合はそちらを優先、使えない場合はメモリ上のデータをそのまま維持
+  // ピン
   const storedPins = _lsGet('pins_'+currentProjectId);
   if(storedPins !== null){ try{pins=JSON.parse(storedPins);}catch(e){pins=[];} }
+  // 履歴
+  loadHistory();
   // pinsがメモリにあればそのまま使う（storedPinsがnullの場合）
 
   const storedImg  = _lsGet('map_img_' +currentProjectId);
@@ -1593,6 +1642,7 @@ function renderPins(){
     const el=document.createElement('div');
     const cls=pin.completed?'pin-complete':`pin-${pin.division||'施工'} pin-${pin.priority||'low'}`;
     el.className=`map-pin ${cls}${(pin.photos&&pin.photos.length>0)?' pin-has-photo':''}`;
+    el.dataset.id = pin.id;  // jumpToPin用
     el.style.left=(pin.x*img.naturalWidth*mapScale+mapOffX)+'px';
     el.style.top=(pin.y*img.naturalHeight*mapScale+mapOffY)+'px';
     el.innerHTML=`<div class="pin-marker"><span class="pin-no">${pin.pin_no}</span></div>`;
@@ -1738,6 +1788,100 @@ function renderPhotoGrid(){
 function removePhoto(i){currentPhotos.splice(i,1);renderPhotoGrid();}
 
 // SAVE / DELETE
+// ══════════════════════════════════════
+//  変更履歴
+// ══════════════════════════════════════
+let pinHistory = [];
+
+function addHistory(type, pin, changes){
+  const labels = {add:'➕ 追加',edit:'✏️ 更新',delete:'🗑️ 削除',complete:'✅ 完了',uncomplete:'↩️ 未完了に戻す'};
+  const colors  = {add:'add',edit:'edit',delete:'delete',complete:'complete',uncomplete:'uncomplete'};
+  const now = new Date();
+  const ts = `${now.getFullYear()}/${String(now.getMonth()+1).padStart(2,'0')}/${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  pinHistory.unshift({
+    type, cls:colors[type]||'edit',
+    label: labels[type]||type,
+    ts,
+    pin_id:  pin.id||'',
+    pin_no:  pin.pin_no||'',
+    content: pin.content||'',
+    author:  pin.author||'',
+    division: pin.division||'',
+    item:    pin.item||'',
+    changes: changes||[]
+  });
+  if(pinHistory.length>100) pinHistory=pinHistory.slice(0,100);
+  _lsSet('pin_history_'+currentProjectId, JSON.stringify(pinHistory));
+  idbSet('pin_history_'+currentProjectId, JSON.stringify(pinHistory));
+}
+
+function loadHistory(){
+  const stored = _lsGet('pin_history_'+currentProjectId);
+  if(stored){ try{ pinHistory=JSON.parse(stored); }catch(e){ pinHistory=[]; } }
+}
+
+function clearHistory(){
+  if(!confirm('変更履歴をすべてクリアしますか？')) return;
+  pinHistory=[];
+  _lsSet('pin_history_'+currentProjectId,'[]');
+  idbSet('pin_history_'+currentProjectId,'[]');
+  renderHistory();
+  showToast('履歴をクリアしました','ok');
+}
+
+const FIELD_LABELS = {
+  division:'区分', priority:'優先度', item:'指摘項目', target:'対象',
+  location:'場所', content:'指摘内容', action:'対処方法',
+  complete_date:'完了予定日', completed:'完了状態', author:'記入者',
+  photos:'写真'
+};
+
+function renderHistory(){
+  const html = pinHistory.length===0
+    ? '<div style="color:var(--text3);text-align:center;padding:40px 0;font-size:13px;">まだ変更履歴がありません</div>'
+    : pinHistory.map((h,i)=>{
+        const canJump = h.type!=='delete' && h.pin_id;
+        const changesHtml = h.changes&&h.changes.length
+          ? `<div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px;">
+              ${h.changes.map(c=>`<span style="background:var(--surface3);border-radius:4px;padding:1px 7px;font-size:10px;color:var(--accent3);">${FIELD_LABELS[c]||c}</span>`).join('')}
+             </div>` : '';
+        return `
+      <div class="history-card ${h.cls}" style="${canJump?'cursor:pointer;':''}"
+        ${canJump?`onclick="jumpToPin('${h.pin_id}')"`:''}
+        title="${canJump?'クリックでピンに移動':''}">
+        <div class="history-meta">${h.ts}${h.author?' · '+h.author:''}</div>
+        <div class="history-action">
+          ${h.label}${h.pin_no?' <strong>#'+String(h.pin_no).padStart(2,'0')+'</strong>':''}&ensp;
+          <span style="font-weight:400;color:var(--text2);font-size:11px;">${h.division||''} ${h.item||''}</span>
+          ${canJump?'<span style="float:right;font-size:11px;color:var(--accent3);">🔍</span>':''}
+        </div>
+        ${h.content?`<div class="history-detail">${h.content.slice(0,60)}${h.content.length>60?'…':''}</div>`:''}
+        ${changesHtml}
+      </div>`;
+    }).join('');
+  ['historyList','historyListPc'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.innerHTML=html;
+  });
+}
+
+function jumpToPin(pinId){
+  const pin = pins.find(p=>p.id===pinId);
+  if(!pin){ showToast('ピンが見つかりません（削除済みの可能性）','warn'); return; }
+  // 図面タブに切り替え
+  switchTab('map');
+  setTimeout(()=>{
+    const el = document.querySelector(`.map-pin[data-id="${pinId}"]`);
+    if(el){
+      el.scrollIntoView({behavior:'smooth',block:'center'});
+      el.classList.add('pin-highlight');
+      setTimeout(()=>el.classList.remove('pin-highlight'),2000);
+    }
+    // 編集パネルを開く
+    openPinSheet(pin);
+  }, 150);
+}
+
 function savePin(){
   const author=document.getElementById('f-author').value;
   if(author)_lsSet('lastAuthor',author);
@@ -1762,9 +1906,22 @@ function savePin(){
   const savedPendingX=pendingX, savedPendingY=pendingY;
   if(savedEditingId){
     const i=pins.findIndex(p=>p.id===savedEditingId);
-    if(i>=0)pins[i]={...pins[i],...pd};
+    if(i>=0){
+      // 変更フィールドを検出
+      const before = pins[i];
+      const trackFields = ['division','priority','item','target','location','content','action','complete_date','completed','author'];
+      const changes = trackFields.filter(f=>String(before[f]||'')!==String(pd[f]||''));
+      // 写真の変更を検出（枚数変化 or 描画変更）
+      const beforePhotos = JSON.stringify((before.photos||[]).map(p=>typeof p==='object'?p.composite:p));
+      const afterPhotos  = JSON.stringify((pd.photos||[]).map(p=>typeof p==='object'?p.composite:p));
+      if(beforePhotos !== afterPhotos) changes.push('photos');
+      pins[i]={...pins[i],...pd};
+      addHistory('edit', pins[i], changes);
+    }
   } else {
-    pins.push({id:crypto.randomUUID(),pin_no:pins.length>0?Math.max(...pins.map(p=>p.pin_no))+1:1,x:savedPendingX,y:savedPendingY,...pd});
+    const newPin={id:crypto.randomUUID(),pin_no:pins.length>0?Math.max(...pins.map(p=>p.pin_no))+1:1,x:savedPendingX,y:savedPendingY,...pd};
+    pins.push(newPin);
+    addHistory('add', newPin, []);
   }
   closeSheet();
   showToast(wasEditing?'更新しました ✓':'ピンを追加しました ✓','ok');
@@ -1775,6 +1932,8 @@ function deletePin(){
   if(!editingId) return;
   // iPadSafari対応：confirmの代わりにカスタム確認
   showConfirm('このピンを削除しますか？', ()=>{
+    const pin=pins.find(p=>p.id===editingId);
+    if(pin) addHistory('delete', pin);
     pins=pins.filter(p=>p.id!==editingId);
     renumberPins();
     closeSheet();
@@ -2349,7 +2508,6 @@ function setupDrawEvents(){
           w,h,angle:0,color:drawColor==='eraser'?'#e05555':drawColor,lineWidth:drawSize};
         shapes.push(sh);
         selectedShape=sh;
-        // 配置後は自動で選択モードに切替
         setDrawMode('select', document.getElementById('shape-select'));
       }
       renderShapeLayer();
@@ -2381,10 +2539,25 @@ function clearDraw(){
   saveDrawHistory();
   shapeCtx&&shapeCtx.clearRect(0,0,shapeCanvas.width,shapeCanvas.height);
 }
+function setEraserMode(btn){
+  drawColor='eraser';
+  // 色ボタンのアクティブを外す
+  document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active'));
+  // shape-btnのアクティブを外してこのボタンをアクティブに
+  document.querySelectorAll('.shape-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  // フリーハンドモードにする
+  drawMode='free';
+}
 function setPenColor(color,btn){
   drawColor=color;
   document.querySelectorAll('.pen-btn').forEach(b=>b.classList.remove('active'));
+  // 消ボタン（shape-btn）のアクティブも外す
+  const eraserBtn=document.getElementById('pen-eraser');
+  if(eraserBtn) eraserBtn.classList.remove('active');
   if(btn) btn.classList.add('active');
+  // フリーハンドモードに切り替え
+  if(drawMode==='free'||drawMode==='eraser') drawMode='free';
 }
 function updatePenSize(v){
   drawSize=parseInt(v);
