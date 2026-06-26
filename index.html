@@ -858,7 +858,6 @@ input[type="date"]{color-scheme:dark;}
 // ══════════════════════════════════════
 
 // SP_BASE_FOLDERはlocalStorageから動的に取得（下のgetBaseFolderを使用）
-const SCOPES         = ['Files.ReadWrite', 'User.Read'];
 const DEFAULT_PIN    = '0611';
 const ITEMS_BY_DIV   = {
   '施工': ['改善','確認','残工事','対策','改善案'],
@@ -1362,41 +1361,6 @@ function doImportJSON(input){
 
 // 共有フォルダの接続確認ボタン
 // spGetDriveInfo() の多段フォールバックを使い、
-// 成功時に見つかったdriveIdをUIに表示する
-// ══════════════════════════════════════
-//  GRAPH API / OneDrive
-// ══════════════════════════════════════
-
-// OneDrive /me/drive アクセス
-// ══════════════════════════════════════
-//  Files.ReadWrite スコープのみで動作
-//  共有リンクURL → Base64エンコード → /shares/{id}/driveItem
-// ══════════════════════════════════════
-
-// Files.ReadWrite スコープで動作するサイト直接アクセス方式
-
-// 現場フォルダ名に使えない文字を除去
-
-// 共有リンクURLをGraph API用のsharing tokenに変換
-
-// 共有リンクURLを取得（localStorageから）
-
-// 共有リンクが設定されているか確認
-
-// パス: /shares/{token}/driveItem:/現場名/ファイル名:/content
-
-
-// 共有フォルダ内の現場フォルダ一覧を取得
-
-// 共有URLの接続確認
-
-// 共有URLの設定ダイアログ
-
-
-// プロジェクトのconfig.jsonを読む
-
-// プロジェクトのconfig.jsonを保存
-
 // ══════════════════════════════════════
 //  プロジェクト管理
 // ══════════════════════════════════════
@@ -1461,15 +1425,7 @@ function switchPcTab(name){
   if(name==='history'){ renderHistory(); }
 }
 
-function renderPcSettings(){
-  updateStorageDisplay();
-  const sp  = document.getElementById('settingsProjectName');
-  const sp2 = document.getElementById('settingsProjectName2');
-  if(sp)  sp.textContent  = currentProjectName||'-';
-  if(sp2) sp2.textContent = currentProjectName||'-';
-}
 function isPC(){return window.innerWidth>=900;}
-function applyLayout(){ if(isPC()){switchPcTab('report');} }
 function loadData(){
   if(!currentProjectId){pins=[];return;}
   // ピン
@@ -1759,8 +1715,6 @@ function loadAndCompressPhoto(file,maxPx=800,quality=0.72){
   });
 }
 function photoThumb(src){ return typeof src==='object' ? src.composite||src.base : src; }
-function photoBase(src){ return typeof src==='object' ? src.base : src; }
-function photoDrawing(src){ return typeof src==='object' ? (src.drawing||null) : null; }
 
 function renderPhotoGrid(){
   const g=document.getElementById('photoGrid');g.innerHTML='';
@@ -2263,12 +2217,6 @@ function setDrawMode(mode,btn){
   renderShapeLayer();
 }
 
-// ─── 座標変換 ───
-function toCanvasXY(e, canvas){
-  const r=canvas.getBoundingClientRect();
-  const sx=canvas.width/r.width, sy=canvas.height/r.height;
-  return [(e.clientX-r.left)*sx,(e.clientY-r.top)*sy];
-}
 
 // ─── シェイプ描画 ───
 function renderOneShape(c, sh){
