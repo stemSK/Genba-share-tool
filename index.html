@@ -503,6 +503,7 @@ input[type="date"]{color-scheme:dark;}
   <div class="header-project">
     <div class="header-project-name" id="headerProjectName">📁 現場を選択 ▾</div>
   </div>
+  <button onclick="openHelp()" title="取扱説明書" style="background:none;border:1px solid var(--border);border-radius:8px;color:var(--text2);padding:4px 10px;font-size:12px;cursor:pointer;flex-shrink:0;">❓ ヘルプ</button>
 </header>
 
 <div class="tabs">
@@ -824,7 +825,9 @@ input[type="date"]{color-scheme:dark;}
         <button class="shape-btn" id="shape-rect"   onclick="setDrawMode('rect',this)"   title="四角形（🖐で選択・削除）">□</button>
         <button class="shape-btn" id="shape-circle" onclick="setDrawMode('circle',this)" title="円（🖐で選択・削除）">○</button>
         <button class="shape-btn" id="shape-line"   onclick="setDrawMode('line',this)"   title="直線（🖐で選択・削除）">╱</button>
+        <button class="shape-btn" id="shape-arrow"  onclick="setDrawMode('arrow',this)"  title="矢印（🖐で選択・削除）">→</button>
         <button class="shape-btn" id="shape-valve"  onclick="setDrawMode('valve',this)"  title="バルブ（🖐で選択・削除）">⧖</button>
+        <button class="shape-btn" id="shape-text"   onclick="setDrawMode('text',this)"   title="テキストボックス（🖐で選択・削除）">T</button>
         <div style="width:1px;height:18px;background:#4a8ff744;flex-shrink:0;"></div>
         <button class="shape-btn" id="shape-select" onclick="setDrawMode('select',this)" title="図形を選択・移動・変形・削除">🖐</button>
       </div>
@@ -841,8 +844,7 @@ input[type="date"]{color-scheme:dark;}
     </div>
   </div>
   <div class="draw-actions">
-    <textarea class="draw-memo" id="draw-memo-text" placeholder="メモを入力（任意）" rows="2"></textarea>
-    <button class="btn btn-primary" style="flex-shrink:0;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
+    <button class="btn btn-primary" style="flex:1;padding:10px 18px;" onclick="saveDrawing()">💾 保存</button>
   </div>
 </div>
 
@@ -966,6 +968,10 @@ async function init(){
 // ══════════════════════════════════════
 //  起動ファイル選択画面
 // ══════════════════════════════════════
+function openHelp(){
+  window.open('./help.pdf','_blank','noopener');
+}
+
 function showStartupScreen(){
   const lastPj    = _lsGet('last_project_id')   || currentProjectId;
   const lastName  = _lsGet('last_project_name') || currentProjectName;
@@ -1790,6 +1796,13 @@ const FIELD_LABELS = {
   photos:'写真'
 };
 
+function deleteHistory(i){
+  pinHistory.splice(i,1);
+  _lsSet('pin_history_'+currentProjectId, JSON.stringify(pinHistory));
+  idbSet('pin_history_'+currentProjectId, JSON.stringify(pinHistory));
+  renderHistory();
+}
+
 function renderHistory(){
   const html = pinHistory.length===0
     ? '<div style="color:var(--text3);text-align:center;padding:40px 0;font-size:13px;">まだ変更履歴がありません</div>'
@@ -1800,14 +1813,17 @@ function renderHistory(){
               ${h.changes.map(c=>`<span style="background:var(--surface3);border-radius:4px;padding:1px 7px;font-size:10px;color:var(--accent3);">${FIELD_LABELS[c]||c}</span>`).join('')}
              </div>` : '';
         return `
-      <div class="history-card ${h.cls}" style="${canJump?'cursor:pointer;':''}"
-        ${canJump?`onclick="jumpToPin('${h.pin_id}')"`:''}
-        title="${canJump?'クリックでピンに移動':''}">
+      <div class="history-card ${h.cls}" style="position:relative;">
+        <button onclick="deleteHistory(${i})" title="この履歴を削除"
+          style="position:absolute;top:5px;right:5px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;line-height:1;padding:2px 5px;"
+          onmouseover="this.style.color='var(--danger)'" onmouseout="this.style.color='var(--text3)'">✕</button>
         <div class="history-meta">${h.ts}${h.author?' · '+h.author:''}</div>
-        <div class="history-action">
+        <div class="history-action" style="${canJump?'cursor:pointer;':''}padding-right:20px;"
+          ${canJump?`onclick="jumpToPin('${h.pin_id}')"`:''}
+          title="${canJump?'クリックでピンに移動':''}">
           ${h.label}${h.pin_no?' <strong>#'+String(h.pin_no).padStart(2,'0')+'</strong>':''}&ensp;
           <span style="font-weight:400;color:var(--text2);font-size:11px;">${h.division||''} ${h.item||''}</span>
-          ${canJump?'<span style="float:right;font-size:11px;color:var(--accent3);">🔍</span>':''}
+          ${canJump?'<span style="font-size:11px;color:var(--accent3);">🔍</span>':''}
         </div>
         ${h.content?`<div class="history-detail">${h.content.slice(0,60)}${h.content.length>60?'…':''}</div>`:''}
         ${changesHtml}
@@ -2235,12 +2251,48 @@ function renderOneShape(c, sh){
     c.stroke();
   } else if(sh.type==='line'){
     c.moveTo(-hw,0); c.lineTo(hw,0); c.stroke();
+  } else if(sh.type==='arrow'){
+    // 矢印：線＋矢頭
+    const aw=Math.min(hw*0.4,20), ah=Math.min(hh+sh.lineWidth*2,18);
+    c.moveTo(-hw,0); c.lineTo(hw,0); c.stroke();
+    c.beginPath();
+    c.moveTo(hw,0);
+    c.lineTo(hw-aw,-ah/2);
+    c.lineTo(hw-aw, ah/2);
+    c.closePath();
+    c.fillStyle=sh.color; c.fill();
   } else if(sh.type==='valve'){
     c.moveTo(-hw,-hh); c.lineTo(0,0); c.lineTo(-hw,hh); c.closePath(); c.stroke();
     c.beginPath();
     c.moveTo(hw,-hh);  c.lineTo(0,0); c.lineTo(hw,hh);  c.closePath(); c.stroke();
     c.beginPath();
     c.moveTo(0,-hh); c.lineTo(0,hh); c.stroke();
+  } else if(sh.type==='text'){
+    // テキストボックス：白背景＋枠＋テキスト
+    c.fillStyle='#ffffff';
+    c.fillRect(-hw,-hh,sh.w,sh.h);
+    c.setLineDash([4,3]); c.strokeRect(-hw,-hh,sh.w,sh.h); c.setLineDash([]);
+    if(sh.text){
+      c.fillStyle=sh.color;
+      const fs=Math.max(10,Math.min(sh.lineWidth*5, sh.h*0.6, 32));
+      c.font=`bold ${fs}px sans-serif`;
+      c.textAlign='center'; c.textBaseline='middle';
+      // 長いテキストは折り返し
+      const words=sh.text.split(''); let line=''; const lines=[];
+      for(const ch of words){
+        const test=line+ch;
+        if(c.measureText(test).width>sh.w-8&&line){ lines.push(line); line=ch; }
+        else line=test;
+      }
+      if(line) lines.push(line);
+      const lh=fs*1.3;
+      lines.forEach((l,idx)=>{ c.fillText(l,0,(idx-(lines.length-1)/2)*lh); });
+    } else {
+      c.fillStyle=sh.color+'88';
+      c.font=`italic ${Math.min(13,sh.h*0.4)}px sans-serif`;
+      c.textAlign='center'; c.textBaseline='middle';
+      c.fillText('テキスト',0,0);
+    }
   }
   c.restore();
 }
@@ -2453,7 +2505,13 @@ function setupDrawEvents(){
       const w=Math.abs(x-shapeStartX), h=Math.abs(y-shapeStartY);
       if(w>5||h>5){
         const sh={type:drawMode,cx:(shapeStartX+x)/2,cy:(shapeStartY+y)/2,
-          w,h,angle:0,color:drawColor==='eraser'?'#e05555':drawColor,lineWidth:drawSize};
+          w,h,angle:0,color:drawColor==='eraser'?'#e05555':drawColor,lineWidth:drawSize,text:''};
+        // テキストボックスはすぐ入力ダイアログを表示
+        if(drawMode==='text'){
+          const t=prompt('テキストを入力:','');
+          if(t===null){ renderShapeLayer(); return; }
+          sh.text=t;
+        }
         shapes.push(sh);
         selectedShape=sh;
         setDrawMode('select', document.getElementById('shape-select'));
@@ -2462,6 +2520,14 @@ function setupDrawEvents(){
     }
   };
 
+  eventCanvas.ondblclick=e=>{
+    const [x,y]=toCV(e);
+    const sh=hitShape(x,y);
+    if(sh&&sh.type==='text'){
+      const t=prompt('テキストを編集:',sh.text||'');
+      if(t!==null){ sh.text=t; renderShapeLayer(); }
+    }
+  };
   eventCanvas.onmousedown =e=>onStart(...toCV(e));
   eventCanvas.onmousemove =e=>onMove(...toCV(e));
   eventCanvas.onmouseup   =e=>onEnd(...toCV(e));
@@ -2607,8 +2673,32 @@ function openDrawEditor(photoIndex){
 // ─── 保存 ───
 function saveDrawing(){
   selectedShape=null;
-  // フリーハンドレイヤーをPNGで保存（再編集用）
-  const freehandUrl=drawCanvas.toDataURL('image/png');
+
+  // フリーハンドレイヤー：描画があればJPEGで保存（PNGより大幅に軽量）
+  // drawLayerBaseと比較して描画がなければnull
+  let freehandUrl=null;
+  const curData=drawCtx.getImageData(0,0,drawCanvas.width,drawCanvas.height);
+  const baseData=drawLayerBase;
+  let hasFreehand=false;
+  if(baseData){
+    for(let i=0;i<curData.data.length;i+=4){
+      if(Math.abs(curData.data[i]-baseData.data[i])>8||
+         Math.abs(curData.data[i+1]-baseData.data[i+1])>8||
+         Math.abs(curData.data[i+2]-baseData.data[i+2])>8){
+        hasFreehand=true; break;
+      }
+    }
+  } else { hasFreehand=true; }
+  if(hasFreehand){
+    // JPEG 0.85で保存（PNGの1/5〜1/10のサイズ）
+    const off=document.createElement('canvas');
+    off.width=drawCanvas.width; off.height=drawCanvas.height;
+    const offCtx=off.getContext('2d');
+    offCtx.fillStyle='#ffffff';
+    offCtx.fillRect(0,0,off.width,off.height);
+    offCtx.drawImage(drawCanvas,0,0);
+    freehandUrl=off.toDataURL('image/jpeg',0.85);
+  }
 
   // フリーハンド＋図形を合成してJPEGで保存（表示用composite）
   const offComp=document.createElement('canvas');
@@ -2620,19 +2710,18 @@ function saveDrawing(){
   shapes.forEach(sh=>renderOneShape(offCtx,sh));
   const compositeUrl=offComp.toDataURL('image/jpeg',0.75);
 
-  const shapesData=JSON.stringify(shapes);
-  const memoEl=document.getElementById('draw-memo-text');
-  const memoVal=memoEl?memoEl.value.trim():'';
+  // shapesが空かつfreehandなしなら最軽量で保存
+  const shapesData=shapes.length>0?JSON.stringify(shapes):'[]';
 
   if(drawEditing===-1){
-    const entry={composite:compositeUrl,freehand:freehandUrl,shapes:shapesData};
-    if(memoVal) entry.memo=memoVal;
+    const entry={composite:compositeUrl,shapes:shapesData};
+    if(freehandUrl) entry.freehand=freehandUrl;
     currentPhotos.push(entry);
   } else {
     const prev=currentPhotos[drawEditing];
     const baseSrc=typeof prev==='object'?(prev.base||prev.composite):prev;
-    const entry={base:baseSrc,composite:compositeUrl,freehand:freehandUrl,shapes:shapesData};
-    if(memoVal) entry.memo=memoVal;
+    const entry={base:baseSrc,composite:compositeUrl,shapes:shapesData};
+    if(freehandUrl) entry.freehand=freehandUrl;
     currentPhotos[drawEditing]=entry;
   }
   shapes=[];
