@@ -2001,8 +2001,8 @@ table{width:100%;border-collapse:collapse;margin-bottom:16px;}
 td{padding:6px 8px;border:1px solid #e5e7eb;vertical-align:top;}
 td:first-child{width:100px;font-weight:600;background:#f9fafb;color:#555;}
 .photos{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
-.photos img{width:220px;height:165px;object-fit:cover;border-radius:6px;border:1px solid #ddd;}
-@media print{.pin-page{page-break-after:always;}.photos img{width:200px;height:150px;}}
+.photos img{width:480px;height:360px;object-fit:cover;border-radius:6px;border:1px solid #ddd;}
+@media print{.pin-page{page-break-after:always;}.photos img{width:420px;height:315px;}}
 </style></head><body>
   <div class="cover"><h1>📍 現場共有レポート</h1><p>${currentProjectName||currentProjectId}</p><p>出力日: ${new Date().toLocaleDateString('ja-JP')}</p><p>出力件数: ${targetPins.length}件 / 未完了: ${targetPins.filter(p=>!p.completed).length}件</p></div>`;
   for(const pin of targetPins){
