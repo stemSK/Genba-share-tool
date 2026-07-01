@@ -2077,7 +2077,21 @@ async function exportMapPDF(){
       ctx.fillStyle='white';ctx.font=`bold ${r*1.1}px monospace`;ctx.textAlign='center';ctx.textBaseline='middle';
       ctx.fillText(String(pin.pin_no),px,py-r);
     });
-    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{margin:0;padding:20px;font-family:'Noto Sans JP',sans-serif;}h2{font-size:16px;margin-bottom:8px;}img{max-width:100%;height:auto;border:1px solid #ddd;border-radius:4px;}@media print{body{padding:10px;}}</style></head><body><h2>📍 ${currentProjectName||currentProjectId} — ピン配置図面 (${new Date().toLocaleDateString('ja-JP')})</h2><img src="${canvas.toDataURL('image/jpeg',0.92)}"></body></html>`;
+    const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans JP',sans-serif;padding:12px;}
+h2{font-size:14px;margin-bottom:6px;color:#333;}
+img{max-width:100%;height:auto;border:1px solid #ddd;border-radius:4px;display:block;}
+@media print{
+  @page{size:A4 landscape;margin:8mm;}
+  body{padding:0;}
+  h2{font-size:12px;margin-bottom:4px;}
+  img{max-width:100%;max-height:calc(100vh - 28px);width:auto;height:auto;object-fit:contain;}
+}
+</style></head><body>
+<h2>📍 ${currentProjectName||currentProjectId} — ピン配置図面 (${new Date().toLocaleDateString('ja-JP')})</h2>
+<img src="${canvas.toDataURL('image/jpeg',0.92)}">
+</body></html>`;
     dl(`map_${currentProjectId}_${now()}.html`,html,'text/html;charset=utf-8');
     showToast('図面をダウンロードしました','ok');
   };
