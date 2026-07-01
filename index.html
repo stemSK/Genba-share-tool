@@ -1165,6 +1165,8 @@ function _loadStartupFile(file, fname){
     currentProjectId   = d.project_id||('proj_'+Date.now());
     currentFileName    = fname;
     pins = Array.isArray(d.pins) ? d.pins : [];
+    // 変更履歴も読み込む
+    pinHistory = Array.isArray(d.history) ? d.history : [];
     _lsSet('last_project_id',   currentProjectId);
     _lsSet('last_project_name', currentProjectName);
     _lsSet('project_name_'+currentProjectId, currentProjectName);
@@ -1321,7 +1323,8 @@ function exportJSON(){
     exported:     isoNow,
     map_name:     _lsGet('map_name_'+currentProjectId) || currentMapName  || null,
     map_image:    _lsGet('map_img_' +currentProjectId) || currentMapImage || null,
-    pins
+    pins,
+    history: pinHistory
   };
   dl(fname, JSON.stringify(data, null, 2), 'application/json');
   // 最終保存ファイル名・日時・プロジェクトIDを記録
