@@ -562,7 +562,7 @@ input[type="date"]{color-scheme:dark;}
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
-          <div class="export-item" onclick="exportShunkoExcel()" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><span class="ei">📑</span><div><strong>竣工検査記録帳票の作成</strong><span>設計・施工ピンをExcel様式で出力</span></div></div>
+          <div class="export-item" onclick="openShunkoSelectModal()" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><span class="ei">📑</span><div><strong>竣工検査記録帳票の作成</strong><span>設計・施工ピンをExcel様式で出力</span></div></div>
           <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
                 </div>
       </div>
@@ -613,7 +613,7 @@ input[type="date"]{color-scheme:dark;}
           <div class="export-item" onclick="exportPinReport()"><span class="ei">📋</span><div><strong>ピンレポート（全件）</strong><span>全ピンの詳細・写真付きHTML</span></div></div>
           <div class="export-item" onclick="openPinSelectModal()"><span class="ei">☑️</span><div><strong>ピン選択レポート</strong><span>出力するピンを選んでHTML出力</span></div></div>
           <div class="export-item" onclick="exportMapPDF()"><span class="ei">🗺️</span><div><strong>ピン配置図面</strong><span>図面上にピン番号を配置して出力</span></div></div>
-          <div class="export-item" onclick="exportShunkoExcel()" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><span class="ei">📑</span><div><strong>竣工検査記録帳票の作成</strong><span>設計・施工ピンをExcel様式で出力</span></div></div>
+          <div class="export-item" onclick="openShunkoSelectModal()" style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;"><span class="ei">📑</span><div><strong>竣工検査記録帳票の作成</strong><span>設計・施工ピンをExcel様式で出力</span></div></div>
           <div class="export-item" onclick="exportCSV()"><span class="ei">📄</span><div><strong>CSV出力</strong><span>全ピン情報を表計算形式で保存</span></div></div>
                 </div>
       </div>
@@ -1261,10 +1261,11 @@ await micropip.install('openpyxl')
   return _pyodideInstance;
 }
 
-async function exportShunkoExcel(){
-  if(!pins||pins.length===0){showToast('ピンがありません','warn');return;}
-  const pinsDesign=pins.filter(p=>(p.division||'施工')==='設計');
-  const pinsConst =pins.filter(p=>(p.division||'施工')!=='設計');
+async function exportShunkoExcel(targetPins){
+  const pinsToUse = Array.isArray(targetPins) ? targetPins : pins;
+  if(!pinsToUse||pinsToUse.length===0){showToast('ピンがありません','warn');return;}
+  const pinsDesign=pinsToUse.filter(p=>(p.division||'施工')==='設計');
+  const pinsConst =pinsToUse.filter(p=>(p.division||'施工')!=='設計');
   showToast('Excel生成中...（初回は数十秒かかります）','warn');
   try{
     const py = await _getPyodide();
@@ -2027,13 +2028,20 @@ td:first-child{width:100px;font-weight:600;background:#f9fafb;color:#555;}
 }
 
 // ピン選択モーダルを開く
-function openPinSelectModal(){
+function openPinSelectModal(allChecked=false){
   if(!pins.length){showToast('ピンがありません','warn');return;}
+  // ピンレポート用の場合はタイトル・ボタンを戻す
+  if(!allChecked){
+    const h3=document.querySelector('#pin-select-modal h3');
+    if(h3) h3.textContent='📋 出力するピンを選択';
+    const btn=document.querySelector('#pin-select-modal .btn-primary');
+    if(btn){ btn.textContent='📄 選択したピンを出力'; btn.onclick=exportSelectedPinReport; }
+  }
   const list=document.getElementById('pin-select-list');
   const priLabel={high:'高',mid:'中',low:'低'};
   list.innerHTML=[...pins].sort((a,b)=>a.pin_no-b.pin_no).map(pin=>`
     <label style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;cursor:pointer;">
-      <input type="checkbox" class="pin-select-cb" data-id="${pin.id}" checked style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;">
+      <input type="checkbox" class="pin-select-cb" data-id="${pin.id}" ${allChecked?'checked':''} style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;">
       <div style="flex:1;min-width:0;">
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
           <span style="font-size:12px;font-weight:700;color:var(--accent3);font-family:monospace;">#${String(pin.pin_no).padStart(2,'0')}</span>
@@ -2057,6 +2065,32 @@ async function exportSelectedPinReport(){
   if(!checked.size){showToast('ピンを1件以上選択してください','warn');return;}
   document.getElementById('pin-select-modal').style.display='none';
   await exportPinReport(checked);
+}
+
+function openShunkoSelectModal(){
+  if(!pins.length){showToast('ピンがありません','warn');return;}
+  const modal=document.getElementById('pin-select-modal');
+  // タイトルとボタンを竣工検査用に切り替え
+  modal.querySelector('h3').textContent='📑 出力するピンを選択（竣工検査記録帳票）';
+  const btn=modal.querySelector('.btn-primary');
+  btn.textContent='📑 選択したピンで帳票を作成';
+  btn.onclick=exportSelectedShunko;
+  // ピン一覧を生成（デフォルト全選択）
+  openPinSelectModal(true);
+}
+
+async function exportSelectedShunko(){
+  const checked=new Set([...document.querySelectorAll('.pin-select-cb:checked')].map(cb=>cb.dataset.id));
+  if(!checked.size){showToast('ピンを1件以上選択してください','warn');return;}
+  document.getElementById('pin-select-modal').style.display='none';
+  // 選択ピンのみで竣工検査帳票を出力
+  const selectedPins=pins.filter(p=>checked.has(p.id));
+  await exportShunkoExcel(selectedPins);
+  // ボタンを元に戻す
+  const btn=document.querySelector('#pin-select-modal .btn-primary');
+  if(btn){ btn.textContent='📄 選択したピンを出力'; btn.onclick=exportSelectedPinReport; }
+  const h3=document.querySelector('#pin-select-modal h3');
+  if(h3) h3.textContent='📋 出力するピンを選択';
 }
 async function exportMapPDF(){
   const imgData = _lsGet('map_img_'+currentProjectId) || currentMapImage;
