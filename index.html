@@ -29,10 +29,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);height:100dv
 /* ═══ STARTUP FILE SELECT ═══ */
 #startup-screen{
   position:fixed;inset:0;z-index:9998;background:var(--bg);
-  display:none;flex-direction:column;align-items:center;justify-content:center;
-  gap:24px;padding:32px 24px;overflow-y:auto;
+  display:none;flex-direction:column;align-items:center;justify-content:flex-start;
+  padding:32px 24px;overflow-y:auto;
 }
 #startup-screen.show{display:flex;}
+#startup-inner{
+  display:flex;flex-direction:column;align-items:center;gap:24px;
+  width:100%;margin:auto 0;
+}
 .startup-title{text-align:center;}
 .startup-logo{display:block;width:min(560px,92vw);height:auto;max-height:38vh;object-fit:contain;margin:0 auto 8px;}
 .startup-title h2{font-size:20px;font-weight:700;color:var(--accent3);}
@@ -441,6 +445,7 @@ input[type="date"]{color-scheme:dark;}
 
 <!-- STARTUP FILE SELECT -->
 <div id="startup-screen">
+ <div id="startup-inner">
   <div class="startup-title">
     <img src="./icon.png?v=20260809" alt="KOMIX" class="startup-logo">
     <p id="startup-subtitle" style="font-size:11px;color:var(--text3);letter-spacing:0.05em;">現場の情報を、ひとつに、見える化。</p>
@@ -478,6 +483,7 @@ input[type="date"]{color-scheme:dark;}
     </div>
   </div>
   <input type="file" id="startup-file-input" accept="application/json,.json" style="display:none" onchange="doStartupFileInput(this)">
+ </div>
 </div>
 
 <!-- 新規現場作成モーダル -->
